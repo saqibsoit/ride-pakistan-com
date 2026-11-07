@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
+use App\Actions\Slots\GenerateSlots;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -26,6 +27,9 @@ class DatabaseSeeder extends Seeder
             FaqSeeder::class,
             PostSeeder::class,
         ]);
+
+        // Model events are off while seeding, so the rule observer did not run.
+        app(GenerateSlots::class)->handle();
 
         if (app()->environment('local')) {
             User::query()->firstOrCreate(

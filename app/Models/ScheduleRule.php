@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Models\Concerns\LogsContentActivity;
 use App\Observers\PublicContentObserver;
+use App\Observers\ScheduleRuleObserver;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Database\Factories\ScheduleRuleFactory;
@@ -29,7 +30,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property CarbonImmutable|null $valid_to
  * @property bool $is_active
  */
-#[ObservedBy(PublicContentObserver::class)]
+#[ObservedBy([PublicContentObserver::class, ScheduleRuleObserver::class])]
 class ScheduleRule extends Model
 {
     /** @use HasFactory<ScheduleRuleFactory> */

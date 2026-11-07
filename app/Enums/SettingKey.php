@@ -28,6 +28,7 @@ enum SettingKey: string
     case CancellationCutoffHours = 'booking.cancellation_cutoff_hours';
     case SellingFastThreshold = 'booking.selling_fast_threshold';
     case MinRiderAge = 'booking.min_rider_age';
+    case SlotHorizonWeeks = 'booking.slot_horizon_weeks';
     case MapPinUrl = 'booking.map_pin_url';
 
     case RidingRules = 'policies.riding_rules';
@@ -51,7 +52,7 @@ enum SettingKey: string
             self::Email => SettingType::Email,
             self::InstagramUrl, self::InstagramDmUrl, self::ExpeditionsUrl, self::MapPinUrl => SettingType::Url,
             self::RidersPerSlot, self::TransferHoldHours, self::CancellationCutoffHours,
-            self::SellingFastThreshold, self::MinRiderAge => SettingType::Integer,
+            self::SellingFastThreshold, self::MinRiderAge, self::SlotHorizonWeeks => SettingType::Integer,
             self::RidingRules, self::BookingPolicies, self::AiCrawlers => SettingType::List,
             self::ScheduleSummary, self::RefundPolicy, self::DefaultDescription, self::BankAddress => SettingType::LongText,
             default => SettingType::Text,
@@ -82,6 +83,7 @@ enum SettingKey: string
             self::CancellationCutoffHours => 'Cancellation and reschedule cutoff (hours before slot)',
             self::SellingFastThreshold => 'Show "Selling fast" at or below (seats)',
             self::MinRiderAge => 'Minimum rider age',
+            self::SlotHorizonWeeks => 'Create bookable slots this many weeks ahead',
             self::MapPinUrl => 'Exact map pin URL (private, sent after confirmation)',
             self::RidingRules => 'Riding rules',
             self::BookingPolicies => 'Booking policies',

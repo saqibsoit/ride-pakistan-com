@@ -8,6 +8,7 @@
     "require": {
         "php": "^8.3",
         "filament/filament": "^5.11",
+        "intervention/image": "^3.11",
         "laravel/framework": "^12.0",
         "laravel/tinker": "^2.10.1",
         "livewire/livewire": "^4.4",
@@ -47,7 +48,8 @@
             "@php artisan key:generate",
             "@php artisan migrate --force",
             "npm install",
-            "npm run build"
+            "npm run build",
+            "@php artisan images:responsive"
         ],
         "dev": [
             "Composer\\Config::disableProcessTimeout",

@@ -49,6 +49,17 @@ return [
             'report' => false,
         ],
 
+        // Brand and editorial photos shipped with the site (public/images).
+        // Responsive variants are generated into images/_variants.
+        'site' => [
+            'driver' => 'local',
+            'root' => public_path('images'),
+            'url' => '/images',
+            'visibility' => 'public',
+            'throw' => false,
+            'report' => false,
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),

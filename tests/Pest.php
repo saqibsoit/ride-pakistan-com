@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 /*
@@ -21,3 +22,26 @@ pest()->extend(TestCase::class)
     ->in('Feature');
 
 pest()->extend(TestCase::class)->in('Unit');
+
+/*
+|--------------------------------------------------------------------------
+| Helpers
+|--------------------------------------------------------------------------
+*/
+
+/**
+ * Write a solid-colour JPEG of the given size to a (faked) disk and return its path.
+ */
+function putTestImage(string $disk, string $path, int $width, int $height, string $format = 'jpg'): string
+{
+    $image = imagecreatetruecolor($width, $height);
+    imagefill($image, 0, 0, (int) imagecolorallocate($image, 139, 90, 43));
+
+    ob_start();
+    $format === 'png' ? imagepng($image) : imagejpeg($image, null, 80);
+    $binary = (string) ob_get_clean();
+
+    Storage::disk($disk)->put($path, $binary);
+
+    return $path;
+}

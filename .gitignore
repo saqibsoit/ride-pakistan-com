@@ -30,3 +30,6 @@ Thumbs.db
 /public/css/filament
 /public/js/filament
 /public/fonts/filament
+
+# Responsive image variants (php artisan images:responsive)
+/public/images/_variants

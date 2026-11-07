@@ -6,30 +6,28 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Public contact details and brand links
+    | Fixed site constants
     |--------------------------------------------------------------------------
     |
-    | Shown in the header, footer and calls to action. These move to the
-    | admin-editable settings table in milestone 3; until then, override them
-    | from .env.
+    | Editable business details (contact, links, policies) are settings; see
+    | config/settings.php and App\Support\Settings.
     |
     */
 
-    'default_title' => 'Ride Pakistan | Weekend horse riding in Islamabad',
-
-    'default_description' => 'Weekend horsemanship and trail riding sessions in Islamabad with trainer Omar Saleem. Every Saturday and Sunday. No experience needed.',
-
-    'email' => env('SITE_EMAIL', 'hello@ridepakistan.co'),
-
-    'instagram_url' => env('SITE_INSTAGRAM_URL', 'https://www.instagram.com/ridepakistan/'),
-
-    'instagram_dm_url' => env('SITE_INSTAGRAM_DM_URL', 'https://ig.me/m/ridepakistan'),
-
-    'expeditions_url' => env('SITE_EXPEDITIONS_URL', 'https://ridepakistan.co'),
-
-    'parent_company' => 'Destination Pakistan',
+    // Appended to every page title: "Prices | Ride Pakistan".
+    'title_suffix' => ' | Ride Pakistan',
 
     // Browser UI colour; mirrors --color-earth in resources/css/tokens.css.
     'theme_color' => '#1F140B',
+
+    // How many weeks ahead /schedule lets visitors page.
+    'schedule_weeks_ahead' => 8,
+
+    // Search engines may index this environment (robots meta, robots.txt,
+    // X-Robots-Tag). Production only unless overridden; staging stays noindex.
+    'indexable' => (bool) env('SITE_INDEXABLE', env('APP_ENV') === 'production'),
+
+    // Generated sitemap (App\Actions\Seo\GenerateSitemap), served at /sitemap.xml.
+    'sitemap_path' => base_path((string) env('SITEMAP_PATH', 'storage/app/sitemap.xml')),
 
 ];

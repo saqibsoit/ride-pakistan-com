@@ -16,6 +16,7 @@
         "spatie/laravel-backup": "^10.3",
         "spatie/laravel-responsecache": "^7.7",
         "spatie/laravel-sitemap": "^8.0",
+        "spatie/schema-org": "^4.0",
         "stripe/stripe-php": "^22.1"
     },
     "require-dev": {

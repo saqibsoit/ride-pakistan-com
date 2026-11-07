@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
+use App\Enums\UserRole;
 use App\Models\User;
+use Filament\Auth\MultiFactor\App\AppAuthentication;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -43,5 +45,24 @@ class UserFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
         ]);
+    }
+
+    public function admin(): static
+    {
+        return $this->afterMaking(fn (User $user) => $user->role = UserRole::Admin);
+    }
+
+    public function staff(): static
+    {
+        return $this->afterMaking(fn (User $user) => $user->role = UserRole::Staff);
+    }
+
+    /** App (TOTP) multi-factor authentication already set up. */
+    public function withMfa(): static
+    {
+        return $this->afterMaking(function (User $user): void {
+            $user->app_authentication_secret = AppAuthentication::make()->generateSecret();
+            $user->app_authentication_recovery_codes = [Hash::make('recovery-code')];
+        });
     }
 }

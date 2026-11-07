@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Models\User;
+use App\Policies\ActivityPolicy;
 use App\Support\BusinessFacts;
 use App\Support\Settings;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -12,7 +13,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Validation\Rules\Password;
 use Intervention\Image\ImageManager;
+use Spatie\Activitylog\Models\Activity;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -37,9 +40,18 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Admin panel and content management. Deny by default: staff/admin
-        // roles arrive in milestone 3 and replace this check.
-        Gate::define('access-admin', fn (User $user): bool => false);
+        // Full admin rights (content, settings, customers, orders, audit log).
+        // Staff reach the panel too, but only what their policies allow.
+        Gate::define('access-admin', fn (User $user): bool => $user->isAdmin());
+        Gate::policy(Activity::class, ActivityPolicy::class);
+
+        // Strong passwords everywhere a password is set (PLAN §7). The
+        // breached-password (HIBP) check calls an API, so production only.
+        Password::defaults(function (): Password {
+            $rule = Password::min(12)->letters()->mixedCase()->numbers()->symbols();
+
+            return $this->app->isProduction() ? $rule->uncompromised() : $rule;
+        });
 
         // Contact form: a few honest retries, not a flood (PLAN §7).
         RateLimiter::for('leads', fn (Request $request): array => [

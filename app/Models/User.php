@@ -4,20 +4,40 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\UserRole;
+use Carbon\CarbonImmutable;
 use Database\Factories\UserFactory;
+use Filament\Auth\MultiFactor\App\Concerns\InteractsWithAppAuthentication;
+use Filament\Auth\MultiFactor\App\Concerns\InteractsWithAppAuthenticationRecovery;
+use Filament\Auth\MultiFactor\App\Contracts\HasAppAuthentication;
+use Filament\Auth\MultiFactor\App\Contracts\HasAppAuthenticationRecovery;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-class User extends Authenticatable implements FilamentUser
+/**
+ * Customers and staff (PLAN §5). Staff and admins must use app-based
+ * multi-factor authentication to enter the admin panel.
+ *
+ * @property int $id
+ * @property string $name
+ * @property string $email
+ * @property UserRole $role
+ * @property string|null $phone E.164
+ * @property bool $marketing_consent
+ * @property CarbonImmutable|null $marketing_consent_at
+ * @property CarbonImmutable|null $email_verified_at
+ */
+class User extends Authenticatable implements FilamentUser, HasAppAuthentication, HasAppAuthenticationRecovery
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, InteractsWithAppAuthentication, InteractsWithAppAuthenticationRecovery, Notifiable;
 
     /**
-     * The attributes that are mass assignable.
+     * Role is deliberately not mass assignable: it changes only through
+     * the admin customer form (logged) or the admin:create command.
      *
      * @var list<string>
      */
@@ -25,11 +45,12 @@ class User extends Authenticatable implements FilamentUser
         'name',
         'email',
         'password',
+        'phone',
+        'marketing_consent',
+        'marketing_consent_at',
     ];
 
     /**
-     * The attributes that should be hidden for serialization.
-     *
      * @var list<string>
      */
     protected $hidden = [
@@ -37,24 +58,42 @@ class User extends Authenticatable implements FilamentUser
         'remember_token',
     ];
 
-    /**
-     * Deny by default via the "access-admin" gate. Staff/admin roles arrive
-     * in milestone 3; until then nobody can enter the panel.
-     */
+    /** @var array<string, mixed> */
+    protected $attributes = [
+        'role' => 'customer',
+    ];
+
     public function canAccessPanel(Panel $panel): bool
     {
-        return $this->can('access-admin');
+        return $this->role->canAccessPanel();
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->role === UserRole::Admin;
+    }
+
+    public function isStaff(): bool
+    {
+        return $this->role === UserRole::Staff;
+    }
+
+    /** Staff or admin. */
+    public function isTeamMember(): bool
+    {
+        return $this->role->canAccessPanel();
     }
 
     /**
-     * Get the attributes that should be cast.
-     *
      * @return array<string, string>
      */
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
+            'role' => UserRole::class,
+            'email_verified_at' => 'immutable_datetime',
+            'marketing_consent' => 'boolean',
+            'marketing_consent_at' => 'immutable_datetime',
             'password' => 'hashed',
         ];
     }

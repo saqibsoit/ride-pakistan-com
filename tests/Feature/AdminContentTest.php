@@ -12,7 +12,6 @@ use App\Models\Product;
 use App\Models\ScheduleRule;
 use App\Models\User;
 use App\Support\Settings;
-use Illuminate\Support\Facades\Gate;
 use Livewire\Livewire;
 use Spatie\Activitylog\Models\Activity;
 
@@ -20,20 +19,19 @@ beforeEach(function (): void {
     $this->seed();
 });
 
-it('keeps content management closed to everyone until roles exist', function (): void {
-    $user = User::factory()->create();
-
+it('keeps content management closed to customers and staff', function (User $user): void {
     expect($user->can('viewAny', Product::class))->toBeFalse()
         ->and($user->can('update', Page::query()->firstOrFail()))->toBeFalse();
 
     $this->actingAs($user)->get('/test-admin/products')->assertForbidden();
-});
+})->with([
+    'customer' => fn (): User => User::factory()->create(),
+    'staff' => fn (): User => User::factory()->staff()->withMfa()->create(),
+]);
 
 describe('with admin access', function (): void {
     beforeEach(function (): void {
-        // Stand-in for the admin role that milestone 3 adds.
-        Gate::before(fn (): bool => true);
-        $this->actingAs(User::factory()->create());
+        $this->actingAs(User::factory()->admin()->withMfa()->create());
     });
 
     it('lists and opens every content resource', function (string $path): void {

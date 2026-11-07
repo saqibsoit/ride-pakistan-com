@@ -67,7 +67,7 @@ Every transition is written to an audit log with actor, timestamp and reason.
 
 ## 4. Tech stack
 
-- **Framework:** latest stable Laravel on the newest PHP version Hostinger offers (8.3+).
+- **Framework:** Laravel 12 on PHP 8.3 (`config.platform.php` pinned to 8.3.0; CI runs 8.3). Decided at bootstrap (2026-11-07): Laravel 13 plus the latest Pest and Spatie majors need PHP 8.4, and responsecache 7.x (the last on PHP 8.3) doesn't support Laravel 13. When Hostinger moves to PHP 8.4, raise the pin and upgrade to Laravel 13, Pest 5 and the current Spatie majors in one milestone.
 - **Database:** MySQL/MariaDB as provided by Hostinger shared hosting (see section 10). InnoDB, utf8mb4, strict mode.
 - **Frontend:** Blade + Tailwind CSS + Alpine.js. Livewire only for interactive parts (booking calendar, checkout steps, account). No SPA.
 - **Admin:** Filament (latest stable) at an unguessable path, with MFA.
@@ -78,7 +78,7 @@ Every transition is written to an audit log with actor, timestamp and reason.
 - **Email:** transactional provider via SMTP/API (Postmark, Resend or Amazon SES) with SPF, DKIM and DMARC on ride-pakistan.com.
 - **Bot protection:** Cloudflare Turnstile on public forms + honeypot + rate limits.
 - **CDN/WAF:** Cloudflare in front of Hostinger (proxied DNS, Full (strict) SSL).
-- **Quality:** Pest, Larastan (level 8 target), Pint, `composer audit`, GitHub Actions CI.
+- **Quality:** Pest, Larastan (level 8, reached at bootstrap; never lower it), Pint (with `declare_strict_types`), `composer audit`, `npm audit`, GitHub Actions CI.
 
 ## 5. Data model (initial)
 

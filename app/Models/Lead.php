@@ -11,10 +11,11 @@ use Database\Factories\LeadFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * A sales lead. Milestone 2 only creates leads from the contact form; the
- * CRM (pipeline, notes, assignment) arrives in milestone 9.
+ * A sales lead. Milestone 2 creates leads from the contact form; notes
+ * exist from milestone 3; the CRM (pipeline, assignment) arrives in milestone 9.
  *
  * @property int $id
  * @property string $name
@@ -75,6 +76,14 @@ class Lead extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * @return HasMany<LeadNote, $this>
+     */
+    public function notes(): HasMany
+    {
+        return $this->hasMany(LeadNote::class)->latest();
     }
 
     /**

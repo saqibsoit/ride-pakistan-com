@@ -14,6 +14,7 @@ use Filament\Auth\MultiFactor\App\Contracts\HasAppAuthenticationRecovery;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -82,6 +83,38 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
     public function isTeamMember(): bool
     {
         return $this->role->canAccessPanel();
+    }
+
+    /**
+     * @return HasMany<Rider, $this>
+     */
+    public function riders(): HasMany
+    {
+        return $this->hasMany(Rider::class);
+    }
+
+    /**
+     * @return HasMany<Order, $this>
+     */
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class);
+    }
+
+    /**
+     * @return HasMany<Booking, $this>
+     */
+    public function bookings(): HasMany
+    {
+        return $this->hasMany(Booking::class);
+    }
+
+    /**
+     * @return HasMany<CreditPack, $this>
+     */
+    public function creditPacks(): HasMany
+    {
+        return $this->hasMany(CreditPack::class);
     }
 
     /**

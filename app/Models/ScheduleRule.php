@@ -13,11 +13,12 @@ use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * A weekly recurring session. Times are wall-clock in the display timezone
  * (Asia/Karachi); day_of_week follows Carbon (0 = Sunday ... 6 = Saturday).
- * Slots are generated from these rules in milestone 3.
+ * Slots are generated from these rules by App\Actions\Slots\GenerateSlots.
  *
  * @property int $id
  * @property int $day_of_week
@@ -44,6 +45,14 @@ class ScheduleRule extends Model
         'valid_to',
         'is_active',
     ];
+
+    /**
+     * @return HasMany<Slot, $this>
+     */
+    public function slots(): HasMany
+    {
+        return $this->hasMany(Slot::class);
+    }
 
     /**
      * @param  Builder<ScheduleRule>  $query

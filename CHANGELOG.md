@@ -17,6 +17,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Changed
 - Stack pinned to PHP 8.3 + Laravel 12 instead of Laravel 13 (see `docs/PLAN.md` §4).
+- Test suite runs on MariaDB (`ride_pakistan_testing`) instead of SQLite, locally and in CI (MariaDB 11.8 service). `TestCase` refuses to boot unless the database name ends in `_testing`; Feature tests use `RefreshDatabase`.
 
 ### Removed
 - `ride-pakistan-com-plan.zip` and the duplicate root `DESIGN-REFERENCES.md`.

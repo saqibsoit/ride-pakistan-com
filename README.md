@@ -12,7 +12,7 @@ Laravel 12 on PHP 8.3 (pinned to match Hostinger), MySQL/MariaDB, Blade + Tailwi
 
 ## Local setup
 
-Requirements: PHP 8.3 (Laravel Herd ships it as `php83`), Composer 2, Node 22+, and MySQL 8 / MariaDB 10.6+ (or SQLite for quick local work).
+Requirements: PHP 8.3 (Laravel Herd ships it as `php83`), Composer 2, Node 22+, and MariaDB 11.8+ (Hostinger runs MariaDB; MySQL 8 also works with `DB_CONNECTION=mysql`).
 
 ```bash
 git clone <repo> ride-pakistan-com && cd ride-pakistan-com
@@ -24,11 +24,12 @@ php artisan key:generate
 Edit `.env`:
 
 - `ADMIN_PATH`: the Filament admin URL path. Pick any value locally; use a long, random one in production. Production refuses to boot without it.
-- Database: `.env.example` targets MySQL. Create the database with `utf8mb4` / `utf8mb4_unicode_ci`:
+- Database: set `DB_HOST`, `DB_PORT`, `DB_USERNAME` and `DB_PASSWORD` for your local MariaDB. Development uses `DB_DATABASE=ride_pakistan`. Create both databases (development and tests) with `utf8mb4` / `utf8mb4_unicode_ci`:
   ```sql
   CREATE DATABASE ride_pakistan CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+  CREATE DATABASE ride_pakistan_testing CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
   ```
-  For a quick start without MySQL, set `DB_CONNECTION=sqlite`, comment out `DB_DATABASE`, and run `touch database/database.sqlite`. Booking/locking behaviour must still be verified on MySQL; CI does that.
+  If your DB user isn't root, grant it all privileges on both databases.
 
 Then:
 
@@ -59,11 +60,21 @@ npm audit --audit-level=high
 
 `vendor/bin/pint` (without `--test`) fixes style and adds missing `declare(strict_types=1);`.
 
-Tests run on in-memory SQLite locally (`phpunit.xml`); CI overrides `DB_CONNECTION=mysql` and runs them against MySQL 8.4.
+### Running the tests locally
+
+Tests always run on MariaDB, in the `ride_pakistan_testing` database:
+
+1. Create `ride_pakistan_testing` (see the `CREATE DATABASE` statements above).
+2. Make sure `.env` has working `DB_HOST`, `DB_PORT`, `DB_USERNAME` and `DB_PASSWORD`. Tests reuse these credentials.
+3. Run `php artisan test`.
+
+`phpunit.xml` forces `DB_CONNECTION=mariadb` and `DB_DATABASE=ride_pakistan_testing`, so the `DB_DATABASE` in `.env` (your development database) is ignored during tests. As a second safety net, `tests/TestCase.php` aborts the run before any migration if the database name doesn't end with `_testing` (for example, when a cached config points at `ride_pakistan`; run `php artisan config:clear`). Feature tests use `RefreshDatabase`: the schema is migrated once per run and each test runs inside a rolled-back transaction.
+
+CI runs the same suite against a MariaDB 11.8 service container.
 
 ## CI and dependencies
 
-- `.github/workflows/ci.yml`: Pint, Larastan, Pest on MySQL, `composer audit`, `npm audit`, plus a production asset build.
+- `.github/workflows/ci.yml`: Pint, Larastan, Pest on MariaDB 11.8, `composer audit`, `npm audit`, plus a production asset build.
 - `.github/dependabot.yml`: weekly composer, npm and GitHub Actions updates. Composer respects the PHP 8.3 platform pin.
 
 ## Secrets

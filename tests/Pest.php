@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /*
@@ -9,9 +10,14 @@ use Tests\TestCase;
 | Test Case
 |--------------------------------------------------------------------------
 |
-| Feature tests run against the full application. Unit tests that need the
-| container (config, actions) opt in with TestCase as well.
+| All tests boot through Tests\TestCase, which refuses to run unless the
+| database name ends with "_testing". Feature tests start from a clean
+| database (migrated once per run, each test wrapped in a transaction).
 |
 */
 
-pest()->extend(TestCase::class)->in('Feature', 'Unit');
+pest()->extend(TestCase::class)
+    ->use(RefreshDatabase::class)
+    ->in('Feature');
+
+pest()->extend(TestCase::class)->in('Unit');

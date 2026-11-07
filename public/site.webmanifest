@@ -1,0 +1,13 @@
+{
+    "name": "Ride Pakistan",
+    "short_name": "Ride Pakistan",
+    "start_url": "/",
+    "display": "browser",
+    "background_color": "#1F140B",
+    "theme_color": "#1F140B",
+    "icons": [
+        { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+        { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
+        { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    ]
+}

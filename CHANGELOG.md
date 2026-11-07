@@ -5,6 +5,15 @@ All notable changes to this project are documented here. The format follows [Kee
 ## [Unreleased]
 
 ### Added
+- Milestone 1 design system:
+  - Self-hosted variable WOFF2 fonts (Big Shoulders Display, Instrument Sans; latin subset, OFL) with the display font preloaded and metric-matched fallbacks for near-zero CLS. Logo, brand photos, favicons, Apple touch icon and web manifest.
+  - `resources/css/tokens.css`: Tailwind 4 `@theme` with brand colours, status colours (error, success, warning), `line-strong`, a fluid type scale, a hero size that scales with viewport width and height, spacing, radii and motion. Tailwind's default palette, type scale, radii and fonts are reset.
+  - Base layout `<x-layouts.app>` (skip link, SEO `head` slot, sticky header with overlay mode and an Alpine mobile menu, footer with contact and legal links) and Blade components: button, badge, money, glyph, section heading, fact strip, step list, price row, FAQ item, breadcrumb, alert, form field, responsive image, hero, experience card, filter chips, seats left ("Selling fast" ≤ `booking.selling_fast_threshold`), slot card, sticky price box and mobile bottom bar.
+  - Responsive image pipeline: `GenerateResponsiveVariants` action (AVIF + WebP at 480/768/1200/1800, no upscaling, JSON sidecar), `images:responsive` command, `ImageUploaded` event with a queued listener as the upload hook, and a `site` disk for `public/images`.
+  - `App\Support\Money` for formatting minor units in views; `config/site.php`, `config/booking.php`, `config/images.php`.
+  - Local-only `/styleguide`.
+  - Pest tests for every component, the layout, the image pipeline and Money, plus a guard test that bans raw colours, arbitrary-value utilities and inline styles in views.
+  - `intervention/image` ^3 (GD driver).
 - Milestone 0 bootstrap: Laravel 12 (PHP 8.3 platform pin) with Pest 4, app name "Ride Pakistan", UTC storage timezone, `app.display_timezone` = `Asia/Karachi`, locale `en`.
 - MySQL/MariaDB configuration (InnoDB, utf8mb4, utf8mb4_unicode_ci, strict mode); `database` queue, `file` cache and sessions.
 - Tailwind CSS 4, Alpine.js 3, Vite 7; placeholder home page.

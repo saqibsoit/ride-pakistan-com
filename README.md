@@ -37,11 +37,13 @@ Then:
 php artisan migrate
 npm install
 npm run dev          # or: npm run build
+php artisan images:responsive   # AVIF/WebP variants of public/images (gitignored)
 ```
 
 With Herd, the site is served at `http://ride-pakistan-com.test`; otherwise run `php artisan serve`.
 
 - `/` shows the placeholder home page.
+- `/styleguide` (local environment only) shows every design token and Blade component.
 - `/{ADMIN_PATH}` shows the Filament login. Panel access is denied to every user until staff roles exist (milestone 3/4).
 
 Queue: `database` driver. Cache and sessions: `file` (shared hosting has no Redis). Locally, run `php artisan queue:work` when you need jobs processed.

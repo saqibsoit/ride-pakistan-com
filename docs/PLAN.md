@@ -175,6 +175,12 @@ Target OWASP ASVS Level 2 and OWASP Top 10 coverage.
 - `php artisan optimize` (config, route, view, event cache) in production; OPcache on.
 - Cloudflare: HTTP/3, Brotli, edge caching of static assets with long-lived immutable headers.
 - WCAG 2.2 AA: contrast, focus states, keyboard navigation, form labels and errors, reduced-motion support.
+- Colour rules (decided in milestone 1, tokens in `resources/css/tokens.css`):
+  - Brand palette: earth, earth-2, saddle, sand, sand-dim, line.
+  - Status tokens: `error` #E8917A, `success` #A8C49A, `warning` #E2B75E, each ≥ 4.5:1 on earth and earth-2. Status is never shown by colour alone (icon + text).
+  - `line-strong` (sand at 45%, 3.9:1) for borders that must meet 3:1 (form fields, chips). `line` is for decorative dividers only.
+  - `saddle` is 3.1:1 on earth: only for large display numerals and decoration, never body text. Sand text on a saddle background (4.8:1) is fine ("Selling fast").
+- Image variants: `php artisan images:responsive` generates AVIF (where GD supports it) and WebP at 480/768/1200/1800 into `_variants/` next to each source; uploads dispatch `ImageUploaded`. Variants are build output (gitignored) and must be generated on deploy.
 
 ## 10. Database decision: MySQL
 

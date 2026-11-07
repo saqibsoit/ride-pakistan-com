@@ -1,0 +1,78 @@
+<?php
+
+declare(strict_types=1);
+
+use Illuminate\Support\Facades\Storage;
+
+beforeEach(function (): void {
+    Storage::fake('site', ['url' => '/images']);
+    putTestImage('site', 'logo.png', 600, 355, 'png');
+    putTestImage('site', 'hero.jpg', 1200, 1800);
+});
+
+it('renders the layout with skip link, landmarks, head slot and font preload', function (): void {
+    $this->blade(<<<'BLADE'
+        <x-layouts.app title="Prices" description="Prices for riding lessons." robots="noindex">
+            <x-slot:head><link rel="canonical" href="https://ride-pakistan.com/prices"></x-slot:head>
+            <h1>Prices</h1>
+        </x-layouts.app>
+        BLADE)
+        ->assertSee('<title>Prices | Ride Pakistan</title>', false)
+        ->assertSee('<meta name="description" content="Prices for riding lessons.">', false)
+        ->assertSee('<meta name="robots" content="noindex">', false)
+        ->assertSee('<link rel="canonical" href="https://ride-pakistan.com/prices">', false)
+        ->assertSee('rel="preload"', false)
+        ->assertSee('as="font" type="font/woff2" crossorigin', false)
+        ->assertSee('big-shoulders-display', false)
+        ->assertSee('rel="apple-touch-icon"', false)
+        ->assertSee('rel="manifest"', false)
+        ->assertSeeInOrder(['href="#main"', 'Skip to content', '<header', '<main id="main"', '<footer'], false);
+});
+
+it('uses the default title and description', function (): void {
+    $this->blade('<x-layouts.app><p>Hi</p></x-layouts.app>')
+        ->assertSee('<title>'.e(config('site.default_title')).'</title>', false)
+        ->assertSee(e(config('site.default_description')), false)
+        ->assertDontSee('name="robots"', false);
+});
+
+it('renders the header with nav, book button and an accessible mobile menu toggle', function (): void {
+    $this->blade('<x-site-header />')
+        ->assertSee('x-data="siteHeader"', false)
+        ->assertSee('aria-label="Main"', false)
+        ->assertSee('Book a session')
+        ->assertSee('aria-controls="mobile-menu"', false)
+        ->assertSee('aria-expanded="false"', false)
+        ->assertSee('Open menu')
+        ->assertSee('id="mobile-menu"', false)
+        ->assertSee('sticky', false);
+});
+
+it('makes the overlay header fixed and transparent until scrolled', function (): void {
+    $this->blade('<x-site-header overlay />')
+        ->assertSee('x-bind:class="overlayClass"', false)
+        ->assertSee('fixed inset-x-0', false)
+        ->assertDontSee('sticky', false);
+});
+
+it('renders the footer with contact and legal links', function (): void {
+    $this->blade('<x-site-footer />')
+        ->assertSee(config('site.instagram_url'), false)
+        ->assertSee('ridepakistan.co')
+        ->assertSee('mailto:'.config('site.email'), false)
+        ->assertSee('Privacy')
+        ->assertSee('Terms')
+        ->assertSee('Refund policy')
+        ->assertSee('A Destination Pakistan company');
+});
+
+it('renders a hero headline from lines with a priority image', function (): void {
+    $this->blade('<x-hero image="hero.jpg" image-alt="A rider and a horse" :lines="$lines" lede="Weekends in Islamabad."><x-button href="/prices">Prices</x-button></x-hero>', [
+        'lines' => ['Never touched', 'a horse?', 'Perfect.'],
+    ])
+        ->assertSeeInOrder(['<h1', 'Never touched', 'a horse?', 'Perfect.', '</h1>'], false)
+        ->assertSee('text-hero', false)
+        ->assertSee('fetchpriority="high"', false)
+        ->assertSee('Weekends in Islamabad.')
+        ->assertSee('href="/prices"', false);
+});

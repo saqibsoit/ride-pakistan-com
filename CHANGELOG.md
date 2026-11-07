@@ -5,6 +5,19 @@ All notable changes to this project are documented here. The format follows [Kee
 ## [Unreleased]
 
 ### Added
+- Milestone 2 public pages, CMS content and SEO/AEO/GEO:
+  - Data models (pulled forward from milestone 3): `settings`, `products` (PLAN §5 columns plus content fields), `schedule_rules`, `leads`, and CMS `pages`, `faqs` and `posts`, with factories, admin-only policies (behind an `access-admin` gate, denied until roles exist) and content audit logging.
+  - Typed, cached settings (`App\Enums\SettingKey`, `App\Support\Settings`, `UpdateSettings` action); defaults in `config/settings.php`, bank details from `BANK_*` env values. `config/booking.php` removed; contact links moved from `config/site.php` to settings.
+  - Filament resources for pages (block builder: text, image, quote, callout, call to action), FAQs, products (prices edited in rupees, stored in paisa), guides and schedule rules, plus a Settings page.
+  - Public pages: home (reference story plus "This weekend"), `/experiences` (filter chips), `/sessions/{product}` (inspiration 01 layout, booking widget placeholder), `/schedule` (week calendar from schedule rules), `/prices`, `/faq`, `/guides`, `/guides/{slug}`, `/trainer/omar-saleem`, `/expeditions`, legal pages, `/contact` and a `/book` holding page. Every key page opens with an answer block generated from live data (`App\Support\BusinessFacts`).
+  - SEO service (`App\Support\Seo`): title template, description, canonical, robots, Open Graph and Twitter cards with CMS overrides and fallbacks. JSON-LD `@graph` built with spatie/schema-org: Organization, WebSite, SportsActivityLocation (Islamabad, opening hours from schedule rules), Person, Product + Offer (PKR), FAQPage, BreadcrumbList and Article.
+  - `/sitemap.xml` (regenerated on content change and nightly; `sitemap:generate`), environment-aware `/robots.txt` and `X-Robots-Tag`, and `/llms.txt` generated from settings, products and schedule.
+  - Contact form storing leads with UTM, click-ID, landing and referrer attribution (`CaptureLead`), honeypot and per-IP rate limit.
+  - Full-page response cache on public pages, cleared on any content, product, setting or schedule change.
+  - Seeders for the four PLAN products, schedule rules, pages (trainer and expeditions copy from the reference page; legal pages as unpublished outlines), FAQs and three draft guides (outlines only).
+  - Uploaded CMS images go through the responsive variant pipeline.
+  - Pest tests for every public page (one h1, canonical, meta, JSON-LD types), unique titles and descriptions, sitemap, robots per environment, llms.txt, contact form, response cache invalidation, settings, facts and the admin resources.
+  - `spatie/schema-org` ^4.
 - Milestone 1 design system:
   - Self-hosted variable WOFF2 fonts (Big Shoulders Display, Instrument Sans; latin subset, OFL) with the display font preloaded and metric-matched fallbacks for near-zero CLS. Logo, brand photos, favicons, Apple touch icon and web manifest.
   - `resources/css/tokens.css`: Tailwind 4 `@theme` with brand colours, status colours (error, success, warning), `line-strong`, a fluid type scale, a hero size that scales with viewport width and height, spacing, radii and motion. Tailwind's default palette, type scale, radii and fonts are reset.
@@ -25,6 +38,8 @@ All notable changes to this project are documented here. The format follows [Kee
 - README with local setup steps.
 
 ### Changed
+- Prices follow PLAN §2 (8-class PKR 60,000, 16-class PKR 100,000), not the reference page's older rows. Bank details no longer appear on public pages; they move to the checkout transfer page (milestone 7).
+- Test runs use a 512 MB memory limit (`phpunit.xml`) for the larger suite.
 - Stack pinned to PHP 8.3 + Laravel 12 instead of Laravel 13 (see `docs/PLAN.md` §4).
 - Test suite runs on MariaDB (`ride_pakistan_testing`) instead of SQLite, locally and in CI (MariaDB 11.8 service). `TestCase` refuses to boot unless the database name ends in `_testing`; Feature tests use `RefreshDatabase`.
 

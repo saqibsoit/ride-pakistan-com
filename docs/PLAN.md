@@ -56,7 +56,7 @@ Currency is PKR everywhere. Store money as integers in minor units (paisa) in `a
    - Reject with reason: releases seats, emails customer.
 5. A scheduled job expires unverified holds when the window passes and notifies the customer.
 
-Bank details (settings, not hard-coded): Account name Destination Pakistan; Bank Standard Chartered Bank; IBAN PK91SCBL0000001702859701; SWIFT SCBLPKKX; Country Pakistan; Bank address Main Building, Floor 3, I.I. Chundrigar Road, Karachi 74200.
+Bank details (settings, not hard-coded; defaults come from `BANK_*` in `.env`, never from code): Account name Destination Pakistan; Bank Standard Chartered Bank; IBAN PK91SCBL0000001702859701; SWIFT SCBLPKKX; Country Pakistan; Bank address Main Building, Floor 3, I.I. Chundrigar Road, Karachi 74200.
 
 ### 3.3 Order state machine
 `pending_payment → paid`
@@ -82,6 +82,9 @@ Every transition is written to an audit log with actor, timestamp and reason.
 
 ## 5. Data model (initial)
 
+Built in milestone 2 (ahead of milestone 3, because public pages need them): `settings`, `products`, `schedule_rules`, `leads`, `pages`, `faqs`, `posts`. Milestone 3 builds the rest and must not recreate these.
+
+
 - `users` (customers and staff; `role` enum: customer, staff, admin; phone E.164; marketing consent flag + timestamp)
 - `riders` (belongs to user; name, age bracket, experience level, notes, emergency contact)
 - `products` (type: single, private, package; name; price_minor; sessions_count; validity_days; is_active; sort)
@@ -98,7 +101,7 @@ Every transition is written to an audit log with actor, timestamp and reason.
 - `stripe_events` (event_id unique, type, processed_at) for idempotency
 - `leads` (name, phone, email, interest, preferred_date, message, status: new, contacted, qualified, booked, lost; source, utm_* fields, fbclid, landing_url, referrer, assigned_to, user_id nullable)
 - `lead_notes` (lead_id, author_id, body)
-- `settings` (key/value, typed, cached)
+- `settings` (key/value, typed, cached; keys and types in `App\Enums\SettingKey`, defaults in `config/settings.php`)
 - `pages` / `faqs` / `posts` (CMS content for SEO pages, guides and FAQ)
 - `activity_log` (audit trail for all admin actions and order transitions)
 
@@ -163,7 +166,9 @@ Target OWASP ASVS Level 2 and OWASP Top 10 coverage.
 - Guides that answer real questions people ask (beginner lessons in Islamabad, what to wear, is horse riding safe for beginners, private vs group lessons).
 - Internal linking between guides, prices and booking.
 - Hreflang-ready i18n structure (English first, Urdu later).
-- Allow reputable search and AI crawlers in `robots.txt` (decision recorded in settings).
+- Allow reputable search and AI crawlers in `robots.txt` (decision recorded in settings: `seo.ai_crawlers`).
+- Entity facts (schedule, prices, validity, location, trainer) are generated from data by `App\Support\BusinessFacts`, never typed into copy. FAQ answers use tokens (`{schedule}`, `{price:slug}`, `{per_session:slug}`, `{validity:slug}`, `{cutoff}`, `{location}`, `{trainer}`) so a price or time change updates every page, the JSON-LD and `llms.txt` at once.
+- Indexing is controlled by `SITE_INDEXABLE` (defaults to true only when `APP_ENV=production`): otherwise every response carries `X-Robots-Tag: noindex, nofollow` and robots.txt disallows all.
 
 ## 9. Performance and accessibility targets
 
@@ -180,6 +185,7 @@ Target OWASP ASVS Level 2 and OWASP Top 10 coverage.
   - Status tokens: `error` #E8917A, `success` #A8C49A, `warning` #E2B75E, each ≥ 4.5:1 on earth and earth-2. Status is never shown by colour alone (icon + text).
   - `line-strong` (sand at 45%, 3.9:1) for borders that must meet 3:1 (form fields, chips). `line` is for decorative dividers only.
   - `saddle` is 3.1:1 on earth: only for large display numerals and decoration, never body text. Sand text on a saddle background (4.8:1) is fine ("Selling fast").
+- Lighthouse is measured against built assets (`npm run build`, no Vite dev server, Herd scripts blocked). Milestone 2 baseline (mobile, local HTTP, median of 3): `/` 99, `/prices` 100, `/faq` 100 Performance; Accessibility and SEO 100; Best Practices 79 locally only because Herd serves HTTP (the two HTTPS audits), expected 100 behind Cloudflare.
 - Image variants: `php artisan images:responsive` generates AVIF (where GD supports it) and WebP at 480/768/1200/1800 into `_variants/` next to each source; uploads dispatch `ImageUploaded`. Variants are build output (gitignored) and must be generated on deploy.
 
 ## 10. Database decision: MySQL
@@ -206,7 +212,7 @@ Rules: InnoDB, utf8mb4_unicode_ci, strict SQL mode, foreign keys everywhere, ind
 | 0 | Project bootstrap, tooling, CI, agent rules | `prompts/00-bootstrap.md` |
 | 1 | Design system and layout | `prompts/01-design-system.md` |
 | 2 | Public pages, CMS content, SEO/AEO/GEO foundation | `prompts/02-public-pages-seo.md` |
-| 3 | Data model, schedule rules, slots, admin panel base | `prompts/03-data-model-admin.md` |
+| 3 | Data model, schedule rules, slots, admin panel base (products, settings, schedule_rules and leads already exist from milestone 2) | `prompts/03-data-model-admin.md` |
 | 4 | Customer auth and accounts | `prompts/04-auth-accounts.md` |
 | 5 | Booking engine, holds, packages and credits | `prompts/05-booking-engine.md` |
 | 6 | Stripe Checkout and webhooks | `prompts/06-stripe.md` |

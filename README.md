@@ -34,7 +34,7 @@ Edit `.env`:
 Then:
 
 ```bash
-php artisan migrate
+php artisan migrate --seed   # products, schedule rules, pages, FAQs, draft guides
 npm install
 npm run dev          # or: npm run build
 php artisan images:responsive   # AVIF/WebP variants of public/images (gitignored)
@@ -42,9 +42,16 @@ php artisan images:responsive   # AVIF/WebP variants of public/images (gitignore
 
 With Herd, the site is served at `http://ride-pakistan-com.test`; otherwise run `php artisan serve`.
 
-- `/` shows the placeholder home page.
+- Public pages: `/`, `/experiences`, `/sessions/{slug}`, `/schedule`, `/prices`, `/faq`, `/guides`, `/trainer/omar-saleem`, `/expeditions`, `/contact`, `/book` (holding page until milestone 5). Legal pages (`/privacy`, `/terms`, `/refund-policy`) are 404 until published in the admin.
+- `/sitemap.xml`, `/robots.txt` and `/llms.txt` are generated from content. Outside production (`SITE_INDEXABLE` false) every page is `noindex` and robots.txt disallows all.
 - `/styleguide` (local environment only) shows every design token and Blade component.
-- `/{ADMIN_PATH}` shows the Filament login. Panel access is denied to every user until staff roles exist (milestone 3/4).
+- `/{ADMIN_PATH}` shows the Filament login. Content resources and the Settings page exist, but panel access is denied to every user until staff roles exist (milestone 3).
+
+Settings (contact links, booking rules, policies, bank details) are edited in the admin; defaults live in `config/settings.php`. Bank details have no defaults in code: set the `BANK_*` values in `.env` (see `.env.example`).
+
+Public pages are full-page cached (spatie/laravel-responsecache). Saving content, products, schedule rules or settings clears the cache and queues a sitemap rebuild; after editing the database by hand, run `php artisan responsecache:clear`.
+
+Measure Lighthouse against built assets (`npm run build`, dev server stopped): the Vite dev server and Herd's injected scripts skew the results.
 
 Queue: `database` driver. Cache and sessions: `file` (shared hosting has no Redis). Locally, run `php artisan queue:work` when you need jobs processed.
 

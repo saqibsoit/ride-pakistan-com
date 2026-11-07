@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ride Pakistan | Weekend horse riding in Islamabad</title>
+<meta name="description" content="Weekend horsemanship and trail riding sessions in Islamabad with trainer Omar Saleem. Every Saturday and Sunday. No experience needed.">
+<meta property="og:title" content="Ride Pakistan | Weekend horse riding in Islamabad">
+<meta property="og:description" content="Two hours with a horse: groom, tack up, ride the trail. Every Saturday and Sunday in Islamabad.">
+<meta property="og:image" content="images/hero.jpg">
+<link rel="icon" href="images/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --earth:#1F140B; --earth-2:#2A1B10; --saddle:#8B5A2B; --sand:#F4E8C1; --sand-dim:rgba(244,232,193,.72);
+  --line:rgba(244,232,193,.16);
+  --display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;
+  --body:"Instrument Sans","Helvetica Neue",Arial,sans-serif;
+  color-scheme:dark;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:calc(80px + env(safe-area-inset-top,0px))}
+body{background:var(--earth);color:var(--sand);font-family:var(--body);font-size:18px;line-height:1.6;-webkit-font-smoothing:antialiased}
+img{max-width:100%;display:block}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--sand);outline-offset:4px}
+.wrap{width:min(1200px,100% - 48px);margin-inline:auto}
+h1,h2,h3{font-family:var(--display);font-weight:900;line-height:.9;letter-spacing:-.005em}
+h2{font-size:clamp(56px,8vw,112px)}
+.lede{font-size:clamp(19px,1.6vw,22px);color:var(--sand-dim);max-width:60ch}
+
+/* nav */
+.nav{position:fixed;inset:0 0 auto;z-index:20;padding-top:env(safe-area-inset-top,0px);transition:background .3s}
+.nav.solid{background:rgba(31,20,11,.92);backdrop-filter:blur(10px)}
+.nav .wrap{display:flex;align-items:center;justify-content:space-between;height:80px}
+.brand{display:flex;align-items:center;gap:14px;text-decoration:none;font-family:var(--display);font-weight:800;font-size:26px}
+.brand img{height:40px;width:auto}
+.nav nav{display:flex;gap:32px;align-items:center}
+.nav nav a{text-decoration:none;font-size:15px;color:var(--sand-dim)}
+.nav nav a:hover{color:var(--sand)}
+.btn{display:inline-block;text-decoration:none;font-weight:600;font-size:16px;padding:14px 26px;border-radius:2px;background:var(--sand);color:var(--earth);border:1px solid var(--sand);transition:background .2s,color .2s}
+.btn:hover{background:transparent;color:var(--sand)}
+.btn.ghost{background:transparent;color:var(--sand)}
+.btn.ghost:hover{background:var(--sand);color:var(--earth)}
+.nav nav a.btn{padding:10px 18px;font-size:14px;color:var(--earth)}.nav nav a.btn:hover{color:var(--sand)}
+@media (max-width:860px){.nav nav a:not(.btn){display:none}}
+
+/* hero */
+.hero{position:relative;min-height:100svh;display:flex;align-items:flex-end;overflow:hidden}
+.hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:60% 30%}
+.hero::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,var(--earth) 0%,rgba(31,20,11,.75) 30%,rgba(31,20,11,.1) 65%,rgba(31,20,11,.35) 100%)}
+.hero .wrap{position:relative;z-index:1;padding-top:calc(120px + env(safe-area-inset-top,0px));padding-bottom:calc(64px + env(safe-area-inset-bottom,0px))}
+.hero h1{font-size:max(56px,min(11vw,150px,calc((100svh - 400px) / 3.5)));max-width:10ch}
+.hero h1 span{display:block}
+.hero .lede{margin:28px 0 36px;color:var(--sand)}
+.hero .ctas{display:flex;gap:14px;flex-wrap:wrap}
+@media (prefers-reduced-motion:no-preference){
+  .hero img{animation:settle 2.4s ease-out both}
+  @keyframes settle{from{transform:scale(1.06);opacity:.6}to{transform:none;opacity:1}}
+}
+
+/* facts */
+.facts{border-block:1px solid var(--line)}
+.facts .wrap{display:grid;grid-template-columns:repeat(4,1fr)}
+.fact{padding:36px 24px 36px 0}
+.fact+.fact{padding-left:24px;border-left:1px solid var(--line)}
+.fact b{display:block;font-family:var(--display);font-size:40px;font-weight:800;line-height:1}
+.fact span{font-size:15px;color:var(--sand-dim)}
+@media (max-width:860px){.facts .wrap{grid-template-columns:1fr 1fr}.fact:nth-child(3){border-left:0;padding-left:0}.fact:nth-child(n+3){border-top:1px solid var(--line)}}
+
+section{padding-block:clamp(88px,12vw,160px)}
+
+/* session */
+.session-head{display:grid;grid-template-columns:1.1fr 1fr;gap:64px;align-items:end;margin-bottom:72px}
+@media (max-width:860px){.session-head{grid-template-columns:1fr;gap:28px}}
+.steps{display:grid;grid-template-columns:1fr 1fr;gap:72px;align-items:start}
+.steps figure{position:sticky;top:110px}
+.steps figure img{aspect-ratio:4/5;object-fit:cover;width:100%}
+.steps figcaption{font-size:14px;color:var(--sand-dim);margin-top:12px}
+.steps ol{list-style:none;counter-reset:s}
+.steps li{counter-increment:s;display:grid;grid-template-columns:72px 1fr;padding:30px 0;border-top:1px solid var(--line)}
+.steps li:last-child{border-bottom:1px solid var(--line)}
+.steps li::before{content:counter(s);font-family:var(--display);font-weight:800;font-size:44px;line-height:1;color:var(--saddle)}
+.steps h3{font-size:38px;margin-bottom:8px}
+.steps p{color:var(--sand-dim)}
+@media (max-width:860px){.steps{grid-template-columns:1fr;gap:40px}.steps figure{position:static}}
+
+/* photo band */
+.band{display:grid;grid-template-columns:1.4fr 1fr;gap:8px;padding:0}
+.band img{width:100%;height:clamp(320px,52vw,680px);object-fit:cover}
+@media (max-width:700px){.band{grid-template-columns:1fr}.band img:last-child{display:none}}
+
+/* trainer */
+.trainer{background:var(--earth-2)}
+.trainer .wrap{display:grid;grid-template-columns:1fr 1.2fr;gap:80px;align-items:center}
+.trainer img{aspect-ratio:3/4;object-fit:cover;width:100%}
+.trainer h2{margin-bottom:28px}
+.trainer p+p{margin-top:18px}
+.trainer .pull{font-family:var(--display);font-weight:800;font-size:clamp(30px,3.2vw,42px);line-height:1.05;margin:36px 0 0;padding-left:24px;border-left:3px solid var(--saddle)}
+@media (max-width:860px){.trainer .wrap{grid-template-columns:1fr;gap:40px}}
+
+/* prices */
+.prices h2{margin-bottom:20px}
+.plist{margin-top:64px;border-top:1px solid var(--sand)}
+.plan{display:grid;grid-template-columns:1.2fr 1.4fr auto;gap:40px;align-items:baseline;padding:40px 0;border-bottom:1px solid var(--line)}
+.plan h3{font-size:clamp(36px,4vw,52px)}
+.plan .what{color:var(--sand-dim)}
+.plan .what b{color:var(--sand);font-weight:600}
+.plan .price{text-align:right;white-space:nowrap}
+.plan .price strong{display:block;font-family:var(--display);font-weight:900;font-size:clamp(44px,5vw,68px);line-height:1}
+.plan .price small{font-size:14px;color:var(--sand-dim)}
+.plan.feature{background:linear-gradient(90deg,rgba(139,90,43,.22),rgba(139,90,43,0));margin-inline:-24px;padding-inline:24px}
+.note{font-size:15px;color:var(--sand-dim);margin-top:24px}
+@media (max-width:860px){.plan{grid-template-columns:1fr;gap:10px}.plan .price{text-align:left}}
+
+/* book */
+.book .wrap{display:grid;grid-template-columns:1fr 1fr;gap:80px}
+@media (max-width:860px){.book .wrap{grid-template-columns:1fr;gap:56px}}
+.howto{list-style:none;counter-reset:b;margin-top:36px}
+.howto li{counter-increment:b;padding:18px 0 18px 56px;position:relative;border-top:1px solid var(--line)}
+.howto li::before{content:counter(b);position:absolute;left:0;top:14px;font-family:var(--display);font-weight:800;font-size:32px;color:var(--saddle)}
+.book .ctas{margin-top:36px;display:flex;gap:14px;flex-wrap:wrap}
+.bank{background:var(--sand);color:var(--earth);padding:40px;align-self:start}
+.bank h3{font-size:40px;margin-bottom:6px}
+.bank > p{font-size:15px;opacity:.75;margin-bottom:24px}
+.bank dl{display:grid;grid-template-columns:auto 1fr;gap:0 24px}
+.bank dt,.bank dd{padding:14px 0;border-top:1px solid rgba(31,20,11,.15);font-size:15px}
+.bank dt{opacity:.65}
+.bank dd{font-weight:600;display:flex;justify-content:space-between;gap:12px;align-items:center;word-break:break-all}
+.copy{flex:none;font:inherit;font-size:13px;font-weight:600;background:none;border:1px solid rgba(31,20,11,.35);color:var(--earth);padding:4px 10px;border-radius:2px;cursor:pointer}
+.copy:hover{background:var(--earth);color:var(--sand)}
+@media (max-width:520px){.bank{padding:28px 22px}.bank dl{grid-template-columns:1fr}.bank dt{padding-bottom:0;border-top:1px solid rgba(31,20,11,.15)}.bank dd{border-top:0;padding-top:4px}}
+
+/* north */
+.north{position:relative;padding:0;min-height:max(100vh,640px);display:flex;align-items:flex-start}
+.north img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.north::after{content:"";position:absolute;inset:0;background:linear-gradient(to bottom,rgba(31,20,11,.92) 0%,rgba(31,20,11,.55) 38%,rgba(31,20,11,0) 62%)}
+.north img{object-position:50% 0%}
+.north .wrap{padding-top:120px}
+.north .wrap{position:relative;z-index:1;padding-block:96px}
+.north p{margin:24px 0 32px}
+
+@media (max-width:700px){.north{display:block;min-height:0}.north img{position:static;height:56vh;object-position:50% 75%}.north::after{display:none}.north .wrap{padding:56px 0 88px}}
+/* faq */
+.faq .wrap{max-width:860px}
+.faq h2{margin-bottom:48px}
+details{border-top:1px solid var(--line)}
+details:last-of-type{border-bottom:1px solid var(--line)}
+summary{cursor:pointer;list-style:none;padding:26px 40px 26px 0;position:relative;font-family:var(--display);font-weight:800;font-size:30px;line-height:1.1}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";position:absolute;right:0;top:22px;font-size:36px;color:var(--saddle)}
+details[open] summary::after{content:"–"}
+details p{padding-bottom:26px;color:var(--sand-dim);max-width:62ch}
+
+footer{border-top:1px solid var(--line);padding:56px 0 calc(56px + env(safe-area-inset-bottom,0px));font-size:15px;color:var(--sand-dim)}
+footer .wrap{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;align-items:center}
+footer .brand{color:var(--sand)}
+footer nav{display:flex;gap:24px;flex-wrap:wrap}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--sand);color:var(--earth);padding:10px 18px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .2s;z-index:30}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<header class="nav" id="nav">
+  <div class="wrap">
+    <a class="brand" href="#top"><img src="images/logo.png" alt="">Ride Pakistan</a>
+    <nav>
+      <a href="#session">The session</a>
+      <a href="#trainer">Your trainer</a>
+      <a href="#prices">Prices</a>
+      <a href="#book">How to book</a>
+      <a class="btn" href="https://ig.me/m/ridepakistan" target="_blank" rel="noopener">Message us</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero" style="padding:0">
+    <img src="images/hero.jpg" alt="A rider resting his forehead against a white horse">
+    <div class="wrap">
+      <h1><span>Never touched</span><span>a horse?</span><span>Perfect.</span></h1>
+      <p class="lede">Weekend horsemanship and trail riding in Islamabad. Two hours with a horse, from first hello to your first ride, with trainer Omar Saleem.</p>
+      <div class="ctas">
+        <a class="btn" href="#prices">See sessions and prices</a>
+        <a class="btn ghost" href="https://ig.me/m/ridepakistan" target="_blank" rel="noopener">Message us on Instagram</a>
+      </div>
+    </div>
+  </section>
+
+  <div class="facts">
+    <div class="wrap">
+      <div class="fact"><b>Sat &amp; Sun</b><span>Every weekend</span></div>
+      <div class="fact"><b>8–10 am</b><span>or 3–5 pm</span></div>
+      <div class="fact"><b>2 hours</b><span>Per session</span></div>
+      <div class="fact"><b>Islamabad</b><span>No experience needed</span></div>
+    </div>
+  </div>
+
+  <section id="session">
+    <div class="wrap">
+      <div class="session-head">
+        <h2>Two hours,<br>start to finish.</h2>
+        <p class="lede">This isn’t a pony ride around a ring. You’ll do everything a horseman does, from bringing the horse in to settling him down after the ride. That’s how real trust is built.</p>
+      </div>
+      <div class="steps">
+        <figure>
+          <img src="images/meet.jpg" alt="A man gently touching a grazing white horse" loading="lazy">
+          <figcaption>Photographed on a Ride Pakistan expedition</figcaption>
+        </figure>
+        <ol>
+          <li><div><h3>Bring him in</h3><p>Walk out to the paddock and lead your horse in. You’ll learn how to approach a horse, where to stand and how to read his mood.</p></div></li>
+          <li><div><h3>Groom</h3><p>Brush him down and check his hooves. It’s the quiet part of the session, and it’s where the bond starts.</p></div></li>
+          <li><div><h3>Tack up</h3><p>Fit the saddle and bridle yourself, with your trainer checking every buckle.</p></div></li>
+          <li><div><h3>Ride</h3><p>Mostly trail riding, out in the open. If you’d rather work in the arena on your position and control, that’s possible too.</p></div></li>
+          <li><div><h3>Cool down</h3><p>Untack, then give your horse a massage and stretch. You finish the way you started: looking after him.</p></div></li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <div class="band">
+    <img src="images/graze.jpg" alt="Close-up of a white horse grazing" loading="lazy">
+    <img src="images/camp.jpg" alt="Riders at camp in the golden evening light" loading="lazy">
+  </div>
+
+  <section class="trainer" id="trainer">
+    <div class="wrap">
+      <img src="images/tent.jpg" alt="A horse in a blanket seen through a tent opening at dusk" loading="lazy">
+      <div>
+        <h2>Meet Omar Saleem.</h2>
+        <p>Omar was born into a polo family. His father captained the Pakistan Army polo team and hoped his sons would form a polo team of their own.</p>
+        <p>Omar chose a different path. He believes competitive equestrian sport turns horses into equipment and breaks the bond between horse and rider. His focus is the older relationship: trail, endurance and cross-country riding, covering new ground together.</p>
+        <p>A horse is a prey animal. He wants to explore, but he’s wary. Once he trusts the rider on his back, he relaxes and becomes brave enough to go anywhere. Every session is built around earning that trust.</p>
+        <p class="pull">Win the horse’s trust, and he’ll take you anywhere.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="prices" id="prices">
+    <div class="wrap">
+      <h2>Sessions and prices.</h2>
+      <p class="lede">Start with a single session. If you love it, a package takes you from complete beginner to a confident trail rider.</p>
+      <div class="plist">
+        <div class="plan">
+          <h3>Trial session</h3>
+          <p class="what"><b>One 2-hour session.</b> The full experience: groundwork, grooming, tacking up and a guided ride.</p>
+          <div class="price"><strong>PKR 10,000</strong><small>per rider</small></div>
+        </div>
+        <div class="plan">
+          <h3>Weekend month</h3>
+          <p class="what"><b>4 sessions.</b> One month of weekends to build your basics and your confidence in the saddle.</p>
+          <div class="price"><strong>PKR 34,000</strong><small>PKR 8,500 per session</small></div>
+        </div>
+        <div class="plan feature">
+          <h3>Beginner to trail rider</h3>
+          <p class="what"><b>8 sessions.</b> Our full course, from your first time touching a horse to riding the trail with confidence.</p>
+          <div class="price"><strong>PKR 64,000</strong><small>PKR 8,000 per session</small></div>
+        </div>
+        <div class="plan">
+          <h3>Private session</h3>
+          <p class="what"><b>Just you, or you and your people.</b> Your own trainer and pace, on a weekend slot that suits you.</p>
+          <div class="price"><strong>PKR 15,000</strong><small>per rider</small></div>
+        </div>
+      </div>
+      <p class="note">Session timings shift slightly with the seasons. We’ll confirm your exact slot when you book.</p>
+    </div>
+  </section>
+
+  <section class="book" id="book">
+    <div class="wrap">
+      <div>
+        <h2>How to book.</h2>
+        <ol class="howto">
+          <li>Send us a DM on Instagram with your preferred date, slot and number of riders.</li>
+          <li>We’ll confirm availability and send you the exact location pin.</li>
+          <li>Pay by bank transfer using the details here.</li>
+          <li>Send a screenshot of your transfer in the DM, and your spot is confirmed.</li>
+        </ol>
+        <div class="ctas">
+          <a class="btn" href="https://ig.me/m/ridepakistan" target="_blank" rel="noopener">Message us on Instagram</a>
+        </div>
+      </div>
+      <div class="bank" aria-labelledby="bank-title">
+        <h3 id="bank-title">Bank transfer</h3>
+        <p>Please use your name as the payment reference.</p>
+        <dl>
+          <dt>Account name</dt><dd><span>Destination Pakistan</span><button class="copy" data-copy="Destination Pakistan">Copy</button></dd>
+          <dt>Bank</dt><dd><span>Standard Chartered Bank</span></dd>
+          <dt>IBAN</dt><dd><span>PK91SCBL0000001702859701</span><button class="copy" data-copy="PK91SCBL0000001702859701">Copy</button></dd>
+          <dt>SWIFT</dt><dd><span>SCBLPKKX</span><button class="copy" data-copy="SCBLPKKX">Copy</button></dd>
+          <dt>Country</dt><dd><span>Pakistan</span></dd>
+          <dt>Bank address</dt><dd><span>Main Building, Floor 3, I.I. Chundrigar Road, Karachi 74200</span></dd>
+        </dl>
+      </div>
+    </div>
+  </section>
+
+  <section class="north">
+    <img src="images/group.jpg" alt="A line of riders on horseback raising their fists in front of a mountain" loading="lazy">
+    <div class="wrap">
+      <h2>Learn in Islamabad.<br>Ride the mountains next.</h2>
+      <p class="lede" style="color:var(--sand)">Our weekend sessions are the first step. When you’re ready, join a Ride Pakistan expedition through the northern valleys.</p>
+      <a class="btn ghost" href="https://ridepakistan.co" target="_blank" rel="noopener">Explore expeditions</a>
+    </div>
+  </section>
+
+  <section class="faq">
+    <div class="wrap">
+      <h2>Questions.</h2>
+      <details><summary>I’ve never been near a horse. Is that okay?</summary><p>Yes. The sessions are made for complete beginners. You’ll spend time on the ground with your horse before you ever get in the saddle, and your trainer stays with you throughout.</p></details>
+      <details><summary>What should I wear?</summary><p>Full-length trousers and closed shoes or boots with a small heel are best. Avoid loose scarves and anything that could catch on the saddle.</p></details>
+      <details><summary>Can I book a private session?</summary><p>Yes. Private sessions are available for individuals, couples, families and small groups. Send us a DM with your dates.</p></details>
+      <details><summary>Where exactly are you?</summary><p>We’re in Islamabad. We share the exact location pin when we confirm your booking.</p></details>
+      <details><summary>Do the timings ever change?</summary><p>Our current slots are 8–10 am and 3–5 pm on Saturdays and Sundays. They shift slightly with the seasons, and we’ll always confirm your slot in advance.</p></details>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <a class="brand" href="#top"><img src="images/logo.png" alt="">Ride Pakistan</a>
+    <nav>
+      <a href="https://www.instagram.com/ridepakistan/" target="_blank" rel="noopener">Instagram</a>
+      <a href="https://ridepakistan.co" target="_blank" rel="noopener">ridepakistan.co</a>
+      <a href="mailto:hello@ridepakistan.co">hello@ridepakistan.co</a>
+    </nav>
+    <span>A Destination Pakistan company</span>
+  </div>
+</footer>
+<div class="toast" id="toast" role="status" aria-live="polite">Copied</div>
+
+<script>
+const nav=document.getElementById('nav');
+const onScroll=()=>nav.classList.toggle('solid',window.scrollY>40);
+window.addEventListener('scroll',onScroll,{passive:true});onScroll();
+const toast=document.getElementById('toast');
+document.querySelectorAll('.copy').forEach(b=>b.addEventListener('click',async()=>{
+  try{await navigator.clipboard.writeText(b.dataset.copy);toast.textContent='Copied';}
+  catch(e){toast.textContent='Copy failed. Please select the text instead.';}
+  toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),1600);
+}));
+</script>
+</body>
+</html>

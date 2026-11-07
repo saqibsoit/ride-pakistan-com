@@ -185,7 +185,7 @@ Target OWASP ASVS Level 2 and OWASP Top 10 coverage.
   - Status tokens: `error` #E8917A, `success` #A8C49A, `warning` #E2B75E, each ≥ 4.5:1 on earth and earth-2. Status is never shown by colour alone (icon + text).
   - `line-strong` (sand at 45%, 3.9:1) for borders that must meet 3:1 (form fields, chips). `line` is for decorative dividers only.
   - `saddle` is 3.1:1 on earth: only for large display numerals and decoration, never body text. Sand text on a saddle background (4.8:1) is fine ("Selling fast").
-- Lighthouse is measured against built assets (`npm run build`, no Vite dev server, Herd scripts blocked). Milestone 2 baseline (mobile, local HTTP, median of 3): `/` 99, `/prices` 100, `/faq` 100 Performance; Accessibility and SEO 100; Best Practices 79 locally only because Herd serves HTTP (the two HTTPS audits), expected 100 behind Cloudflare.
+- Lighthouse is measured against built assets (`npm run build`, no Vite dev server, Herd scripts blocked). Milestone 2 baseline (mobile, local Herd over HTTPS via `herd secure`, median of 3): Performance `/` 95, `/prices` 100, `/faq` 100; Accessibility, Best Practices and SEO 100 on all three.
 - Image variants: `php artisan images:responsive` generates AVIF (where GD supports it) and WebP at 480/768/1200/1800 into `_variants/` next to each source; uploads dispatch `ImageUploaded`. Variants are build output (gitignored) and must be generated on deploy.
 
 ## 10. Database decision: MySQL

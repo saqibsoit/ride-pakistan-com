@@ -40,7 +40,7 @@ npm run dev          # or: npm run build
 php artisan images:responsive   # AVIF/WebP variants of public/images (gitignored)
 ```
 
-With Herd, the site is served at `http://ride-pakistan-com.test`; otherwise run `php artisan serve`.
+With Herd, run `herd secure ride-pakistan-com` once and the site is served at `https://ride-pakistan-com.test` (HTTP redirects to HTTPS); otherwise run `php artisan serve`.
 
 - Public pages: `/`, `/experiences`, `/sessions/{slug}`, `/schedule`, `/prices`, `/faq`, `/guides`, `/trainer/omar-saleem`, `/expeditions`, `/contact`, `/book` (holding page until milestone 5). Legal pages (`/privacy`, `/terms`, `/refund-policy`) are 404 until published in the admin.
 - `/sitemap.xml`, `/robots.txt` and `/llms.txt` are generated from content. Outside production (`SITE_INDEXABLE` false) every page is `noindex` and robots.txt disallows all.
@@ -51,7 +51,7 @@ Settings (contact links, booking rules, policies, bank details) are edited in th
 
 Public pages are full-page cached (spatie/laravel-responsecache). Saving content, products, schedule rules or settings clears the cache and queues a sitemap rebuild; after editing the database by hand, run `php artisan responsecache:clear`.
 
-Measure Lighthouse against built assets (`npm run build`, dev server stopped): the Vite dev server and Herd's injected scripts skew the results.
+Measure Lighthouse over HTTPS against built assets (`npm run build`, dev server stopped, Herd Studio scripts blocked): the Vite dev server and Herd Studio skew the results. The Vite dev server restarts when `.env` changes and rewrites `public/hot`.
 
 Queue: `database` driver. Cache and sessions: `file` (shared hosting has no Redis). Locally, run `php artisan queue:work` when you need jobs processed.
 

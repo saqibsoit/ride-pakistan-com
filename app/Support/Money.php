@@ -33,4 +33,17 @@ final class Money
 
         return ($negative ? '−' : '').$currency.' '.$formatted;
     }
+
+    /**
+     * Machine-readable decimal string ("10000.00") for structured data and
+     * feeds. Built from integers; never goes through a float.
+     */
+    public static function decimal(int $amountMinor): string
+    {
+        $sign = $amountMinor < 0 ? '-' : '';
+        $absolute = abs($amountMinor);
+
+        return $sign.intdiv($absolute, self::MINOR_PER_MAJOR).'.'
+            .str_pad((string) ($absolute % self::MINOR_PER_MAJOR), 2, '0', STR_PAD_LEFT);
+    }
 }

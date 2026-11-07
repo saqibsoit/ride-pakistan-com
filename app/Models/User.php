@@ -38,12 +38,12 @@ class User extends Authenticatable implements FilamentUser
     ];
 
     /**
-     * Deny by default. Staff/admin roles arrive with the data model and
-     * auth milestones; until then nobody can enter the panel.
+     * Deny by default via the "access-admin" gate. Staff/admin roles arrive
+     * in milestone 3; until then nobody can enter the panel.
      */
     public function canAccessPanel(Panel $panel): bool
     {
-        return false;
+        return $this->can('access-admin');
     }
 
     /**

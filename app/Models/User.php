@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\UserRole;
+use App\Models\Concerns\LogsPersonalDataChanges;
 use Carbon\CarbonImmutable;
 use Database\Factories\UserFactory;
 use Filament\Auth\MultiFactor\App\Concerns\InteractsWithAppAuthentication;
@@ -34,7 +35,7 @@ use Illuminate\Notifications\Notifiable;
 class User extends Authenticatable implements FilamentUser, HasAppAuthentication, HasAppAuthenticationRecovery
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, InteractsWithAppAuthentication, InteractsWithAppAuthenticationRecovery, Notifiable;
+    use HasFactory, InteractsWithAppAuthentication, InteractsWithAppAuthenticationRecovery, LogsPersonalDataChanges, Notifiable;
 
     /**
      * Role is deliberately not mass assignable: it changes only through
@@ -63,6 +64,24 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
     protected $attributes = [
         'role' => 'customer',
     ];
+
+    /**
+     * Role changes are logged by ChangeUserRole; secrets never.
+     *
+     * @return list<string>
+     */
+    protected function loggedActivityAttributes(): array
+    {
+        return ['name', 'email', 'phone', 'marketing_consent'];
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function redactedActivityAttributes(): array
+    {
+        return ['email', 'phone'];
+    }
 
     public function canAccessPanel(Panel $panel): bool
     {

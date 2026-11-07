@@ -19,6 +19,7 @@ use Filament\Pages\Page;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
+use UnitEnum;
 
 /**
  * Admin-editable settings (App\Enums\SettingKey), grouped by key prefix.
@@ -29,6 +30,8 @@ use Filament\Support\Icons\Heroicon;
 class ManageSettings extends Page
 {
     protected string $view = 'filament.pages.manage-settings';
+
+    protected static string|UnitEnum|null $navigationGroup = 'System';
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCog6Tooth;
 

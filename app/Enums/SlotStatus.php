@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Enums;
 
+use Filament\Support\Contracts\HasColor;
+use Filament\Support\Contracts\HasIcon;
+use Filament\Support\Contracts\HasLabel;
 use Filament\Support\Icons\Heroicon;
 
 /**
@@ -11,7 +14,7 @@ use Filament\Support\Icons\Heroicon;
  * cancelled: will not run; terminal, needs a reason (riders are notified
  * from milestone 8). Changes go through App\Actions\Slots\ChangeSlotStatus.
  */
-enum SlotStatus: string
+enum SlotStatus: string implements HasColor, HasIcon, HasLabel
 {
     case Open = 'open';
     case Closed = 'closed';
@@ -20,6 +23,21 @@ enum SlotStatus: string
     public function label(): string
     {
         return ucfirst($this->value);
+    }
+
+    public function getLabel(): string
+    {
+        return $this->label();
+    }
+
+    public function getColor(): string
+    {
+        return $this->color();
+    }
+
+    public function getIcon(): Heroicon
+    {
+        return $this->icon();
     }
 
     /**

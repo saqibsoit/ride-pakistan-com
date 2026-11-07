@@ -4,12 +4,19 @@ declare(strict_types=1);
 
 namespace App\Enums;
 
-enum BookingStatus: string
+use Filament\Support\Contracts\HasLabel;
+
+enum BookingStatus: string implements HasLabel
 {
     case Confirmed = 'confirmed';
     case Cancelled = 'cancelled';
     case Attended = 'attended';
     case NoShow = 'no_show';
+
+    public function getLabel(): string
+    {
+        return $this->label();
+    }
 
     public function label(): string
     {

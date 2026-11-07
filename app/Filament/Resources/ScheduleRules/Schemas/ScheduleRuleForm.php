@@ -25,7 +25,8 @@ class ScheduleRuleForm
                 Select::make('day_of_week')->label('Day')->options(self::DAYS)->required(),
                 TextInput::make('capacity')->label('Riders')->required()->integer()->minValue(1)->maxValue(50)
                     ->default(fn (): ?int => app(Settings::class)->int(SettingKey::RidersPerSlot)),
-                TimePicker::make('start_time')->label('Starts (Pakistan time)')->required()->seconds(false),
+                TimePicker::make('start_time')->label('Starts (Pakistan time)')->required()->seconds(false)
+                    ->helperText('Changes apply to future open slots with no bookings or holds. Booked, closed and cancelled slots stay as they are.'),
                 TimePicker::make('end_time')->label('Ends (Pakistan time)')->required()->seconds(false)->after('start_time'),
                 DatePicker::make('valid_from')->label('From date')->helperText('Optional: for seasonal times.'),
                 DatePicker::make('valid_to')->label('Until date')->afterOrEqual('valid_from'),

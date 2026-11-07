@@ -4,13 +4,16 @@ declare(strict_types=1);
 
 namespace App\Enums;
 
+use Filament\Support\Contracts\HasColor;
+use Filament\Support\Contracts\HasIcon;
+use Filament\Support\Contracts\HasLabel;
 use Filament\Support\Icons\Heroicon;
 
 /**
  * Order lifecycle (PLAN §3.3). Transitions are validated and logged only
  * by App\Actions\Orders\OrderStateMachine.
  */
-enum OrderStatus: string
+enum OrderStatus: string implements HasColor, HasIcon, HasLabel
 {
     case PendingPayment = 'pending_payment';
     case AwaitingTransfer = 'awaiting_transfer';
@@ -35,6 +38,21 @@ enum OrderStatus: string
             self::PartiallyRefunded => 'Partially refunded',
             self::Refunded => 'Refunded',
         };
+    }
+
+    public function getLabel(): string
+    {
+        return $this->label();
+    }
+
+    public function getColor(): string
+    {
+        return $this->color();
+    }
+
+    public function getIcon(): Heroicon
+    {
+        return $this->icon();
     }
 
     /**

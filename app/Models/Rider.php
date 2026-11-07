@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Enums\AgeBracket;
 use App\Enums\ExperienceLevel;
+use App\Models\Concerns\LogsPersonalDataChanges;
 use Database\Factories\RiderFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -26,7 +27,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Rider extends Model
 {
     /** @use HasFactory<RiderFactory> */
-    use HasFactory;
+    use HasFactory, LogsPersonalDataChanges;
 
     /** @var list<string> */
     protected $fillable = [
@@ -44,6 +45,22 @@ class Rider extends Model
         'emergency_contact_phone',
         'notes',
     ];
+
+    /**
+     * @return list<string>
+     */
+    protected function loggedActivityAttributes(): array
+    {
+        return $this->fillable;
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function redactedActivityAttributes(): array
+    {
+        return ['emergency_contact_name', 'emergency_contact_phone', 'notes'];
+    }
 
     /**
      * @return BelongsTo<User, $this>

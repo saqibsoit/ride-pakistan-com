@@ -63,7 +63,8 @@ Bank details (settings, not hard-coded; defaults come from `BANK_*` in `.env`, n
 `pending_payment → paid`
 `pending_payment → awaiting_transfer → awaiting_verification → paid | rejected`
 `any unpaid → expired | cancelled`
-`paid → refunded (partial | full)`
+`paid → refunded (partial | full)` (statuses `partially_refunded` and `refunded`; a partially refunded order can be refunded again)
+"Any unpaid" means `pending_payment`, `awaiting_transfer` and `awaiting_verification`. `rejected`, `expired`, `cancelled` and `refunded` are final.
 Every transition is written to an audit log with actor, timestamp and reason.
 
 ## 4. Tech stack
@@ -83,20 +84,22 @@ Every transition is written to an audit log with actor, timestamp and reason.
 
 ## 5. Data model (initial)
 
-Built in milestone 2 (ahead of milestone 3, because public pages need them): `settings`, `products`, `schedule_rules`, `leads`, `pages`, `faqs`, `posts`. Milestone 3 builds the rest and must not recreate these.
+Built in milestone 2 (ahead of milestone 3, because public pages need them): `settings`, `products`, `schedule_rules`, `leads`, `pages`, `faqs`, `posts`. Milestone 3 built the rest below. Statuses are PHP backed enums in `app/Enums`; money columns are `*_minor` integers; datetimes are UTC `dateTime` columns.
+
+Roles (milestone 3): `customer` (site and own account only), `staff` (admin panel: read-only slots and bookings; check-in from milestone 8), `admin` (everything). Staff and admins must use app-based (TOTP) MFA with recovery codes; passwords are at least 12 characters with mixed case, numbers and symbols (plus a breached-password check in production). Team accounts are created with `php artisan admin:create`. Role changes go through `ChangeUserRole` (an admin cannot change their own role) and are logged.
 
 
-- `users` (customers and staff; `role` enum: customer, staff, admin; phone E.164; marketing consent flag + timestamp)
-- `riders` (belongs to user; name, age bracket, experience level, notes, emergency contact)
+- `users` (customers and staff; `role` enum: customer, staff, admin; phone E.164; marketing consent flag + timestamp; encrypted TOTP secret and recovery codes)
+- `riders` (belongs to user; name, age bracket, experience level, notes, emergency contact; notes and emergency contact encrypted and redacted in the audit log)
 - `products` (type: single, private, package; name; price_minor; sessions_count; validity_days; is_active; sort)
 - `schedule_rules` (day_of_week, start_time, end_time, capacity, valid_from, valid_to, is_active)
-- `slots` (starts_at, ends_at, capacity, status: open, closed, cancelled; generated from rules; unique on starts_at)
-- `orders` (reference unique, user_id, product_id, status, payment_method, amount_minor, currency, stripe_checkout_session_id, stripe_payment_intent_id, expires_at, paid_at, meta json)
+- `slots` (schedule_rule_id, starts_at, ends_at, capacity, status: open, closed, cancelled; cancel_reason, cancelled_at, cancelled_by; generated from rules; unique on starts_at). `GenerateSlots` (daily `slots:generate`, after every rule change, and on seed) fills the horizon set by `booking.slot_horizon_weeks` [8]. Only future open slots with no booking, hold or order line follow rule changes or are removed; slots in use, closed or cancelled slots and past slots are never touched. Status changes go through `ChangeSlotStatus` (open ⇄ closed, open/closed → cancelled; cancelling needs a reason, is final and fires `SlotCancelled`).
+- `orders` (reference unique, user_id, product_id, status, payment_method, amount_minor, amount_refunded_minor, currency, stripe_checkout_session_id, stripe_payment_intent_id, expires_at, paid_at, meta json). Status changes only through `OrderStateMachine` (§3.3; reasons required for rejected, cancelled, partially_refunded and refunded).
 - `order_items` (order_id, slot_id nullable, rider_id, unit_price_minor)
 - `booking_holds` (slot_id, order_id, seats, expires_at)
 - `bookings` (slot_id, order_id, rider_id, user_id, status: confirmed, cancelled, attended, no_show, source credit_id nullable, ticket_code unique)
 - `credit_packs` (user_id, order_id, credits_total, credits_used, valid_from, expires_at, status)
-- `credit_ledger` (credit_pack_id, booking_id nullable, delta, reason, actor_id)
+- `credit_ledger` (credit_pack_id, booking_id nullable, delta, reason: granted, used, returned, adjusted, expired; note, actor_id)
 - `bank_transfers` (order_id, screenshot_path private, transaction_ref, submitted_at, verified_by, verified_at, status, rejection_reason)
 - `payments` (order_id, provider, provider_id, amount_minor, status, raw json)
 - `stripe_events` (event_id unique, type, processed_at) for idempotency

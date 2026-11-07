@@ -5,6 +5,14 @@ All notable changes to this project are documented here. The format follows [Kee
 ## [Unreleased]
 
 ### Added
+- Milestone 3 data model, schedule, slots and admin base:
+  - Roles (`customer`, `staff`, `admin`) on users, with phone (E.164) and marketing consent. The `access-admin` gate now means admin; staff enter the panel but only read slots and bookings.
+  - Admin auth: required app (TOTP) MFA with recovery codes for every panel user, strong password defaults (12+ characters, mixed case, numbers, symbols; breached-password check in production), a per-email sign-in limit on top of Filament's per-IP limit, a profile page, and `php artisan admin:create`.
+  - Migrations, models, enums, factories and policies for riders, slots, orders, order items, booking holds, bookings, credit packs, credit ledger, bank transfers, payments, Stripe events and lead notes (existing milestone 2 tables extended, not recreated). Rider emergency contacts and notes are encrypted; payment records are read-only in the admin; customers can see their own orders, bookings and credit packs.
+  - `GenerateSlots` and `slots:generate` (daily at 02:30, after every schedule rule change, and on seed): idempotent, DST-safe (local wall-clock to UTC per date), and only future open slots with nothing attached follow rule changes. New setting `booking.slot_horizon_weeks` [8].
+  - `OrderStateMachine`: the single place order status changes, validating PLAN §3.3 transitions under a row lock, requiring reasons for reject, cancel and refunds, and writing the audit log. `ChangeSlotStatus` for close, reopen and cancel (reason required, `SlotCancelled` event for milestone 8). `GenerateOrderReference` (`RP-` + 6 unambiguous characters).
+  - Filament: Slots (list with booked, held and free seats, week view, detail with bookings, close, reopen and cancel actions, generate on demand), Customers & riders (role changes through `ChangeUserRole`, logged), Orders (read-only with status history), Activity log viewer, and navigation groups. Personal data (emails, phones, rider notes, emergency contacts) is redacted in the audit log.
+  - Pest tests: slot generation (idempotency, DST in Asia/Karachi 2008 and Europe/London, rule changes never touching slots in use), state machine (every valid and invalid transition), slot status changes, policies per role, admin auth (MFA redirect, throttling, passwords) and every admin page.
 - `docs/OPEN-QUESTIONS.md`: every business fact the site uses that PLAN does not confirm, with its placeholder and where it appears.
 - Milestone 2 public pages, CMS content and SEO/AEO/GEO:
   - Data models (pulled forward from milestone 3): `settings`, `products` (PLAN §5 columns plus content fields), `schedule_rules`, `leads`, and CMS `pages`, `faqs` and `posts`, with factories, admin-only policies (behind an `access-admin` gate, denied until roles exist) and content audit logging.

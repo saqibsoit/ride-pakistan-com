@@ -45,7 +45,7 @@ With Herd, run `herd secure ride-pakistan-com` once and the site is served at `h
 - Public pages: `/`, `/experiences`, `/sessions/{slug}`, `/schedule`, `/prices`, `/faq`, `/guides`, `/trainer/omar-saleem`, `/expeditions`, `/contact`, `/book` (holding page until milestone 5). Legal pages (`/privacy`, `/terms`, `/refund-policy`) are 404 until published in the admin.
 - `/sitemap.xml`, `/robots.txt` and `/llms.txt` are generated from content. Outside production (`SITE_INDEXABLE` false) every page is `noindex` and robots.txt disallows all.
 - `/styleguide` (local environment only) shows every design token and Blade component.
-- `/{ADMIN_PATH}` shows the Filament login. Content resources and the Settings page exist, but panel access is denied to every user until staff roles exist (milestone 3).
+- `/{ADMIN_PATH}` shows the Filament login. Create a team account with `php artisan admin:create` (admin or staff); on first sign-in it must set up an authenticator app (MFA is required). Slots are generated from the schedule rules by `php artisan slots:generate` (also run daily by the scheduler and after every rule change).
 
 Settings (contact links, booking rules, policies, bank details) are edited in the admin; defaults live in `config/settings.php`. Bank details have no defaults in code: set the `BANK_*` values in `.env` (see `.env.example`).
 

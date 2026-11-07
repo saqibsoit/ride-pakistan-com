@@ -8,7 +8,7 @@ Status key:
 - **Unconfirmed, still shown**: low-risk wording kept on the site until confirmed.
 - **Removed**: a claim that could be wrong or unsafe if untrue. It has been taken off the site and replaced with neutral wording; it can go back once confirmed.
 
-Where a value is a setting, change it in the admin (Settings page) once roles exist (milestone 3); until then the defaults live in `config/settings.php`.
+Where a value is a setting, an admin can change it on the Settings page of the admin panel (roles and MFA arrived in milestone 3); the defaults live in `config/settings.php`.
 
 ## 1. Open decisions from PLAN §2
 
@@ -67,13 +67,25 @@ Where a value is a setting, change it in the admin (Settings page) once roles ex
 | 5.8 | Lesson product cards use expedition photos (`ride.jpg`: rider crossing a mountain river; `gallop.jpg`: rider galloping below mountains; `camp.jpg`). Lessons take place in Islamabad. OK, or do you have photos from the Islamabad sessions? | **Expedition photos** | `/experiences`, product pages, `/prices` JSON-LD images, home page. The home page keeps the reference caption "Photographed on a Ride Pakistan expedition". | Confirm |
 | 5.9 | Which AI crawlers to welcome in robots.txt? | **GPTBot, OAI-SearchBot, ChatGPT-User, ClaudeBot, Claude-SearchBot, Claude-User, PerplexityBot, Perplexity-User, Google-Extended, Applebot-Extended** (setting `seo.ai_crawlers`) | `/robots.txt` in production. PLAN §8 says "reputable search and AI crawlers"; the list itself is my choice. | Confirm |
 
-## 6. Content still to write
+## 6. Booking system and admin (milestone 3)
+
+Placeholders chosen while building the data model and admin panel. None of these are shown on public pages yet.
+
+| # | Question | Current placeholder | Where it is used | Status |
+|---|---|---|---|---|
+| 6.1 | Which age groups do you need to know about for each rider? | **Under 12, 12 to 15, 16 to 17, 18 or over** (`App\Enums\AgeBracket`) | Rider records in the admin (Customers & riders); booking form from milestone 5. Linked to 1.5 and 3.3. | Unconfirmed |
+| 6.2 | How should riders describe their experience? | **Never ridden, Ridden a few times, Confident rider** (`App\Enums\ExperienceLevel`) | Rider records in the admin; booking form from milestone 5. | Unconfirmed |
+| 6.3 | How far ahead can people book? | **8 weeks** (setting `booking.slot_horizon_weeks`, from the milestone 3 prompt) | Slot generation (`slots:generate`, daily and after every schedule rule change). | Confirm |
+| 6.4 | What may staff (non-admin) accounts do? | **Read slots and bookings only**; check-in from milestone 8 | Admin panel permissions (`app/Policies`). Admins can do everything. | Confirm |
+| 6.5 | Who should have admin access, and who staff access? | **Nobody yet.** Accounts are created with `php artisan admin:create`; each must set up an authenticator app at first sign-in. | Admin panel. | To do before launch |
+
+## 7. Content still to write
 
 | # | Item | Current state | Where |
 |---|---|---|---|
-| 6.1 | Privacy policy, terms and conditions | Unpublished headings-only outlines; pages return 404 and are hidden from the footer and sitemap | `/privacy`, `/terms` (`database/seeders/PageSeeder.php`) |
-| 6.2 | Refund policy | See 1.4 | `/refund-policy` |
-| 6.3 | Guides | Three drafts with outlines only; `/guides` shows an empty state and is `noindex` | `database/seeders/PostSeeder.php` |
+| 7.1 | Privacy policy, terms and conditions | Unpublished headings-only outlines; pages return 404 and are hidden from the footer and sitemap | `/privacy`, `/terms` (`database/seeders/PageSeeder.php`) |
+| 7.2 | Refund policy | See 1.4 | `/refund-policy` |
+| 7.3 | Guides | Three drafts with outlines only; `/guides` shows an empty state and is `noindex` | `database/seeders/PostSeeder.php` |
 
 ## Confirmed in PLAN (no action needed)
 

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Actions\Settings\UpdateSettings;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 
@@ -22,10 +23,20 @@ it('shows seats left with selling-fast and fully-booked states', function (int $
     'negative is clamped' => [-1, 'Fully booked', false],
 ]);
 
-it('uses the configured selling-fast threshold', function (): void {
-    config(['booking.selling_fast_threshold' => 3]);
+it('uses the selling-fast threshold setting', function (): void {
+    app(UpdateSettings::class)->handle(['booking.selling_fast_threshold' => 3]);
 
     $this->blade('<x-seats-left :seats="3" />')->assertSee('Selling fast');
+});
+
+it('shows a note instead of seats before live availability exists', function (): void {
+    $this->blade('<x-slot-card :starts-at="$start" :ends-at="$end" product="Riding session" href="/book" />', [
+        'start' => now()->addDay(),
+        'end' => now()->addDay()->addHours(2),
+    ])
+        ->assertSee('Seats shown when online booking opens')
+        ->assertSee('href="/book"', false)
+        ->assertDontSee('spots left');
 });
 
 it('can announce seat changes politely', function (): void {

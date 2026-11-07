@@ -34,15 +34,15 @@ class PostSeeder extends Seeder
             ],
             'what-to-wear-first-horse-riding-lesson' => [
                 'What to wear to your first horse riding lesson',
-                'Simple kit for a first ride: trousers, shoes, layers, and what we provide.',
+                'Simple kit for a first ride: trousers, shoes and layers.',
                 'ride.jpg',
                 [
-                    'The short answer' => '- Long trousers, closed shoes with a small heel, helmet provided',
+                    'The short answer' => '- Long trousers, closed shoes with a small heel (equipment we provide: to confirm, see docs/OPEN-QUESTIONS.md)',
                     'Trousers' => '- Why full-length; jeans vs riding trousers',
                     'Shoes and boots' => '- Why a small heel; what to avoid',
                     'Layers and weather' => '- Summer and winter in Islamabad',
                     'What to leave at home' => '- Scarves, loose jewellery',
-                    'What we provide' => '- Helmet and tack',
+                    'What we provide' => '- To confirm with Omar before writing (helmets, tack)',
                 ],
             ],
             'private-vs-group-riding-lessons' => [
@@ -51,7 +51,7 @@ class PostSeeder extends Seeder
                 'gallop.jpg',
                 [
                     'The short answer' => '- One-paragraph comparison with prices',
-                    'How group sessions work' => '- Up to 6 riders, shared trainer',
+                    'How group sessions work' => '- Riders per slot (setting, to confirm), shared trainer',
                     'How private sessions work' => '- Whole slot, your pace',
                     'Which suits you?' => "- Nervous beginners\n- Families and couples\n- Riders with a goal",
                     'Prices compared' => '- Link to prices',

@@ -32,7 +32,7 @@
     </section>
 
     <section class="wrap pb-section" aria-labelledby="pricing-title">
-        <x-section-heading id="pricing-title" title="Pricing." size="lg" lede="Prices are per rider, in Pakistani rupees." />
+        <x-section-heading id="pricing-title" title="Pricing." size="lg" lede="All prices are in Pakistani rupees (PKR)." />
 
         @if ($sessions->isNotEmpty())
             <h3 class="mt-12 font-display text-display-xs font-extrabold">Single visits</h3>
@@ -55,7 +55,6 @@
                         :caption="Money::format($product->perSessionMinor()).' per session'"
                         :summary="$product->sessions_count.' sessions, valid '.$product->validityWeeks().' weeks from confirmation.'"
                         :featured="$product->is_featured"
-                        :label="$product->is_featured ? 'Most popular' : null"
                         :level="4"
                     >
                         {{ $product->short_description }}

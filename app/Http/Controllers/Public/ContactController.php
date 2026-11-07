@@ -43,7 +43,7 @@ final class ContactController extends Controller
             'selectedInterest' => is_string($interest) ? LeadInterest::tryFrom($interest) : null,
             'seo' => $seo->make(
                 title: 'Contact us',
-                description: 'Questions about horse riding in Islamabad? Message Ride Pakistan on Instagram, email us, or send the form and we will reply within a day.',
+                description: 'Questions about horse riding in Islamabad? Message Ride Pakistan on Instagram, email us, or send the form and we will get back to you.',
                 page: Page::query()->firstWhere('slug', 'contact'),
                 breadcrumbs: [
                     ['label' => 'Home', 'url' => route('home')],

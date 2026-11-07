@@ -127,7 +127,7 @@
                     <li><p>Choose your session and a weekend slot online.</p></li>
                     <li><p>Pay by card, or by bank transfer using your booking reference.</p></li>
                     <li><p>Get your ticket by email, with the exact location pin.</p></li>
-                    <li><p>Arrive 15 minutes early, in long trousers and closed shoes.</p></li>
+                    <li><p>Come in long trousers and closed shoes.</p></li>
                 </ol>
             </div>
             <div class="flex flex-col justify-end gap-6">

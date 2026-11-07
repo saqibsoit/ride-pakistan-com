@@ -8,7 +8,7 @@
     <x-page-header
         title="Get in touch."
         :breadcrumbs="[['label' => 'Home', 'url' => route('home')], ['label' => 'Contact']]"
-        :answer="'The fastest way to reach Ride Pakistan is a DM on Instagram. You can also email '.$email.' or use the form below, and we’ll reply within a day. We ride in '.$facts->location().', '.$facts->scheduleText().'.'"
+        :answer="'The fastest way to reach Ride Pakistan is a DM on Instagram. You can also email '.$email.' or use the form below and we’ll get back to you. We ride in '.$facts->location().', '.$facts->scheduleText().'.'"
     >
         <x-button :href="$settings->string(\App\Enums\SettingKey::InstagramDmUrl)" external>Message us on Instagram</x-button>
         <x-button :href="'mailto:'.$email" variant="ghost">Email {{ $email }}</x-button>
@@ -19,7 +19,7 @@
 
         @if (session('status') === 'lead-sent')
             <x-alert variant="success" title="Thanks, your message is on its way." class="mb-8">
-                We’ll get back to you within a day, by phone or email.
+                We’ll get back to you by phone or email.
             </x-alert>
         @endif
 

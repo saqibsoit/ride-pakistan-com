@@ -43,18 +43,16 @@ return [
         'booking.map_pin_url' => env('BOOKING_MAP_PIN_URL', ''),
 
         // Policies. ":cutoff" and ":min_age" are replaced when shown.
+        // Only confirmed or neutral wording here: unconfirmed rules (helmets,
+        // arrival time, weather, minors, photography, transport) are listed
+        // in docs/OPEN-QUESTIONS.md until the business confirms them.
         'policies.riding_rules' => [
-            'A riding helmet is required at all times in the saddle. We provide one if you do not have your own.',
             'Wear full-length trousers and closed shoes or boots with a small heel.',
-            'Arrive 15 minutes before your slot so you start on time.',
             'Follow your trainer’s instructions around the horses at all times.',
         ],
         'policies.booking' => [
             'Cancel or reschedule up to :cutoff hours before your slot.',
-            'If weather makes riding unsafe, we move your session to another slot at no cost.',
-            'Riders under 18 need a parent or guardian’s consent.',
-            'We sometimes take photos and video. Tell us on the day if you would rather not be photographed.',
-            'Transport is not provided. We send the exact location pin when your booking is confirmed.',
+            'We send the exact location pin when your booking is confirmed.',
         ],
         'policies.refund' => '',
 

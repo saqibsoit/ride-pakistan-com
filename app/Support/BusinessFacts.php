@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support;
 
+use App\Enums\ProductType;
 use App\Enums\SettingKey;
 use App\Models\Faq;
 use App\Models\Product;
@@ -146,6 +147,25 @@ final class BusinessFacts
         return $minutes % 60 === 0
             ? $hours.' '.($hours === 1 ? 'hour' : 'hours')
             : $minutes.' minutes';
+    }
+
+    /**
+     * Group size for a product: its own text if set, otherwise derived from
+     * the riders-per-slot setting so the two never disagree.
+     */
+    public function groupSize(Product $product): ?string
+    {
+        if (filled($product->group_size)) {
+            return $product->group_size;
+        }
+
+        if ($product->type === ProductType::Private) {
+            return 'Just your group';
+        }
+
+        $riders = $this->settings->int(SettingKey::RidersPerSlot);
+
+        return $riders === null ? null : 'Up to '.$riders.' riders';
     }
 
     /** "2-hour" (as in "a 2-hour session"). */

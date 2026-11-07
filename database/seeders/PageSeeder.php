@@ -40,12 +40,12 @@ class PageSeeder extends Seeder
             'title' => 'Riding expeditions',
             'meta_title' => 'Horse riding expeditions in northern Pakistan',
             'meta_description' => 'After weekend lessons in Islamabad, ride the mountains: Ride Pakistan expeditions through the northern valleys.',
-            'answer' => 'Our weekend sessions in Islamabad are the first step. When you’re ready, join a Ride Pakistan expedition: multi-day rides through the northern valleys of Pakistan.',
+            'answer' => 'Our weekend sessions in Islamabad are the first step. When you’re ready, join a Ride Pakistan expedition through the northern valleys of Pakistan.',
             'is_published' => true,
             'body' => [
                 ['type' => 'image', 'data' => ['image' => 'group.jpg', 'alt' => 'A line of riders on horseback raising their fists in front of a mountain']],
-                ['type' => 'text', 'data' => ['heading' => 'Learn in Islamabad. Ride the mountains next.', 'content' => 'Expeditions are run on our expeditions site, with routes, dates and prices for each trip. A package of weekend sessions is the best way to get ready.']],
-                ['type' => 'cta', 'data' => ['label' => 'Explore expeditions', 'url' => $settings->string(SettingKey::ExpeditionsUrl), 'text' => 'Routes, dates and prices are on ridepakistan.co.']],
+                ['type' => 'text', 'data' => ['heading' => 'Learn in Islamabad. Ride the mountains next.', 'content' => 'Expeditions are run from our expeditions site. Details for each trip are there.']],
+                ['type' => 'cta', 'data' => ['label' => 'Explore expeditions', 'url' => $settings->string(SettingKey::ExpeditionsUrl), 'text' => 'Trip details are on our expeditions site.']],
             ],
         ]);
 

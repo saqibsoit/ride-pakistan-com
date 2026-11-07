@@ -43,7 +43,7 @@
                         :price-unit="$product->isPackage() ? 'for '.$product->sessions_count.' sessions' : 'per rider'"
                         :featured="$product->is_featured"
                         :duration="$product->isPackage() ? $product->sessions_count.' × '.$product->durationLabel() : $product->durationLabel()"
-                        :group-size="$product->group_size"
+                        :group-size="$facts->groupSize($product)"
                         :location="$facts->location()"
                         :video-href="$product->video_url"
                     />
@@ -57,7 +57,7 @@
                         <div class="flex flex-1 flex-col gap-3 p-6">
                             <p class="text-xs font-semibold uppercase tracking-label text-sand-dim">Expeditions</p>
                             <h3 class="text-display-sm">Riding expeditions in the north</h3>
-                            <p class="line-clamp-2 text-sand-dim">Multi-day rides through the northern valleys of Pakistan, for riders ready to cover real ground.</p>
+                            <p class="line-clamp-2 text-sand-dim">Ride Pakistan expeditions through the northern valleys of Pakistan.</p>
                             <div class="mt-auto flex flex-wrap gap-3 pt-3">
                                 <x-button :href="route('expeditions')" variant="ghost" size="sm">Details<span class="sr-only"> about expeditions</span></x-button>
                                 <x-button :href="$settings->string(\App\Enums\SettingKey::ExpeditionsUrl)" size="sm" external>See expeditions</x-button>
@@ -79,7 +79,7 @@
             <dl class="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
                 <div>
                     <dt class="font-display text-display-xs font-extrabold">A real trainer</dt>
-                    <dd class="mt-2 text-sand-dim">{{ $facts->trainer() }} has ridden all his life and stays with you the whole session.</dd>
+                    <dd class="mt-2 text-sand-dim">{{ $facts->trainer() }} leads your session and stays with you throughout.</dd>
                 </div>
                 <div>
                     <dt class="font-display text-display-xs font-extrabold">Horses come first</dt>
@@ -91,7 +91,7 @@
                 </div>
                 <div>
                     <dt class="font-display text-display-xs font-extrabold">Beginners welcome</dt>
-                    <dd class="mt-2 text-sand-dim">No experience needed. Most riders start having never touched a horse.</dd>
+                    <dd class="mt-2 text-sand-dim">No experience needed. The sessions are made for complete beginners.</dd>
                 </div>
             </dl>
         </div>

@@ -53,10 +53,10 @@
                         <dt class="font-display text-display-xs font-extrabold">Duration</dt>
                         <dd class="mt-1 text-sand-dim">{{ $product->isPackage() ? $product->sessions_count.' sessions of '.$product->durationLabel() : $product->durationLabel() }}</dd>
                     </div>
-                    @if ($product->group_size)
+                    @if ($facts->groupSize($product))
                         <div>
                             <dt class="font-display text-display-xs font-extrabold">Group</dt>
-                            <dd class="mt-1 text-sand-dim">{{ $product->group_size }}</dd>
+                            <dd class="mt-1 text-sand-dim">{{ $facts->groupSize($product) }}</dd>
                         </div>
                     @endif
                     <div>
@@ -158,8 +158,8 @@
             <x-booking.price-box :from-minor="$product->price_minor" :unit="$unit" :book-href="$bookUrl" label="Book now" :note="$product->isPackage() ? 'Valid '.$product->validityWeeks().' weeks from confirmation.' : null">
                 <p class="flex items-center gap-2 text-sm text-sand-dim"><x-glyph name="clock" class="size-4" />{{ $product->durationLabel() }} per session</p>
                 <p class="flex items-center gap-2 text-sm text-sand-dim"><x-glyph name="pin" class="size-4" />{{ $facts->location() }}</p>
-                @if ($product->group_size)
-                    <p class="flex items-center gap-2 text-sm text-sand-dim"><x-glyph name="users" class="size-4" />{{ $product->group_size }}</p>
+                @if ($facts->groupSize($product))
+                    <p class="flex items-center gap-2 text-sm text-sand-dim"><x-glyph name="users" class="size-4" />{{ $facts->groupSize($product) }}</p>
                 @endif
             </x-booking.price-box>
         </div>

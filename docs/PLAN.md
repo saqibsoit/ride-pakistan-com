@@ -35,6 +35,7 @@ A fast, secure, bilingual-ready website for Ride Pakistan’s weekend horse ridi
   - Cancellation / reschedule cutoff [48 hours before slot]
   - Refund policy text [TBD with Omar]
   - Minimum rider age [TBD with Omar]
+- Every other business fact the site states but this plan does not confirm (equipment, arrival time, weather, minors, photography, transport, reply times, copy claims) is tracked in `docs/OPEN-QUESTIONS.md` with its placeholder and where it is used. Unconfirmed claims that could be unsafe if wrong are kept off the site until confirmed.
 
 ## 3. Payments
 

@@ -62,7 +62,7 @@ class ProductForm
                                     ->helperText('One or two sentences for cards and search results.'),
                                 MarkdownEditor::make('long_description')->label('About this session'),
                                 Textarea::make('who_for')->label('Who it’s for')->rows(2)->maxLength(500),
-                                TextInput::make('group_size')->maxLength(100)->placeholder('Up to 6 riders'),
+                                TextInput::make('group_size')->maxLength(100)->placeholder('Leave empty to use riders per slot'),
                                 ContentFields::list('what_to_bring', 'What to bring'),
                                 ContentFields::list('whats_included', 'Your booking includes'),
                                 ContentFields::list('good_to_know', 'Good to know')

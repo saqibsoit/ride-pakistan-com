@@ -5,6 +5,7 @@ All notable changes to this project are documented here. The format follows [Kee
 ## [Unreleased]
 
 ### Added
+- `docs/OPEN-QUESTIONS.md`: every business fact the site uses that PLAN does not confirm, with its placeholder and where it appears.
 - Milestone 2 public pages, CMS content and SEO/AEO/GEO:
   - Data models (pulled forward from milestone 3): `settings`, `products` (PLAN §5 columns plus content fields), `schedule_rules`, `leads`, and CMS `pages`, `faqs` and `posts`, with factories, admin-only policies (behind an `access-admin` gate, denied until roles exist) and content audit logging.
   - Typed, cached settings (`App\Enums\SettingKey`, `App\Support\Settings`, `UpdateSettings` action); defaults in `config/settings.php`, bank details from `BANK_*` env values. `config/booking.php` removed; contact links moved from `config/site.php` to settings.
@@ -38,6 +39,8 @@ All notable changes to this project are documented here. The format follows [Kee
 - README with local setup steps.
 
 ### Changed
+- Removed unconfirmed claims that could be wrong or unsafe: helmet provision and requirements, arrival time, weather rescheduling, consent for minors, photography, transport, the "Is horse riding safe for beginners?" FAQ, reply-time promises, "Most popular", "multi-day" expeditions and package outcome claims. Riding rules and booking policies now default to confirmed or neutral wording only.
+- Group size is derived from the riders-per-slot setting instead of a hard-coded "Up to 6 riders".
 - Prices follow PLAN §2 (8-class PKR 60,000, 16-class PKR 100,000), not the reference page's older rows. Bank details no longer appear on public pages; they move to the checkout transfer page (milestone 7).
 - Test runs use a 512 MB memory limit (`phpunit.xml`) for the larger suite.
 - Stack pinned to PHP 8.3 + Laravel 12 instead of Laravel 13 (see `docs/PLAN.md` §4).

@@ -1,0 +1,56 @@
+/*
+ * Self-hosted brand fonts: variable WOFF2, latin subset (Fontsource 5.3.0,
+ * SIL OFL 1.1, licences next to the files). The display font is preloaded in
+ * the layout.
+ *
+ * Fallback faces are metric-matched to the brand fonts (size-adjust and
+ * ascent/descent overrides measured with fonttools), so the swap from
+ * fallback to web font barely moves the layout (CLS ≈ 0).
+ */
+
+@font-face {
+    font-family: 'Big Shoulders Display';
+    src: url('../fonts/big-shoulders-display.woff2') format('woff2');
+    font-weight: 700 900;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Instrument Sans';
+    src: url('../fonts/instrument-sans.woff2') format('woff2');
+    font-weight: 400 700;
+    font-style: normal;
+    font-display: swap;
+}
+
+/* Arial Narrow Bold (Windows, macOS with Office): average width ratio 0.93. */
+@font-face {
+    font-family: 'Big Shoulders Display Fallback Narrow';
+    src: local('Arial Narrow Bold'), local('ArialNarrow-Bold');
+    font-weight: 700 900;
+    size-adjust: 93%;
+    ascent-override: 105.8%;
+    descent-override: 22.9%;
+    line-gap-override: 0%;
+}
+
+/* Arial Bold everywhere else: average width ratio 0.76. */
+@font-face {
+    font-family: 'Big Shoulders Display Fallback';
+    src: local('Arial Bold'), local('Arial-BoldMT'), local('Arial');
+    font-weight: 700 900;
+    size-adjust: 76%;
+    ascent-override: 129.5%;
+    descent-override: 28%;
+    line-gap-override: 0%;
+}
+
+@font-face {
+    font-family: 'Instrument Sans Fallback';
+    src: local('Arial'), local('ArialMT'), local('Helvetica');
+    size-adjust: 103.6%;
+    ascent-override: 93.6%;
+    descent-override: 24.1%;
+    line-gap-override: 0%;
+}

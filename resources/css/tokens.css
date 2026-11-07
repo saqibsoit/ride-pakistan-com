@@ -1,0 +1,105 @@
+/*
+ * Ride Pakistan design tokens.
+ *
+ * The single source of colours, type sizes, spacing and radii. Tailwind's
+ * default palette, type scale, radii and fonts are reset, so only these
+ * tokens exist as utilities (bg-earth, text-display-xl, rounded-sm, ...).
+ * Views must not use hex values or arbitrary-value classes; a Pest test
+ * enforces this.
+ *
+ * Contrast on earth (#1F140B), WCAG 2.2:
+ *   sand 14.8:1 · sand-dim 8.1:1 · error 7.5:1 · success 9.5:1 · warning 9.6:1
+ *   line-strong 3.9:1 (non-text UI: field and chip borders)
+ *   saddle 3.1:1, so use it only for large display numerals and decoration, never body text.
+ *   sand on saddle 4.8:1 ("Selling fast" badge) · earth on sand 14.8:1
+ */
+
+@theme {
+    /* Colours ------------------------------------------------------------ */
+    --color-*: initial;
+    --color-earth: #1f140b;
+    --color-earth-2: #2a1b10;
+    --color-saddle: #8b5a2b;
+    --color-sand: #f4e8c1;
+    --color-sand-dim: rgb(244 232 193 / 0.72);
+    --color-line: rgb(244 232 193 / 0.16);
+    --color-line-strong: rgb(244 232 193 / 0.45);
+    --color-error: #e8917a;
+    --color-success: #a8c49a;
+    --color-warning: #e2b75e;
+
+    /* Fonts --------------------------------------------------------------- */
+    --font-*: initial;
+    --font-display: 'Big Shoulders Display', 'Big Shoulders Display Fallback Narrow', 'Big Shoulders Display Fallback', 'Arial Narrow', sans-serif;
+    --font-body: 'Instrument Sans', 'Instrument Sans Fallback', 'Helvetica Neue', Arial, sans-serif;
+    --default-font-family: var(--font-body);
+
+    /* Type scale (fluid) -------------------------------------------------- */
+    --text-*: initial;
+    --text-xs: 0.8125rem;
+    --text-xs--line-height: 1.4;
+    --text-sm: 0.9375rem;
+    --text-sm--line-height: 1.5;
+    --text-base: clamp(1.0625rem, 1rem + 0.25vw, 1.125rem);
+    --text-base--line-height: 1.6;
+    --text-lede: clamp(1.1875rem, 1.05rem + 0.55vw, 1.375rem);
+    --text-lede--line-height: 1.55;
+    --text-display-xs: clamp(1.5rem, 1.3rem + 0.8vw, 1.875rem);
+    --text-display-xs--line-height: 1.1;
+    --text-display-sm: clamp(1.875rem, 1.5rem + 1.2vw, 2.625rem);
+    --text-display-sm--line-height: 1;
+    --text-display-md: clamp(2.25rem, 1.6rem + 2.4vw, 3.25rem);
+    --text-display-md--line-height: 0.95;
+    --text-display-lg: clamp(2.75rem, 1.9rem + 3.4vw, 4.25rem);
+    --text-display-lg--line-height: 0.95;
+    --text-display-xl: clamp(3.5rem, 8vw, 7rem);
+    --text-display-xl--line-height: 0.9;
+    /*
+     * Hero headline: scales with viewport width AND height. On short, wide
+     * screens the height term wins, so the headline never runs into the header.
+     */
+    --text-hero: max(3rem, min(11vw, 9.375rem, calc((100svh - 25rem) / 3.5)));
+    --text-hero--line-height: 0.9;
+
+    --leading-*: initial;
+    --leading-display: 0.9;
+    --leading-tight: 1.1;
+    --leading-body: 1.6;
+
+    --tracking-*: initial;
+    --tracking-display: -0.005em;
+    --tracking-label: 0.08em;
+
+    /* Spacing ------------------------------------------------------------- */
+    --spacing: 0.25rem;
+    --spacing-gutter: 1.5rem;
+    --spacing-header: 5rem;
+    --spacing-section: clamp(5.5rem, 12vw, 10rem);
+    --spacing-bottom-bar: 5.5rem;
+
+    /* Layout -------------------------------------------------------------- */
+    --container-page: 75rem;
+    --container-prose: 62ch;
+    --container-narrow: 53.75rem;
+    --container-headline: 10ch;
+
+    /* Radii --------------------------------------------------------------- */
+    --radius-*: initial;
+    --radius-sm: 2px;
+    --radius-full: 9999px;
+
+    /* Motion -------------------------------------------------------------- */
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --animate-settle: settle 2.4s ease-out both;
+
+    @keyframes settle {
+        from {
+            transform: scale(1.06);
+            opacity: 0.6;
+        }
+        to {
+            transform: none;
+            opacity: 1;
+        }
+    }
+}

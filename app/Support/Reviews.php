@@ -37,12 +37,17 @@ final class Reviews
      */
     public function summary(Product $product): array
     {
-        $query = Review::query()->approved()->where('product_id', $product->id);
-        $count = (clone $query)->count();
+        // One aggregate query (milestone 11).
+        $row = Review::query()->approved()->where('product_id', $product->id)
+            ->toBase()
+            ->selectRaw('count(*) as total, avg(rating) as average')
+            ->first();
+
+        $count = (int) ($row->total ?? 0);
 
         return [
             'count' => $count,
-            'average' => $count === 0 ? 0.0 : round((float) $query->avg('rating'), 1),
+            'average' => $count === 0 ? 0.0 : round((float) ($row->average ?? 0), 1),
         ];
     }
 }

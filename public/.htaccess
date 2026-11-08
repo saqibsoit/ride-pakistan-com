@@ -1,3 +1,20 @@
+# Browser and Cloudflare caching of static files (milestone 11, docs/DEPLOY.md).
+# HTML is not cached here: Laravel sends "no-cache, private" on public pages,
+# because each response carries its own CSP nonce.
+<IfModule mod_headers.c>
+    # Photos, image variants, icons and the manifest (stable names, may be
+    # replaced): 30 days, then revalidate.
+    <FilesMatch "\.(avif|webp|jpe?g|png|gif|ico|svg|webmanifest)$">
+        Header set Cache-Control "public, max-age=2592000"
+    </FilesMatch>
+
+    # Vite build output carries a content hash in its name (app-DG_Dnmo7.js,
+    # instrument-sans-BbzFLZTg.woff2): one year, never revalidated.
+    <FilesMatch "-[A-Za-z0-9_-]{8}\.(js|css|woff2|svg|png|jpe?g|webp|avif)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
+</IfModule>
+
 <IfModule mod_rewrite.c>
     <IfModule mod_negotiation.c>
         Options -MultiViews -Indexes

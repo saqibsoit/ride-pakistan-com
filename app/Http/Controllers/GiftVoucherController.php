@@ -8,8 +8,8 @@ use App\Actions\Vouchers\CreateVoucherOrder;
 use App\Actions\Vouchers\VoucherRules;
 use App\Exceptions\VoucherRejected;
 use App\Http\Requests\StoreVoucherOrderRequest;
-use App\Models\Product;
 use App\Models\User;
+use App\Support\BusinessFacts;
 use App\Support\Money;
 use App\Support\Seo\Seo;
 use Illuminate\Contracts\View\View;
@@ -22,12 +22,12 @@ use Illuminate\Http\RedirectResponse;
  */
 final class GiftVoucherController extends Controller
 {
-    public function index(VoucherRules $rules, Seo $seo): View
+    public function index(VoucherRules $rules, Seo $seo, BusinessFacts $facts): View
     {
         $months = $rules->validityMonths();
 
         return view('gift-vouchers.index', [
-            'products' => Product::query()->active()->ordered()->get(),
+            'products' => $facts->products(),
             'minMinor' => $rules->minAmountMinor(),
             'maxMinor' => $rules->maxAmountMinor(),
             'months' => $months,
@@ -43,10 +43,10 @@ final class GiftVoucherController extends Controller
         ]);
     }
 
-    public function create(VoucherRules $rules): View
+    public function create(VoucherRules $rules, BusinessFacts $facts): View
     {
         return view('gift-vouchers.create', [
-            'products' => Product::query()->active()->ordered()->get(),
+            'products' => $facts->products(),
             'minMinor' => $rules->minAmountMinor(),
             'maxMinor' => $rules->maxAmountMinor(),
             'months' => $rules->validityMonths(),

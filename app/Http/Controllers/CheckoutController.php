@@ -37,12 +37,11 @@ final class CheckoutController extends Controller
 
         Gate::authorize('view', $order);
 
-        $order->load(['product', 'items.slot', 'items.rider', 'holds']);
+        $order->load(['product', 'items.slot', 'items.rider', 'holds', 'discounts']);
         $tracking->handle($order, $request);
 
         /** @var User $user */
         $user = $request->user();
-        $order->load('discounts');
 
         return view('checkout.show', [
             'order' => $order,

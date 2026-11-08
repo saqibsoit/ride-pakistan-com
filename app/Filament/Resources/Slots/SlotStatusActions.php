@@ -8,10 +8,13 @@ use App\Actions\Slots\AssignSlotTrainer;
 use App\Actions\Slots\ChangeSlotStatus;
 use App\Actions\Slots\CreateManualSlot;
 use App\Actions\Slots\UpdateManualSlot;
+use App\Actions\Weather\SendWeatherNotice;
 use App\Enums\SlotStatus;
+use App\Enums\WeatherNoticeTemplate;
 use App\Exceptions\InvalidStatusTransition;
 use App\Exceptions\SlotNotCreated;
 use App\Exceptions\SlotNotUpdated;
+use App\Exceptions\WeatherNoticeRejected;
 use App\Filament\Support\TrainerOptions;
 use App\Models\Slot;
 use App\Models\User;
@@ -38,7 +41,73 @@ final class SlotStatusActions
      */
     public static function all(): array
     {
-        return [self::runSheet(), self::assignTrainer(), self::editManual(), self::close(), self::reopen(), self::cancel()];
+        return [self::runSheet(), self::assignTrainer(), self::editManual(), self::weatherNotice(), self::close(), self::reopen(), self::cancel()];
+    }
+
+    /**
+     * Email everyone booked in the slot about the weather (milestone 10f).
+     * "Session cancelled" cancels the slot through ChangeSlotStatus.
+     */
+    public static function weatherNotice(): Action
+    {
+        return Action::make('weatherNotice')
+            ->label('Weather notice')
+            ->icon(Heroicon::OutlinedCloud)
+            ->visible(fn (Slot $record): bool => self::user()?->can('sendWeatherNotice', $record) === true
+                && $record->status !== SlotStatus::Cancelled
+                && $record->starts_at->isFuture())
+            ->modalHeading(fn (Slot $record): string => 'Weather notice: '.$record->label())
+            ->modalDescription(function (Slot $record): string {
+                $count = app(SendWeatherNotice::class)->recipientCount($record);
+
+                return sprintf(
+                    'One email to each of the %d %s with confirmed bookings. "Session cancelled" cancels the slot as usual (credits back, paid bookings flagged for review) and the cancellation email shows your message.',
+                    $count,
+                    $count === 1 ? 'customer' : 'customers',
+                );
+            })
+            ->fillForm(fn (Slot $record): array => [
+                'template' => WeatherNoticeTemplate::Update->value,
+                'message' => app(SendWeatherNotice::class)->defaultMessage($record, WeatherNoticeTemplate::Update),
+            ])
+            ->schema([
+                Select::make('template')->label('Template')
+                    ->options(collect(WeatherNoticeTemplate::cases())->mapWithKeys(fn (WeatherNoticeTemplate $t): array => [$t->value => $t->label()])->all())
+                    ->required()
+                    ->live()
+                    ->afterStateUpdated(function (?string $state, callable $set, Slot $record): void {
+                        $template = WeatherNoticeTemplate::tryFrom((string) $state);
+
+                        if ($template !== null) {
+                            $set('message', app(SendWeatherNotice::class)->defaultMessage($record, $template));
+                        }
+                    }),
+                Textarea::make('message')->label('Message')
+                    ->helperText('Sent as written. For "Session cancelled" it becomes the cancellation reason (up to 500 characters).')
+                    ->required()
+                    ->maxLength(fn (callable $get): int => WeatherNoticeTemplate::tryFrom((string) $get('template'))?->maxLength() ?? 2000)
+                    ->rows(6),
+            ])
+            ->action(function (Slot $record, array $data, Action $action, SendWeatherNotice $send): void {
+                $user = self::user();
+                abort_unless($user?->can('sendWeatherNotice', $record) === true, 403);
+
+                $template = WeatherNoticeTemplate::tryFrom((string) ($data['template'] ?? '')) ?? WeatherNoticeTemplate::Update;
+
+                try {
+                    $count = $send->handle($record, $template, (string) ($data['message'] ?? ''), $user);
+                } catch (WeatherNoticeRejected|InvalidStatusTransition $exception) {
+                    Notification::make()->danger()->title('Notice not sent')->body($exception->getMessage())->send();
+                    $action->halt();
+
+                    return;
+                }
+
+                Notification::make()->success()
+                    ->title($template === WeatherNoticeTemplate::Cancelled ? 'Slot cancelled' : 'Weather notice sent')
+                    ->body(sprintf('%d %s emailed.', $count, $count === 1 ? 'customer' : 'customers'))
+                    ->send();
+            });
     }
 
     /** The mobile run sheet for this session (milestone 10b). */

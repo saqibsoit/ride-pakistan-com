@@ -69,6 +69,12 @@ final class SlotPolicy
         return $user->isAdmin();
     }
 
+    /** Email booked customers about the weather (SendWeatherNotice, milestone 10f). */
+    public function sendWeatherNotice(User $user, Slot $slot): bool
+    {
+        return $user->isAdmin();
+    }
+
     /** Run the slot generator now. */
     public function generate(User $user): bool
     {

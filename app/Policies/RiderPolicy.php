@@ -37,7 +37,8 @@ final class RiderPolicy
 
     public function create(User $user): bool
     {
-        return ! $user->isPanelUser();
+        // Customers add their own riders; admins add riders on an account.
+        return ! $user->isStaff() && ! $user->isTrainer();
     }
 
     public function update(User $user, Rider $rider): bool

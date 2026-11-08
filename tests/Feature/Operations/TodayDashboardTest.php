@@ -16,14 +16,14 @@ use App\Models\Slot;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 
-function pkt(string $local): CarbonImmutable
+function dashboardTime(string $local): CarbonImmutable
 {
     return CarbonImmutable::parse($local, 'Asia/Karachi');
 }
 
 function dashboardSlot(string $local, int $riders = 0, array $attributes = []): Slot
 {
-    $slot = Slot::factory()->at(pkt($local))->create($attributes);
+    $slot = Slot::factory()->at(dashboardTime($local))->create($attributes);
     Booking::factory()->count($riders)->create(['slot_id' => $slot->id, 'status' => BookingStatus::Confirmed]);
 
     return $slot;
@@ -32,14 +32,14 @@ function dashboardSlot(string $local, int $riders = 0, array $attributes = []): 
 function paidOrder(string $paidLocal, int $amount, int $refunded = 0, OrderStatus $status = OrderStatus::Paid): Order
 {
     $order = Order::factory()->create(['amount_minor' => $amount]);
-    $order->forceFill(['status' => $status, 'paid_at' => pkt($paidLocal)->utc(), 'amount_refunded_minor' => $refunded])->save();
+    $order->forceFill(['status' => $status, 'paid_at' => dashboardTime($paidLocal)->utc(), 'amount_refunded_minor' => $refunded])->save();
 
     return $order;
 }
 
 it('counts today and this weekend with occupancy, leaving cancelled slots out', function (): void {
     // Wednesday 11 Nov 2026, 10:00 Pakistan time.
-    $summary = new TodaySummary(pkt('2026-11-11 10:00'));
+    $summary = new TodaySummary(dashboardTime('2026-11-11 10:00'));
 
     dashboardSlot('2026-11-11 08:00', 2); // today, already started: still today's
     dashboardSlot('2026-11-11 18:00', 1);
@@ -55,22 +55,22 @@ it('counts today and this weekend with occupancy, leaving cancelled slots out', 
 });
 
 it('treats the current Saturday and Sunday as this weekend', function (): void {
-    expect((new TodaySummary(pkt('2026-11-14 09:00')))->weekend()[0]->toDateString())->toBe('2026-11-14')
-        ->and((new TodaySummary(pkt('2026-11-15 20:00')))->weekend()[0]->toDateString())->toBe('2026-11-14')
-        ->and((new TodaySummary(pkt('2026-11-16 08:00')))->weekend()[0]->toDateString())->toBe('2026-11-21');
+    expect((new TodaySummary(dashboardTime('2026-11-14 09:00')))->weekend()[0]->toDateString())->toBe('2026-11-14')
+        ->and((new TodaySummary(dashboardTime('2026-11-15 20:00')))->weekend()[0]->toDateString())->toBe('2026-11-14')
+        ->and((new TodaySummary(dashboardTime('2026-11-16 08:00')))->weekend()[0]->toDateString())->toBe('2026-11-21');
 });
 
 it('counts open leads due for follow-up and new leads since Monday', function (): void {
-    $this->travelTo(pkt('2026-11-11 10:00'));
+    $this->travelTo(dashboardTime('2026-11-11 10:00'));
     Lead::factory()->create(['next_follow_up_at' => '2026-11-11']);
     Lead::factory()->create(['next_follow_up_at' => '2026-11-09']);
     Lead::factory()->create(['next_follow_up_at' => '2026-11-12']);
     Lead::factory()->status(LeadStatus::Lost)->create(['next_follow_up_at' => '2026-11-10', 'lost_reason' => 'x']);
 
-    Lead::factory()->create()->forceFill(['created_at' => pkt('2026-11-08 23:30')->utc()])->save(); // Sunday before
-    Lead::factory()->create()->forceFill(['created_at' => pkt('2026-11-09 00:10')->utc()])->save(); // Monday
+    Lead::factory()->create()->forceFill(['created_at' => dashboardTime('2026-11-08 23:30')->utc()])->save(); // Sunday before
+    Lead::factory()->create()->forceFill(['created_at' => dashboardTime('2026-11-09 00:10')->utc()])->save(); // Monday
 
-    $summary = new TodaySummary(pkt('2026-11-11 10:00'));
+    $summary = new TodaySummary(dashboardTime('2026-11-11 10:00'));
 
     expect($summary->followUpsDue())->toBe(2)
         ->and($summary->newLeadsThisWeek())->toBe(4 + 1);
@@ -84,7 +84,7 @@ it('sums revenue for orders paid in the Pakistan month, net of refunds', functio
     paidOrder('2026-10-05 10:00', 2_000_000);
     Order::factory()->status(OrderStatus::AwaitingVerification)->create(['amount_minor' => 9_000_000]);
 
-    $summary = new TodaySummary(pkt('2026-11-25 10:00'));
+    $summary = new TodaySummary(dashboardTime('2026-11-25 10:00'));
 
     expect($summary->revenue())->toBe(6_000_000)
         ->and($summary->revenue(1))->toBe(4_000_000)
@@ -92,7 +92,7 @@ it('sums revenue for orders paid in the Pakistan month, net of refunds', functio
 });
 
 it('counts active packs with credits left expiring within 14 days', function (): void {
-    $now = pkt('2026-11-11 10:00')->utc();
+    $now = dashboardTime('2026-11-11 10:00')->utc();
     $this->travelTo($now);
 
     CreditPack::factory()->create(['expires_at' => $now->addDays(3), 'credits_total' => 8, 'credits_used' => 5]);
@@ -106,7 +106,7 @@ it('counts active packs with credits left expiring within 14 days', function ():
 });
 
 it('shows admins every card, linking to filtered lists', function (): void {
-    $this->travelTo(pkt('2026-11-11 10:00'));
+    $this->travelTo(dashboardTime('2026-11-11 10:00'));
     paidOrder('2026-11-02 10:00', 1_000_000);
 
     $this->actingAs(User::factory()->admin()->withMfa()->create())->get('/test-admin')
@@ -137,7 +137,7 @@ it('shows staff sessions and leads but no money or packs', function (): void {
 });
 
 it('opens the filtered lists the cards link to', function (): void {
-    $this->travelTo(pkt('2026-11-11 10:00'));
+    $this->travelTo(dashboardTime('2026-11-11 10:00'));
     $admin = User::factory()->admin()->withMfa()->create();
     CreditPack::factory()->create(['expires_at' => now()->addDays(3)]);
 

@@ -69,7 +69,7 @@ final class CreateOrder
         $private = $product->type === ProductType::Private;
         $package = $product->type === ProductType::Package;
 
-        $amount = $package ? $product->price_minor : $product->price_minor * count($riderIds);
+        $amount = PriceQuote::for($product, count($riderIds))->totalMinor;
 
         return DB::transaction(function () use ($user, $product, $slotId, $riderIds, $draftKey, $expiresAt, $private, $package, $amount): Order {
             // Slot lock first. Inserting order items checks the slot_id

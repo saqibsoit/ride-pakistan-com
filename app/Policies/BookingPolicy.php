@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Policies;
 
+use App\Enums\BookingStatus;
 use App\Models\Booking;
 use App\Models\User;
 
@@ -26,6 +27,25 @@ final class BookingPolicy
     public function create(User $user): bool
     {
         return false;
+    }
+
+    /**
+     * Customers change (cancel, reschedule) their own credit bookings for
+     * sessions that haven't started; paid bookings change through an
+     * admin. The actions enforce the cutoff and credit rules.
+     */
+    public function change(User $user, Booking $booking): bool
+    {
+        return $booking->user_id === $user->id
+            && $booking->usesCredit()
+            && $booking->status === BookingStatus::Confirmed
+            && $booking->slot->starts_at->isFuture();
+    }
+
+    /** Admin booking tools: manual bookings, moves, cancellations, attendance. */
+    public function manage(User $user): bool
+    {
+        return $user->isAdmin();
     }
 
     public function update(User $user, Booking $booking): bool

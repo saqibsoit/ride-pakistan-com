@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Account\BookingChangeController;
 use App\Http\Controllers\Account\BookingController;
 use App\Http\Controllers\Account\CreditController;
 use App\Http\Controllers\Account\DashboardController;
@@ -13,6 +14,7 @@ use App\Http\Controllers\Account\SignOutEverywhereController;
 use App\Http\Controllers\Account\TicketController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RestoreAccountController;
+use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\Public\BookController;
 use App\Http\Controllers\Public\ContactController;
 use App\Http\Controllers\Public\ContentPageController;
@@ -42,7 +44,6 @@ Route::middleware(CacheResponse::class)->group(function (): void {
     Route::get('/faq', FaqController::class)->name('faq');
     Route::get('/guides', [GuideController::class, 'index'])->name('guides.index');
     Route::get('/guides/{post:slug}', [GuideController::class, 'show'])->name('guides.show');
-    Route::get('/book', BookController::class)->name('book');
 
     Route::get('/trainer/omar-saleem', ContentPageController::class)->defaults('slug', 'trainer')->name('trainer');
     Route::get('/expeditions', ContentPageController::class)->defaults('slug', 'expeditions')->name('expeditions');
@@ -53,6 +54,13 @@ Route::middleware(CacheResponse::class)->group(function (): void {
     Route::get('/robots.txt', [SeoFileController::class, 'robots'])->name('robots');
     Route::get('/llms.txt', [SeoFileController::class, 'llms'])->name('llms');
 });
+
+// Booking flow (Livewire, per-visitor state): never response-cached.
+Route::get('/book', BookController::class)->middleware('cache.headers:private;no_store')->name('book');
+
+Route::get('/checkout/{reference}', [CheckoutController::class, 'show'])
+    ->middleware(['auth', 'cache.headers:private;no_store'])
+    ->name('checkout.show');
 
 // Served from the generated file, which a queued job rewrites after the
 // page cache has been cleared, so it is never response-cached.
@@ -84,6 +92,10 @@ Route::post('/logout', [LoginController::class, 'logout'])->middleware('auth')->
 Route::middleware(['auth', 'cache.headers:private;no_store'])->prefix('account')->name('account.')->group(function (): void {
     Route::get('/', DashboardController::class)->name('dashboard');
     Route::get('/bookings', [BookingController::class, 'index'])->name('bookings');
+    Route::get('/bookings/{ticket}/reschedule', [BookingChangeController::class, 'editReschedule'])->name('bookings.reschedule.edit');
+    Route::post('/bookings/{ticket}/reschedule', [BookingChangeController::class, 'reschedule'])->name('bookings.reschedule');
+    Route::get('/bookings/{ticket}/cancel', [BookingChangeController::class, 'confirmCancel'])->name('bookings.cancel');
+    Route::post('/bookings/{ticket}/cancel', [BookingChangeController::class, 'cancel'])->name('bookings.cancel.store');
     Route::get('/tickets', [TicketController::class, 'index'])->name('tickets');
     Route::get('/tickets/{code}', [TicketController::class, 'show'])->name('tickets.show');
     Route::get('/credits', CreditController::class)->name('credits');

@@ -80,6 +80,8 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('check-in', fn (User $user): bool => $user->isTeamMember() || $user->isTrainer());
         // Run sheets and rider history at /team (milestone 10b): staff,
         // admins and trainers; SlotPolicy and RiderPolicy decide per record.
+        // Exports of orders, payments, refunds, bookings and leads (milestone 10b).
+        Gate::define('export-data', fn (User $user): bool => $user->isAdmin());
         Gate::define('team-area', fn (User $user): bool => $user->isTeamMember() || $user->isTrainer());
         Gate::policy(Activity::class, ActivityPolicy::class);
 

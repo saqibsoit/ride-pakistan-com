@@ -29,6 +29,7 @@ return [
         'contact.email' => env('SITE_EMAIL', 'hello@ridepakistan.co'),
         'contact.instagram_url' => env('SITE_INSTAGRAM_URL', 'https://www.instagram.com/ridepakistan/'),
         'contact.instagram_dm_url' => env('SITE_INSTAGRAM_DM_URL', 'https://ig.me/m/ridepakistan'),
+        'contact.google_review_url' => '',
         'contact.expeditions_url' => env('SITE_EXPEDITIONS_URL', 'https://ridepakistan.co'),
 
         // Schedule (plain-language summary; slots come from schedule rules)
@@ -44,6 +45,8 @@ return [
         'booking.card_hold_minutes' => 30,
         'booking.min_notice_hours' => 0,
         'booking.min_rider_age' => null,
+        'booking.checkin_opens_minutes' => 120,
+        'booking.arrival_minutes' => null,
         'booking.map_pin_url' => env('BOOKING_MAP_PIN_URL', ''),
 
         // Policies. ":cutoff" and ":min_age" are replaced when shown.

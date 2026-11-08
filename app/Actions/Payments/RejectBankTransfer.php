@@ -8,15 +8,15 @@ use App\Actions\Orders\OrderStateMachine;
 use App\Enums\BankTransferStatus;
 use App\Enums\OrderStatus;
 use App\Exceptions\BookingRejected;
-use App\Mail\TransferRejectedMail;
 use App\Models\BankTransfer;
 use App\Models\BookingHold;
 use App\Models\Order;
 use App\Models\User;
+use App\Notifications\TransferRejected;
+use App\Support\Notifier;
 use App\Support\PageCache;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
 
 /**
  * An admin rejects a bank transfer (PLAN §3.2 step 4): reason required,
@@ -68,10 +68,6 @@ final class RejectBankTransfer
 
         $this->pageCache->invalidate();
 
-        $email = (string) $order->user->email;
-
-        if ($email !== '' && ! str_ends_with($email, '.invalid')) {
-            Mail::to($email)->queue(new TransferRejectedMail($order, $reason));
-        }
+        app(Notifier::class)->send($order->user, new TransferRejected($order, $reason), Notifier::key(TransferRejected::type(), $order, $order->user));
     }
 }

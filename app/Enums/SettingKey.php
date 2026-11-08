@@ -19,6 +19,7 @@ enum SettingKey: string
     case Email = 'contact.email';
     case InstagramUrl = 'contact.instagram_url';
     case InstagramDmUrl = 'contact.instagram_dm_url';
+    case GoogleReviewUrl = 'contact.google_review_url';
     case ExpeditionsUrl = 'contact.expeditions_url';
 
     case ScheduleSummary = 'schedule.summary';
@@ -29,6 +30,8 @@ enum SettingKey: string
     case CancellationCutoffHours = 'booking.cancellation_cutoff_hours';
     case SellingFastThreshold = 'booking.selling_fast_threshold';
     case MinRiderAge = 'booking.min_rider_age';
+    case CheckinOpensMinutes = 'booking.checkin_opens_minutes';
+    case ArrivalMinutes = 'booking.arrival_minutes';
     case SlotHorizonWeeks = 'booking.slot_horizon_weeks';
     case CardHoldMinutes = 'booking.card_hold_minutes';
     case MinNoticeHours = 'booking.min_notice_hours';
@@ -57,9 +60,9 @@ enum SettingKey: string
     {
         return match ($this) {
             self::Email => SettingType::Email,
-            self::InstagramUrl, self::InstagramDmUrl, self::ExpeditionsUrl, self::MapPinUrl => SettingType::Url,
+            self::InstagramUrl, self::InstagramDmUrl, self::GoogleReviewUrl, self::ExpeditionsUrl, self::MapPinUrl => SettingType::Url,
             self::RidersPerSlot, self::TransferHoldHours, self::TransferMinNoticeHours, self::CancellationCutoffHours,
-            self::SellingFastThreshold, self::MinRiderAge, self::SlotHorizonWeeks,
+            self::SellingFastThreshold, self::MinRiderAge, self::CheckinOpensMinutes, self::ArrivalMinutes, self::SlotHorizonWeeks,
             self::CardHoldMinutes, self::MinNoticeHours,
             self::DeletionGraceDays, self::OrderRetentionYears, self::TransferProofRetentionDays => SettingType::Integer,
             self::RidingRules, self::BookingPolicies, self::AiCrawlers => SettingType::List,
@@ -85,6 +88,7 @@ enum SettingKey: string
             self::Email => 'Contact email',
             self::InstagramUrl => 'Instagram profile URL',
             self::InstagramDmUrl => 'Instagram DM link',
+            self::GoogleReviewUrl => 'Google review link (sent in the thank-you email; hidden while empty)',
             self::ExpeditionsUrl => 'Expeditions site URL',
             self::ScheduleSummary => 'Schedule summary',
             self::RidersPerSlot => 'Riders per slot',
@@ -93,6 +97,8 @@ enum SettingKey: string
             self::CancellationCutoffHours => 'Cancellation and reschedule cutoff (hours before slot)',
             self::SellingFastThreshold => 'Show "Selling fast" at or below (seats)',
             self::MinRiderAge => 'Minimum rider age',
+            self::CheckinOpensMinutes => 'Check-in opens this many minutes before a session',
+            self::ArrivalMinutes => 'Ask riders to arrive this many minutes early (reminder email; hidden while empty)',
             self::SlotHorizonWeeks => 'Create bookable slots this many weeks ahead',
             self::CardHoldMinutes => 'Hold seats for card payment (minutes)',
             self::MinNoticeHours => 'Stop booking a slot this many hours before it starts (0 = until it starts)',

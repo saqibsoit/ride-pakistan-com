@@ -64,6 +64,10 @@ class AppServiceProvider extends ServiceProvider
         // Full admin rights (content, settings, customers, orders, audit log).
         // Staff reach the panel too, but only what their policies allow.
         Gate::define('access-admin', fn (User $user): bool => $user->isAdmin());
+
+        // Gate check-in at /checkin (PLAN §6): staff and admins. Staff get
+        // nothing else beyond their read access.
+        Gate::define('check-in', fn (User $user): bool => $user->isTeamMember());
         Gate::policy(Activity::class, ActivityPolicy::class);
 
         // Strong passwords everywhere a password is set (PLAN §7). The
@@ -89,6 +93,10 @@ class AppServiceProvider extends ServiceProvider
         // Starting card payment calls Stripe: enough for retries, not a loop.
         RateLimiter::for('checkout', fn (Request $request): Limit => Limit::perMinute(10)
             ->by('checkout:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
+
+        // Gate check-in: generous for a busy morning, but not a scanner loop.
+        RateLimiter::for('checkin', fn (Request $request): Limit => Limit::perMinute(60)
+            ->by('checkin:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
 
         // Transfer proof uploads (PLAN §7): a few replacements, not a flood.
         RateLimiter::for('transfer-upload', fn (Request $request): Limit => Limit::perHour(10)

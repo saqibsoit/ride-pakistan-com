@@ -12,9 +12,6 @@ use App\Enums\OrderStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\SettingKey;
 use App\Exceptions\CheckoutUnavailable;
-use App\Mail\TransferExpiredMail;
-use App\Mail\TransferReceivedMail;
-use App\Mail\TransferToVerifyMail;
 use App\Models\BankTransfer;
 use App\Models\BookingHold;
 use App\Models\Order;
@@ -22,10 +19,13 @@ use App\Models\Product;
 use App\Models\Rider;
 use App\Models\Slot;
 use App\Models\User;
+use App\Notifications\TransferExpired;
+use App\Notifications\TransferReceived;
+use App\Notifications\TransferToVerify;
 use App\Support\TransferProofs;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 
 /** A held order whose session starts $days from now. */
@@ -80,7 +80,7 @@ function awaitingTransfer(int $days = 5): Order
 
 beforeEach(function (): void {
     Storage::fake(TransferProofs::DISK);
-    Mail::fake();
+    Notification::fake();
 });
 
 it('switches the same order to bank transfer and holds seats until the deadline', function (): void {
@@ -196,10 +196,10 @@ it('accepts a screenshot, re-encodes it without EXIF and moves the order to veri
     $slot = Slot::query()->findOrFail((int) $order->items()->value('slot_id'));
     expect(BookingHold::query()->where('order_id', $order->id)->sole()->expires_at->equalTo($slot->starts_at))->toBeTrue();
 
-    Mail::assertQueued(TransferReceivedMail::class, fn ($m) => $m->hasTo($order->user->email));
-    Mail::assertQueued(TransferToVerifyMail::class, 2);
+    Notification::assertSentTo($order->user, TransferReceived::class);
+    Notification::assertSentTimes(TransferToVerify::class, 2);
     foreach ($admins as $admin) {
-        Mail::assertQueued(TransferToVerifyMail::class, fn ($m) => $m->hasTo($admin->email));
+        Notification::assertSentTo($admin, TransferToVerify::class);
     }
 });
 
@@ -284,8 +284,8 @@ it('lets the customer replace the file until it is reviewed', function (): void 
         ->and(Storage::disk(TransferProofs::DISK)->exists($first))->toBeFalse()
         ->and(Storage::disk(TransferProofs::DISK)->allFiles())->toHaveCount(1);
 
-    Mail::assertQueued(TransferToVerifyMail::class, 0); // no admins here; and only the first upload notifies
-    Mail::assertQueued(TransferReceivedMail::class, 1);
+    Notification::assertSentTimes(TransferToVerify::class, 0); // no admins here; and only the first upload notifies
+    Notification::assertSentTimes(TransferReceived::class, 1);
 
     // Once reviewed, no more replacing.
     $transfer->status = BankTransferStatus::Rejected;
@@ -336,7 +336,7 @@ it('expires an order with no upload at the deadline and emails the customer', fu
     expect($order->refresh()->status)->toBe(OrderStatus::Expired)
         ->and(BookingHold::query()->where('order_id', $order->id)->exists())->toBeFalse();
 
-    Mail::assertQueued(TransferExpiredMail::class, fn ($m) => $m->hasTo($order->user->email));
+    Notification::assertSentTo($order->user, TransferExpired::class);
 
     $this->actingAs($order->user)->get(route('checkout.transfer', $order->reference))->assertSee('seats were released');
 });
@@ -354,7 +354,7 @@ it('keeps an uploaded transfer and its seats past the deadline until an admin de
         ->and(BookingHold::query()->where('order_id', $order->id)->exists())->toBeTrue()
         ->and($slot->seatsFree())->toBe(4);
 
-    Mail::assertNotQueued(TransferExpiredMail::class);
+    Notification::assertNotSentTo($order->user, TransferExpired::class);
 });
 
 it('never stores proofs under public/ and the storage route does not serve them', function (): void {

@@ -122,6 +122,16 @@ Defaults chosen while building sign-in and the account area. Settings can be cha
 | 10.7 | Should staff (not only admins) see and approve transfers? | **No, admins only.** It's money: fewer approvers means fewer mistakes and a cleaner audit trail. | Admin → Verify transfers. | Decided |
 | 10.4 | When a refund is made, what happens to bookings and credits? | **Full refund:** upcoming bookings cancelled, unused credits voided. **Partial:** the admin chooses. Refunds made in the Stripe dashboard change the money only and flag the order for review. | Admin → Orders → Refund. | Decided (milestone 6) |
 
+## 11. Tickets and notifications (milestone 8)
+
+| # | Question | Current placeholder | Where it is used | Status |
+|---|---|---|---|---|
+| 11.1 | What time should riders arrive? | **Not said** (setting `booking.arrival_minutes` empty). Once set, the reminder says "Please arrive by ...". | Reminder email. Linked to section 3 (arrival time removed from the site). | Open decision |
+| 11.2 | Google review link for the thank-you email? | **None** (setting `contact.google_review_url` empty); the review button is hidden. | Thank-you email. | Open decision |
+| 11.3 | When should reminders and thank-yous go out? | **Reminder about 24 h before; thank-you 1 to 24 h after a session the riders attended; credit warning 7 days before expiry, at 10:00.** | Scheduler (`notifications:send`). | Confirm |
+| 11.4 | How early can staff check riders in? | **2 hours before the start** (setting `booking.checkin_opens_minutes`). | `/checkin/{code}`. | Confirm |
+| 11.5 | The exact map pin is not set yet. | **Empty** (setting `booking.map_pin_url`): confirmation and reminder emails leave the location section out until it is set. | Emails only. | Open decision |
+
 ## Confirmed in PLAN (no action needed)
 
 For reference, these facts are used as stated in `docs/PLAN.md`: prices and validity (single PKR 10,000 and private PKR 15,000 per rider; 8-class PKR 60,000 for 6 weeks; 16-class PKR 100,000 for 10 weeks, from confirmation); Saturday and Sunday, 08:00–10:00 and 15:00–17:00 Asia/Karachi, shifting with the seasons; session content (bring in, groom, tack up, ride mostly trail with arena work on request, untack, massage and stretch); trainer Omar Saleem; location shown as "Islamabad" with the exact pin sent after confirmation; no experience needed; private sessions block the whole slot; card and bank-transfer payment; expired credits cannot be used; "Selling fast" at 2 seats or fewer (`docs/reference/DESIGN-REFERENCES.md`).

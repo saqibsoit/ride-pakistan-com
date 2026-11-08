@@ -23,5 +23,11 @@ Schedule::command('holds:release')->everyMinute()->withoutOverlapping();
 // Bank transfer screenshots 90 days after review; records are kept (PLAN §3.2).
 Schedule::command('transfers:prune-proofs')->dailyAt('04:15')->withoutOverlapping();
 
+// Customer emails (milestone 8), each sent once (notification_log). Times
+// are Pakistan time.
+Schedule::command('notifications:send reminders')->everyFifteenMinutes()->withoutOverlapping();
+Schedule::command('notifications:send thanks')->hourly()->withoutOverlapping();
+Schedule::command('notifications:send credits')->dailyAt('10:00')->timezone('Asia/Karachi')->withoutOverlapping();
+
 // Credit packs past their expiry (PLAN §2).
 Schedule::command('credits:expire')->dailyAt('00:15')->withoutOverlapping();

@@ -9,7 +9,6 @@ use App\Enums\BookingStatus;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
 use App\Events\OrderPaid;
-use App\Mail\OrderPaidMail;
 use App\Models\Booking;
 use App\Models\BookingHold;
 use App\Models\CreditPack;
@@ -20,9 +19,10 @@ use App\Models\Rider;
 use App\Models\Slot;
 use App\Models\StripeEvent;
 use App\Models\User;
+use App\Notifications\OrderConfirmed;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Testing\TestResponse;
 use Spatie\Activitylog\Models\Activity;
 use Tests\Support\FakeStripeGateway;
@@ -78,7 +78,7 @@ function postWebhook(TestCase $test, array $event, ?string $signature = null): T
 }
 
 beforeEach(function (): void {
-    Mail::fake();
+    Notification::fake();
 });
 
 it('fulfils a paid order through FulfilOrder on a validly signed checkout.session.completed', function (): void {
@@ -98,7 +98,7 @@ it('fulfils a paid order through FulfilOrder on a validly signed checkout.sessio
         ->and(StripeEvent::query()->sole()->processed_at)->not->toBeNull()
         ->and(Activity::query()->where('event', 'fulfilled')->where('subject_id', $order->id)->exists())->toBeTrue();
 
-    Mail::assertQueued(OrderPaidMail::class, fn (OrderPaidMail $mail): bool => $mail->order->is($order) && $mail->hasTo($order->user->email));
+    Notification::assertSentTo($order->user, OrderConfirmed::class, fn (OrderConfirmed $n): bool => $n->order->is($order));
 });
 
 it('renders the receipt with the brand line, reference, sessions and tickets', function (): void {
@@ -106,10 +106,11 @@ it('renders the receipt with the brand line, reference, sessions and tickets', f
     postWebhook($this, FakeStripeGateway::event('checkout.session.completed', paidSession($order)))->assertOk();
 
     $order->refresh();
-    $mail = new OrderPaidMail($order);
-    $html = $mail->render();
+    $mail = (new OrderConfirmed($order))->toMail($order->user);
+    $html = (string) $mail->render();
 
-    $mail->assertHasSubject('Payment received: '.$order->reference.' (Ride Pakistan by Destination Pakistan)');
+    expect($mail->subject)->toBe('Booking confirmed: '.$order->reference.' (Ride Pakistan by Destination Pakistan)')
+        ->and($mail->rawAttachments)->toHaveCount(2);
 
     expect($html)->toContain($order->reference)
         ->toContain('PKR 20,000')
@@ -198,7 +199,7 @@ it('does not fulfil when the amount differs, and raises an alert', function (): 
         ->and(Activity::query()->where('event', 'payment_mismatch')->where('subject_id', $order->id)->exists())->toBeTrue();
 
     Log::shouldHaveReceived('critical')->withArgs(fn (string $message): bool => str_contains($message, $order->reference))->once();
-    Mail::assertNothingQueued();
+    Notification::assertNothingSent();
 });
 
 it('does not fulfil when the currency differs', function (): void {

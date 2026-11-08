@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Actions\Orders\RecordCheckoutTracking;
 use App\Actions\Payments\CreateStripeCheckout;
 use App\Actions\Payments\TransferWindow;
 use App\Exceptions\CheckoutUnavailable;
@@ -22,13 +23,14 @@ use Illuminate\Support\Facades\Gate;
  */
 final class CheckoutController extends Controller
 {
-    public function show(Request $request, string $reference, TransferWindow $window): View
+    public function show(Request $request, string $reference, TransferWindow $window, RecordCheckoutTracking $tracking): View
     {
         $order = $this->order($request, $reference);
 
         Gate::authorize('view', $order);
 
         $order->load(['product', 'items.slot', 'items.rider', 'holds']);
+        $tracking->handle($order, $request);
 
         return view('checkout.show', [
             'order' => $order,

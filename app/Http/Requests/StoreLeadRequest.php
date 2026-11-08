@@ -4,14 +4,19 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
-use App\Actions\Leads\CaptureLead;
 use App\Enums\LeadInterest;
+use App\Rules\PassesTurnstile;
+use App\Support\Tracking\Attribution;
+use App\Support\Turnstile;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 /**
- * Contact form. Either a phone number or an email is required so we can
- * reply. "website" is a honeypot: real visitors never see or fill it.
+ * Lead forms (/contact and the /prices question). Either a phone number or
+ * an email is required so we can reply. "website" is a honeypot: real
+ * visitors never see or fill it. Turnstile is checked only when its keys
+ * are configured (PLAN §7: lead forms fail open without keys; the honeypot
+ * and rate limit still apply).
  */
 final class StoreLeadRequest extends FormRequest
 {
@@ -29,7 +34,7 @@ final class StoreLeadRequest extends FormRequest
     {
         $tracking = [];
 
-        foreach (CaptureLead::ATTRIBUTION_FIELDS as $field) {
+        foreach (Attribution::FIELDS as $field) {
             $tracking[$field] = ['nullable', 'string', 'max:2000'];
         }
 
@@ -42,6 +47,7 @@ final class StoreLeadRequest extends FormRequest
             'message' => ['nullable', 'string', 'max:2000'],
             self::HONEYPOT => ['nullable', 'string', 'max:255'],
             ...$tracking,
+            ...(app(Turnstile::class)->configured() ? [Turnstile::RESPONSE_FIELD => [new PassesTurnstile($this->ip())]] : []),
         ];
     }
 
@@ -56,6 +62,15 @@ final class StoreLeadRequest extends FormRequest
             'phone.regex' => 'Enter a phone number using digits, for example +92 300 1234567.',
             'preferred_date.after_or_equal' => 'Choose today or a later date.',
         ];
+    }
+
+    /**
+     * Errors always land on /contact: /prices is full-page cached and
+     * can't show them, and /contact repeats the same fields.
+     */
+    protected function getRedirectUrl(): string
+    {
+        return route('contact').'#contact-form';
     }
 
     public function isSpam(): bool

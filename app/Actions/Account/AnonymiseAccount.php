@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions\Account;
 
 use App\Models\Lead;
+use App\Models\LeadNote;
 use App\Models\LoginCode;
 use App\Models\Rider;
 use App\Models\User;
@@ -20,7 +21,9 @@ use Spatie\Activitylog\Models\Activity;
  *    placeholder (frees the address for a new account);
  *  - riders: deleted when never booked or ordered, otherwise renamed and
  *    their emergency contact and notes removed;
- *  - enquiries (leads) linked to the account: contact details and message;
+ *  - enquiries (leads) linked to the account: contact details, Instagram
+ *    handle, message, lost reason, landing page, referrer, click ids and
+ *    notes (source, status and dates stay for reporting);
  *  - sign-in codes for the email;
  *  - audit-log values recorded for the account and its riders.
  *
@@ -59,11 +62,23 @@ final class AnonymiseAccount
                     $rider->delete();
                 });
 
-                Lead::query()->where('user_id', $user->id)->update([
+                $leads = Lead::query()->where('user_id', $user->id);
+
+                LeadNote::query()->whereIn('lead_id', (clone $leads)->select('id'))->delete();
+
+                // Source, status, dates and the order link stay for reporting.
+                $leads->update([
                     'name' => 'Former customer',
                     'phone' => null,
                     'email' => null,
+                    'instagram_handle' => null,
                     'message' => null,
+                    'lost_reason' => null,
+                    'landing_url' => null,
+                    'referrer' => null,
+                    'fbclid' => null,
+                    'gclid' => null,
+                    'tracking_event_id' => null,
                 ]);
 
                 LoginCode::query()->where('destination', $email)->delete();

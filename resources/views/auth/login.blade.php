@@ -2,7 +2,7 @@
 <x-layouts.app title="Sign in" description="Sign in to your Ride Pakistan account with a one-time code sent to your email." robots="noindex, nofollow">
     @if ($turnstileSiteKey)
         <x-slot:head>
-            <script src="{{ \App\Support\Turnstile::SCRIPT_URL }}" async defer></script>
+            <script src="{{ \App\Support\Turnstile::SCRIPT_URL }}" async defer @nonce></script>
         </x-slot:head>
     @endif
 

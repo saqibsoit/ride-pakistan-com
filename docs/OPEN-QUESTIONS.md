@@ -132,6 +132,15 @@ Defaults chosen while building sign-in and the account area. Settings can be cha
 | 11.4 | How early can staff check riders in? | **2 hours before the start** (setting `booking.checkin_opens_minutes`). | `/checkin/{code}`. | Confirm |
 | 11.5 | The exact map pin is not set yet. | **Empty** (setting `booking.map_pin_url`): confirmation and reminder emails leave the location section out until it is set. | Emails only. | Open decision |
 
+## 12. Leads and tracking (milestone 9)
+
+| # | Question | Current placeholder | Where it is used | Status |
+|---|---|---|---|---|
+| 12.1 | Privacy policy wording for cookies and ad measurement (Meta Pixel, GA4, Meta Conversions API with hashed email/phone, the first-touch attribution cookie, 180-day consent, 90-day attribution cookie). | **Not written.** `/privacy` is an unpublished outline; the banner links to it only once published. | Cookie banner, `/privacy`. | Open decision |
+| 12.2 | Banner wording: "With your OK we use Meta and Google cookies to see which ads and posts bring riders to us." | **As written** (shown only when `META_PIXEL_ID` or `GA4_MEASUREMENT_ID` is set). | Cookie banner on every public page. | Confirm |
+| 12.3 | Should the team get an email or WhatsApp alert for each new site enquiry? | **No alert**: new leads appear in Admin → Leads and on the board. | Admin. | Open decision |
+| 12.4 | How should revenue be credited to sources? | **First touch**: each paid order counts once, for the customer's first lead before it; conversion = the customer paid after the enquiry. Last 12 weeks. | Admin dashboard (admins only). | Confirm |
+
 ## Confirmed in PLAN (no action needed)
 
 For reference, these facts are used as stated in `docs/PLAN.md`: prices and validity (single PKR 10,000 and private PKR 15,000 per rider; 8-class PKR 60,000 for 6 weeks; 16-class PKR 100,000 for 10 weeks, from confirmation); Saturday and Sunday, 08:00–10:00 and 15:00–17:00 Asia/Karachi, shifting with the seasons; session content (bring in, groom, tack up, ride mostly trail with arena work on request, untack, massage and stretch); trainer Omar Saleem; location shown as "Islamabad" with the exact pin sent after confirmation; no experience needed; private sessions block the whole slot; card and bank-transfer payment; expired credits cannot be used; "Selling fast" at 2 seats or fewer (`docs/reference/DESIGN-REFERENCES.md`).

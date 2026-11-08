@@ -47,11 +47,27 @@ return [
         'statement_descriptor_suffix' => env('STRIPE_STATEMENT_DESCRIPTOR_SUFFIX', 'RIDE PAKISTAN'),
     ],
 
-    // Cloudflare Turnstile (bot check on public forms). Empty secret: the
-    // check passes outside production and fails closed in production.
+    // Cloudflare Turnstile (bot check on public forms). /login: an empty
+    // secret passes outside production and fails closed in production.
+    // Lead forms use it only when both keys are set (PLAN §7).
     'turnstile' => [
         'site_key' => env('TURNSTILE_SITE_KEY'),
         'secret_key' => env('TURNSTILE_SECRET_KEY'),
+    ],
+
+    // Meta Pixel (browser, after consent) and Conversions API (server, only
+    // for visitors who consented). Empty pixel id: both off. Empty token:
+    // CAPI off, the Pixel still works.
+    'meta' => [
+        'pixel_id' => env('META_PIXEL_ID'),
+        'capi_token' => env('META_CAPI_TOKEN'),
+        'capi_test_code' => env('META_CAPI_TEST_CODE'),
+        'graph_version' => env('META_GRAPH_VERSION', 'v21.0'),
+    ],
+
+    // Google Analytics 4 (browser, after consent). Empty id: off.
+    'ga4' => [
+        'measurement_id' => env('GA4_MEASUREMENT_ID'),
     ],
 
 ];

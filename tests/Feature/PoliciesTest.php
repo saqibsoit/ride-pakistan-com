@@ -7,8 +7,6 @@ use App\Models\Booking;
 use App\Models\BookingHold;
 use App\Models\CreditLedgerEntry;
 use App\Models\CreditPack;
-use App\Models\Lead;
-use App\Models\LeadNote;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Payment;
@@ -83,8 +81,6 @@ it('keeps admin-only records away from staff and customers', function (string $m
 })->with([
     Product::class,
     ScheduleRule::class,
-    Lead::class,
-    LeadNote::class,
     Order::class,
     OrderItem::class,
     BookingHold::class,

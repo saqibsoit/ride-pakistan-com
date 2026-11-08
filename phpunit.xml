@@ -44,5 +44,11 @@
         <env name="STRIPE_KEY" value="" force="true"/>
         <env name="STRIPE_SECRET" value="" force="true"/>
         <env name="STRIPE_WEBHOOK_SECRET" value="" force="true"/>
+        <env name="TURNSTILE_SITE_KEY" value="" force="true"/>
+        <env name="TURNSTILE_SECRET_KEY" value="" force="true"/>
+        <env name="META_PIXEL_ID" value="" force="true"/>
+        <env name="META_CAPI_TOKEN" value="" force="true"/>
+        <env name="META_CAPI_TEST_CODE" value="" force="true"/>
+        <env name="GA4_MEASUREMENT_ID" value="" force="true"/>
     </php>
 </phpunit>

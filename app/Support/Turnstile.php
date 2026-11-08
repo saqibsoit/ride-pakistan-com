@@ -33,6 +33,16 @@ final class Turnstile
         return $this->secret() !== null;
     }
 
+    /**
+     * Both keys set: the widget can render and its token can be checked.
+     * Lead forms use Turnstile only then, so a missing key switches it
+     * off instead of rejecting every enquiry (PLAN §7).
+     */
+    public function configured(): bool
+    {
+        return $this->siteKey() !== null && $this->secret() !== null;
+    }
+
     public function verify(?string $token, ?string $ip = null): bool
     {
         $secret = $this->secret();

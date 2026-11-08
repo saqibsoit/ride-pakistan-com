@@ -1,5 +1,7 @@
 import { Livewire, Alpine } from '../../vendor/livewire/livewire/dist/livewire.esm';
 import registerComponents from './components/register';
+import fillLeadAttribution from './lead-attribution';
+import { initTracking } from './tracking';
 
 import.meta.glob('../fonts/*.woff2');
 
@@ -10,3 +12,8 @@ import.meta.glob('../fonts/*.woff2');
 registerComponents(Alpine);
 
 Livewire.start();
+
+// Consent-gated Pixel/GA4 (no-op unless configured and accepted) and
+// per-visit attribution for lead forms on cached pages.
+initTracking();
+fillLeadAttribution();

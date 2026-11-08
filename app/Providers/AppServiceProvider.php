@@ -14,11 +14,13 @@ use App\Support\PageCache;
 use App\Support\Settings;
 use App\Support\Stripe\StripeClientGateway;
 use App\Support\Stripe\StripeGateway;
+use App\Support\Tracking\BrowserEvents;
 use Closure;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
@@ -45,6 +47,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->scoped(Settings::class);
         $this->app->scoped(BusinessFacts::class);
         $this->app->scoped(PageCache::class);
+        $this->app->scoped(BrowserEvents::class);
 
         // One-time sign-in codes go by email; a phone/WhatsApp channel
         // can replace or sit beside this binding later.
@@ -78,7 +81,11 @@ class AppServiceProvider extends ServiceProvider
             return $this->app->isProduction() ? $rule->uncompromised() : $rule;
         });
 
-        // Contact form: a few honest retries, not a flood (PLAN §7).
+        // ` nonce="…"` for our own <script> tags (PLAN §7). Vite, Livewire
+        // and Filament add it to theirs from Vite::cspNonce().
+        Blade::directive('nonce', fn (): string => '<?php echo \App\Support\Csp\Nonce::attribute(); ?>');
+
+        // Lead forms: a few honest retries, not a flood (PLAN §7).
         RateLimiter::for('leads', fn (Request $request): array => [
             Limit::perMinute(3)->by('leads-minute:'.$request->ip()),
             Limit::perDay(20)->by('leads-day:'.$request->ip()),

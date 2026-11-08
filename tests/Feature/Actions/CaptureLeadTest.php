@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Actions\Leads\CaptureLead;
+use App\Enums\LeadSource;
 use App\Enums\LeadStatus;
 
 it('creates a new lead and trims and truncates attribution', function (): void {
@@ -22,7 +23,7 @@ it('creates a new lead and trims and truncates attribution', function (): void {
 });
 
 it('records the source it was given', function (): void {
-    $lead = app(CaptureLead::class)->handle(['name' => 'Omar'], [], 'instagram_dm');
+    $lead = app(CaptureLead::class)->handle(['name' => 'Omar'], [], LeadSource::WhatsApp);
 
-    expect($lead->source)->toBe('instagram_dm');
+    expect($lead->source)->toBe(LeadSource::WhatsApp);
 });

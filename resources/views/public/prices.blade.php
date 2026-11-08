@@ -93,13 +93,20 @@
         </div>
     </section>
 
-    <section class="wrap py-section" aria-labelledby="ask-title">
-        <div class="flex flex-col items-start gap-6 md:flex-row md:items-end md:justify-between">
-            <div>
-                <h2 id="ask-title" class="text-display-lg">Still have a question?</h2>
-                <p class="mt-4 max-w-prose text-lede text-sand-dim">Read the <a href="{{ route('faq') }}" class="underline underline-offset-4">FAQ</a> or send us a message.</p>
+    <section id="ask" class="wrap py-section" aria-labelledby="ask-title">
+        <div class="grid gap-10 lg:grid-cols-5">
+            <div class="lg:col-span-2">
+                <h2 id="ask-title" class="text-display-lg">Ask a question.</h2>
+                <p class="mt-4 max-w-prose text-lede text-sand-dim">Not sure which option suits you? Read the <a href="{{ route('faq') }}" class="underline underline-offset-4">FAQ</a> or send us your question and we’ll reply by phone or email.</p>
             </div>
-            <x-button :href="route('contact')" variant="ghost">Ask a question</x-button>
+            <div class="lg:col-span-3">
+                <x-lead-form
+                    :action="route('prices.question')"
+                    :turnstile-site-key="$turnstileSiteKey"
+                    id-prefix="ask"
+                    submit-label="Send question"
+                />
+            </div>
         </div>
     </section>
 </x-layouts.app>

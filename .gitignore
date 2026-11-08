@@ -33,3 +33,4 @@ Thumbs.db
 
 # Responsive image variants (php artisan images:responsive)
 /public/images/_variants
+/public/css/app

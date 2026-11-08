@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Actions\Orders\OrderStateMachine;
 use App\Enums\OrderStatus;
+use App\Enums\SlotSource;
 use App\Enums\SlotStatus;
 use App\Enums\UserRole;
 use App\Filament\Resources\Customers\Pages\EditCustomer;
@@ -145,6 +146,66 @@ describe('as an admin', function (): void {
         expect(Slot::query()->count())->toBe(32);
     });
 
+    it('adds a manual slot from the slots list', function (): void {
+        Livewire::test(ListSlots::class)
+            ->callAction('createManual', [
+                'date' => '2026-11-11',
+                'start_time' => '16:00',
+                'end_time' => '17:30',
+                'capacity' => 3,
+            ])
+            ->assertHasNoFormErrors()
+            ->assertNotified('Manual slot added');
+
+        $slot = Slot::query()->where('source', SlotSource::Manual->value)->sole();
+
+        expect($slot->label())->toBe('Wed 11 Nov 2026, 16:00–17:30')
+            ->and($slot->capacity)->toBe(3)
+            ->and($slot->status)->toBe(SlotStatus::Open)
+            ->and(Activity::query()->where('event', 'created_manual')->where('subject_id', $slot->id)->where('causer_id', $this->admin->id)->exists())->toBeTrue();
+
+        Livewire::test(ListSlots::class)
+            ->filterTable('source', SlotSource::Manual->value)
+            ->assertCanSeeTableRecords([$slot])
+            ->assertCountTableRecords(1)
+            ->assertTableColumnStateSet('source', SlotSource::Manual, $slot);
+
+        $this->get('/test-admin/slots/'.$slot->id)->assertOk()->assertSee('Manual');
+    });
+
+    it('defaults a manual slot to the riders-per-slot setting', function (): void {
+        Livewire::test(ListSlots::class)
+            ->mountAction('createManual')
+            ->assertSchemaStateSet(['capacity' => 6]);
+    });
+
+    it('validates the manual slot form', function (array $data, array $errors): void {
+        Livewire::test(ListSlots::class)
+            ->callAction('createManual', array_merge(['date' => '2026-11-11', 'start_time' => '16:00', 'end_time' => '17:00', 'capacity' => 3], $data))
+            ->assertHasFormErrors($errors);
+
+        expect(Slot::query()->where('source', SlotSource::Manual->value)->exists())->toBeFalse();
+    })->with([
+        'missing date' => [['date' => null], ['date' => 'required']],
+        'end before start' => [['end_time' => '15:00'], ['end_time' => 'after']],
+        'no riders' => [['capacity' => 0], ['capacity' => 'min']],
+        'too many riders' => [['capacity' => 51], ['capacity' => 'max']],
+    ]);
+
+    it('refuses a manual slot at a start time that is taken or in the past', function (string $date, string $start): void {
+        $count = Slot::query()->count();
+
+        Livewire::test(ListSlots::class)
+            ->callAction('createManual', ['date' => $date, 'start_time' => $start, 'end_time' => '23:00', 'capacity' => 3])
+            ->assertNotified('Slot not added')
+            ->assertActionMounted('createManual');
+
+        expect(Slot::query()->count())->toBe($count);
+    })->with([
+        'rule slot already there' => ['2026-11-07', '08:00'],
+        'earlier today' => ['2026-11-02', '08:00'],
+    ]);
+
     it('changes a customer role through the audit log, never their own', function (): void {
         $customer = User::factory()->create();
 
@@ -218,7 +279,9 @@ describe('as staff', function (): void {
             ->assertActionHidden('cancel')
             ->assertActionHidden('close');
 
-        Livewire::test(ListSlots::class)->assertActionHidden('generate');
+        Livewire::test(ListSlots::class)
+            ->assertActionHidden('generate')
+            ->assertActionHidden('createManual');
     });
 
     it('is kept out of admin-only areas', function (string $path): void {

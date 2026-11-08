@@ -21,7 +21,9 @@ class SlotInfolist
                     TextEntry::make('when')->label('When (Pakistan time)')
                         ->state(fn (Slot $record): string => $record->label()),
                     TextEntry::make('status')->badge(),
+                    TextEntry::make('source')->badge(),
                     TextEntry::make('rule')->label('From schedule rule')
+                        ->visible(fn (Slot $record): bool => ! $record->isManual())
                         ->state(fn (Slot $record): ?string => $record->scheduleRule === null ? null : sprintf(
                             '%s %s–%s',
                             ScheduleRuleForm::DAYS[$record->scheduleRule->day_of_week] ?? '',

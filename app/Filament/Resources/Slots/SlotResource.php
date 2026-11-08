@@ -20,8 +20,9 @@ use Illuminate\Database\Eloquent\Builder;
 use UnitEnum;
 
 /**
- * Generated sessions. No create, edit or delete: slots come from schedule
- * rules (GenerateSlots) and change status through SlotStatusActions.
+ * Sessions. Rule slots come from GenerateSlots; admins add manual slots
+ * from the list page (CreateManualSlot). No edit or delete: slots change
+ * status through SlotStatusActions.
  */
 class SlotResource extends Resource
 {

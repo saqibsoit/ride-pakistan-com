@@ -44,11 +44,12 @@ it('lets only team members see slots and bookings', function (string $role, bool
     ['admin', true],
 ]);
 
-it('lets only admins change slot status or run the generator', function (string $role, bool $allowed): void {
+it('lets only admins change slot status, add manual slots or run the generator', function (string $role, bool $allowed): void {
     $user = roleUser($role);
     $slot = Slot::factory()->create();
 
     expect($user->can('changeStatus', $slot))->toBe($allowed)
+        ->and($user->can('create', Slot::class))->toBe($allowed)
         ->and($user->can('generate', Slot::class))->toBe($allowed);
 })->with([
     ['customer', false],
@@ -56,13 +57,12 @@ it('lets only admins change slot status or run the generator', function (string 
     ['admin', true],
 ]);
 
-it('never allows creating, editing or deleting slots and bookings in the panel', function (): void {
+it('never allows editing or deleting slots, or creating, editing or deleting bookings in the panel', function (): void {
     $admin = roleUser('admin');
-    $slot = Slot::factory()->create();
+    $slot = Slot::factory()->manual()->create();
     $booking = Booking::factory()->create(['slot_id' => $slot->id]);
 
-    expect($admin->can('create', Slot::class))->toBeFalse()
-        ->and($admin->can('update', $slot))->toBeFalse()
+    expect($admin->can('update', $slot))->toBeFalse()
         ->and($admin->can('delete', $slot))->toBeFalse()
         ->and($admin->can('create', Booking::class))->toBeFalse()
         ->and($admin->can('update', $booking))->toBeFalse()

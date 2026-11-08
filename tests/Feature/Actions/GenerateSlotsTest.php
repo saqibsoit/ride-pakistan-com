@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Actions\Slots\GenerateSlots;
 use App\Actions\Slots\SlotGenerationResult;
 use App\Enums\SettingKey;
+use App\Enums\SlotSource;
 use App\Enums\SlotStatus;
 use App\Jobs\RegenerateSlots;
 use App\Models\Booking;
@@ -292,4 +293,68 @@ it('generates slots when the database is seeded', function (): void {
     $this->seed();
 
     expect(Slot::query()->count())->toBe(32);
+});
+
+it('marks generated slots as rule slots', function (): void {
+    seedPlanRules();
+    generate(1);
+
+    expect(Slot::query()->pluck('source')->unique()->all())->toBe([SlotSource::Rule]);
+});
+
+it('never changes or removes a manual slot at a time no rule produces', function (): void {
+    seedPlanRules();
+    // Wednesday evening: no rule runs then.
+    $manual = Slot::factory()->manual()->at(CarbonImmutable::parse('2026-11-04 17:00', 'Asia/Karachi'), 3)->create(['capacity' => 2]);
+    $before = $manual->only(['starts_at', 'ends_at', 'capacity', 'status', 'source', 'updated_at']);
+
+    $result = generate(1);
+
+    expect($result->deleted)->toBe(0)
+        ->and($result->created)->toBe(4)
+        ->and($manual->refresh()->only(['starts_at', 'ends_at', 'capacity', 'status', 'source', 'updated_at']))->toEqual($before);
+
+    // Every rule switched off: the rule slots go, the manual slot stays.
+    ScheduleRule::query()->update(['is_active' => false]);
+    $result = generate(1);
+
+    expect($result->deleted)->toBe(4)
+        ->and(Slot::query()->pluck('id')->all())->toBe([$manual->id]);
+});
+
+it('lets a manual slot win when a rule produces its start time', function (): void {
+    $rule = ScheduleRule::factory()->create(['day_of_week' => CarbonInterface::SATURDAY, 'start_time' => '08:00', 'end_time' => '10:00', 'capacity' => 6]);
+    $manual = Slot::factory()->manual()->at(CarbonImmutable::parse('2026-11-07 08:00', 'Asia/Karachi'), 3)->create(['capacity' => 2]);
+
+    $result = generate(2);
+
+    expect($result->created)->toBe(1)
+        ->and($result->kept)->toBe(1)
+        ->and($result->updated)->toBe(0)
+        ->and(Slot::query()->count())->toBe(2);
+
+    $manual->refresh();
+
+    expect($manual->source)->toBe(SlotSource::Manual)
+        ->and($manual->schedule_rule_id)->toBeNull()
+        ->and($manual->capacity)->toBe(2)
+        ->and($manual->localEndsAt()->format('H:i'))->toBe('11:00');
+
+    // The rule moves away and back: the manual slot is still never touched.
+    $rule->update(['start_time' => '07:00', 'end_time' => '09:00']);
+    generate(2);
+    $rule->update(['start_time' => '08:00', 'end_time' => '10:00', 'capacity' => 8]);
+    generate(2);
+
+    expect($manual->refresh()->capacity)->toBe(2)
+        ->and(Slot::query()->where('source', SlotSource::Manual->value)->count())->toBe(1)
+        ->and(Slot::query()->count())->toBe(2);
+});
+
+it('leaves closed manual slots closed', function (): void {
+    $manual = Slot::factory()->manual()->status(SlotStatus::Closed)->at(CarbonImmutable::parse('2026-11-04 17:00', 'Asia/Karachi'))->create();
+
+    generate(1);
+
+    expect($manual->refresh()->status)->toBe(SlotStatus::Closed);
 });

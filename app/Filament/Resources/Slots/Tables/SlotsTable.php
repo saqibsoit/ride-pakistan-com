@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Slots\Tables;
 
+use App\Enums\SlotSource;
 use App\Enums\SlotStatus;
 use App\Filament\Resources\Slots\SlotStatusActions;
 use App\Models\Slot;
@@ -31,6 +32,7 @@ class SlotsTable
                 TextColumn::make('time')->label('Time')
                     ->state(fn (Slot $record): string => $record->localStartsAt()->format('H:i').'–'.$record->localEndsAt()->format('H:i')),
                 TextColumn::make('status')->badge(),
+                TextColumn::make('source')->badge(),
                 TextColumn::make('capacity')->label('Seats')->numeric(),
                 TextColumn::make('seats_booked')->label('Booked')->numeric(),
                 TextColumn::make('seats_held')->label('Held')->numeric(),
@@ -49,6 +51,7 @@ class SlotsTable
                         false: fn (Builder $query): Builder => $query->where('starts_at', '<=', now()),
                     ),
                 SelectFilter::make('status')->options(SlotStatus::class),
+                SelectFilter::make('source')->options(SlotSource::class),
                 Filter::make('dates')
                     ->schema([
                         DatePicker::make('from')->label('From (Pakistan date)'),

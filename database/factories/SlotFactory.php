@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
+use App\Enums\SlotSource;
 use App\Enums\SlotStatus;
 use App\Models\Slot;
 use Carbon\CarbonImmutable;
@@ -41,6 +42,12 @@ class SlotFactory extends Factory
             'starts_at' => $localStart->utc(),
             'ends_at' => $localStart->addHours($hours)->utc(),
         ]);
+    }
+
+    /** Added by an admin (real code: CreateManualSlot). */
+    public function manual(): static
+    {
+        return $this->state(fn (): array => ['source' => SlotSource::Manual, 'schedule_rule_id' => null]);
     }
 
     /** Test set-up only: real code changes status through ChangeSlotStatus. */

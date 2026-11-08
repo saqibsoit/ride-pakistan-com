@@ -8,8 +8,9 @@ use App\Models\Slot;
 use App\Models\User;
 
 /**
- * Staff and admins see slots. Slots are created and removed only by the
- * generator; admins can close, reopen or cancel them (ChangeSlotStatus).
+ * Staff and admins see slots. Rule slots come from the generator; admins
+ * can add manual slots (CreateManualSlot) and close, reopen or cancel any
+ * slot (ChangeSlotStatus). Nobody edits or deletes slots directly.
  */
 final class SlotPolicy
 {
@@ -23,9 +24,10 @@ final class SlotPolicy
         return $user->isTeamMember();
     }
 
+    /** Add a manual slot. */
     public function create(User $user): bool
     {
-        return false;
+        return $user->isAdmin();
     }
 
     public function update(User $user, Slot $slot): bool

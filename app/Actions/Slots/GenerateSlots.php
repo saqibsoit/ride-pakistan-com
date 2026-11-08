@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions\Slots;
 
 use App\Enums\SettingKey;
+use App\Enums\SlotSource;
 use App\Enums\SlotStatus;
 use App\Models\ScheduleRule;
 use App\Models\Slot;
@@ -22,6 +23,9 @@ use Illuminate\Support\Facades\DB;
  *   order line) follow rule changes or are removed when no rule produces
  *   them. Slots in use, closed or cancelled slots and past slots are never
  *   touched.
+ * - Manual slots (added by an admin through CreateManualSlot) are never
+ *   changed or removed. If a rule produces a start time a manual slot
+ *   already holds, the manual slot wins and no rule slot is created.
  */
 final class GenerateSlots
 {
@@ -62,13 +66,15 @@ final class GenerateSlots
                 $slot = $existing[$key] ?? null;
 
                 if ($slot === null) {
-                    Slot::query()->create($wanted);
+                    $created = new Slot($wanted);
+                    $created->source = SlotSource::Rule;
+                    $created->save();
                     $result->created++;
 
                     continue;
                 }
 
-                if ($slot->status !== SlotStatus::Open || isset($inUse[$slot->id])) {
+                if ($slot->isManual() || $slot->status !== SlotStatus::Open || isset($inUse[$slot->id])) {
                     $result->kept++;
 
                     continue;
@@ -83,6 +89,10 @@ final class GenerateSlots
             }
 
             foreach (array_diff_key($existing, $desired) as $slot) {
+                if ($slot->isManual()) {
+                    continue;
+                }
+
                 if ($slot->status !== SlotStatus::Open || isset($inUse[$slot->id])) {
                     $result->kept++;
 

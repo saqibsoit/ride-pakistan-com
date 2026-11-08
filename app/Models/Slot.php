@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\BookingStatus;
+use App\Enums\SlotSource;
 use App\Enums\SlotStatus;
 use Carbon\CarbonImmutable;
 use Database\Factories\SlotFactory;
@@ -16,11 +17,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 
 /**
- * A concrete session (UTC times), generated from a schedule rule by
- * App\Actions\Slots\GenerateSlots. Status changes go through ChangeSlotStatus.
+ * A concrete session (UTC times). Rule slots come from GenerateSlots;
+ * manual slots from CreateManualSlot and are never touched by the
+ * generator. Status changes go through ChangeSlotStatus.
  *
  * @property int $id
  * @property int|null $schedule_rule_id
+ * @property SlotSource $source
  * @property CarbonImmutable $starts_at
  * @property CarbonImmutable $ends_at
  * @property int $capacity
@@ -39,7 +42,8 @@ class Slot extends Model
 
     /**
      * Status and cancellation fields are not fillable: they change only
-     * through ChangeSlotStatus.
+     * through ChangeSlotStatus. Source is set once, by the code that
+     * creates the slot (GenerateSlots or CreateManualSlot).
      *
      * @var list<string>
      */
@@ -53,7 +57,13 @@ class Slot extends Model
     /** @var array<string, mixed> */
     protected $attributes = [
         'status' => 'open',
+        'source' => 'rule',
     ];
+
+    public function isManual(): bool
+    {
+        return $this->source === SlotSource::Manual;
+    }
 
     /**
      * @return BelongsTo<ScheduleRule, $this>
@@ -193,6 +203,7 @@ class Slot extends Model
             'ends_at' => 'immutable_datetime',
             'capacity' => 'integer',
             'status' => SlotStatus::class,
+            'source' => SlotSource::class,
             'cancelled_at' => 'immutable_datetime',
             // Subquery columns from withSeatCounts().
             'seats_booked' => 'integer',

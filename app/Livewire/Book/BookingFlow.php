@@ -339,9 +339,22 @@ final class BookingFlow extends Component
         return $this->productSlug === '' ? null : $this->findProduct($this->productSlug);
     }
 
+    /**
+     * Products looked up during this request, by slug (milestone 11: one
+     * query per slug instead of one per call). Not a Livewire property:
+     * it never leaves the server and is rebuilt on every request.
+     *
+     * @var array<string, Product|null>
+     */
+    private array $products = [];
+
     private function findProduct(string $slug): ?Product
     {
-        return Product::query()->where('slug', $slug)->active()->first();
+        if (! array_key_exists($slug, $this->products)) {
+            $this->products[$slug] = Product::query()->where('slug', $slug)->active()->first();
+        }
+
+        return $this->products[$slug];
     }
 
     private function user(): ?User

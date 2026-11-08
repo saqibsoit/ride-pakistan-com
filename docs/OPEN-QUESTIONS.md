@@ -34,7 +34,7 @@ Where a value is a setting, an admin can change it on the Settings page of the a
 | # | Question | Current placeholder | Where it is used | Status |
 |---|---|---|---|---|
 | 3.1 | How early should riders arrive? | **Nothing said** | Removed from the riding rules ("Arrive 15 minutes before your slot") and the home page "How to book" step 4 ("Arrive 15 minutes early"). | Removed |
-| 3.2 | What happens in bad weather (who decides, rescheduling, cost)? | **Nothing said** | Removed from booking policies ("If weather makes riding unsafe, we move your session to another slot at no cost") and the FAQ "Can I cancel or reschedule?". | Removed |
+| 3.2 | What happens in bad weather (who decides, rescheduling, cost)? | **Nothing said** | Removed from booking policies ("If weather makes riding unsafe, we move your session to another slot at no cost") and the FAQ "Can I cancel or reschedule?". Milestone 10f: the weather notice templates (`weather.template_*`) are neutral and promise nothing about free moves or refunds; update them once this is decided. | Removed |
 | 3.3 | Rules for minors: is a parent or guardian's consent needed? Must they attend? From what age? | **Nothing said** | Removed booking policy "Riders under 18 need a parent or guardian's consent." Linked to 1.5 (minimum age). | Removed |
 | 3.4 | Is there photography or video at sessions, and how do riders opt out? | **Nothing said** | Removed booking policy "We sometimes take photos and video…". | Removed |
 | 3.5 | Is transport provided or available? | **Nothing said** | Removed booking policy "Transport is not provided." (The location pin sentence stays; it is in PLAN §2.) | Removed |

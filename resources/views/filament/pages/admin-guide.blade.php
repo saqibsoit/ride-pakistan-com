@@ -64,4 +64,14 @@
         </ol>
         <p>Trainers write a short session note for each rider; it appears in the rider’s history. Notes are stored encrypted.</p>
     </x-filament::section>
+
+    <x-filament::section heading="Weather alerts" :collapsible="true">
+        <ol>
+            <li><strong>Switch it on</strong> (admins, System → Settings → Weather alerts): enter the venue latitude and longitude (private, never shown on the site), check the thresholds and choose who gets alerts (admins, staff, and trainers for their own sessions).</li>
+            <li><strong>Forecasts</strong> are fetched at 06:00 and 18:00 Pakistan time for sessions in the next 48 hours. If they fail, the site retries every hour, and every admin gets one email after 12 hours of failures.</li>
+            <li><strong>Levels</strong>: “Watch” means one threshold is crossed; “Warning” means a thunderstorm or two thresholds. The team is emailed when a session’s level changes, and again with “all clear” when it improves. The run sheet and the Slots list show the level.</li>
+            <li><strong>Telling riders</strong>: open the slot and choose “Weather notice”. “Weather update” and “Session moved” email every customer with a confirmed booking, once each; the message is yours to edit. Moving riders is still done booking by booking. “Session cancelled” cancels the slot as usual (credits back, paid bookings flagged for a refund or move) and the cancellation email shows your message.</li>
+        </ol>
+        <p>The templates are neutral on purpose until the bad-weather policy is decided. Edit them under Settings → Weather alerts.</p>
+    </x-filament::section>
 </x-filament-panels::page>

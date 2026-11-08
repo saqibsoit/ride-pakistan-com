@@ -32,6 +32,11 @@ pest()->extend(TestCase::class)
     ->group('browser')
     ->in('Browser');
 
+// Upper bound for browser waits (page loads, assertions), not a delay:
+// each wait ends as soon as its condition holds. The test server runs in
+// the test process, so a busy machine can need more than the default 5 s.
+pest()->browser()->timeout(15_000);
+
 // Real parallel processes need committed data: truncate instead of
 // wrapping each test in a transaction the other processes can't see.
 pest()->extend(TestCase::class)

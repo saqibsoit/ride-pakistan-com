@@ -23,7 +23,7 @@ class CustomerForm
             Section::make('Contact')
                 ->columns(2)
                 ->schema([
-                    TextInput::make('name')->required()->maxLength(255),
+                    TextInput::make('name')->maxLength(255),
                     TextInput::make('email')->email()->required()->maxLength(190)
                         ->unique(ignoreRecord: true),
                     TextInput::make('phone')->label('Phone (international format)')

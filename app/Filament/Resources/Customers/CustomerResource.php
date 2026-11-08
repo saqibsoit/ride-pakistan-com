@@ -15,11 +15,14 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
 use UnitEnum;
 
 /**
  * Customers and team accounts with their riders. No create or delete:
- * accounts come from sign-up (milestone 4) or admin:create.
+ * accounts come from code sign-in or admin:create. Deleted accounts
+ * (grace period, retention) show with the "Deleted accounts" filter.
  */
 class CustomerResource extends Resource
 {
@@ -36,6 +39,11 @@ class CustomerResource extends Resource
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUsers;
 
     protected static ?string $recordTitleAttribute = 'name';
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->withoutGlobalScopes([SoftDeletingScope::class]);
+    }
 
     public static function form(Schema $schema): Schema
     {

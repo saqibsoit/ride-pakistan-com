@@ -9,6 +9,7 @@ use App\Models\User;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -20,7 +21,7 @@ class CustomersTable
             ->modifyQueryUsing(fn (Builder $query): Builder => $query->withCount(['riders', 'orders']))
             ->defaultSort('created_at', 'desc')
             ->columns([
-                TextColumn::make('name')->searchable()->sortable(),
+                TextColumn::make('name')->searchable()->sortable()->placeholder('Not given yet'),
                 TextColumn::make('email')->searchable(),
                 TextColumn::make('phone')->searchable()->placeholder('—'),
                 TextColumn::make('role')->badge(),
@@ -29,9 +30,15 @@ class CustomersTable
                 TextColumn::make('created_at')->label('Joined')
                     ->formatStateUsing(fn (User $record): string => $record->created_at?->setTimezone((string) config('app.display_timezone'))->format('j M Y') ?? '')
                     ->sortable(),
+                TextColumn::make('deleted_at')->label('Account')
+                    ->badge()
+                    ->color('danger')
+                    ->formatStateUsing(fn (User $record): string => $record->isAnonymised() ? 'Anonymised' : 'Deletion requested')
+                    ->placeholder('Active'),
             ])
             ->filters([
                 SelectFilter::make('role')->options(UserRole::class),
+                TrashedFilter::make()->label('Deleted accounts'),
             ])
             ->recordActions([
                 EditAction::make(),

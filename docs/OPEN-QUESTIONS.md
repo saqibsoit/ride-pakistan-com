@@ -87,6 +87,19 @@ Placeholders chosen while building the data model and admin panel. None of these
 | 7.2 | Refund policy | See 1.4 | `/refund-policy` |
 | 7.3 | Guides | Three drafts with outlines only; `/guides` shows an empty state and is `noindex` | `database/seeders/PostSeeder.php` |
 
+## 8. Customer accounts (milestone 4)
+
+Defaults chosen while building sign-in and the account area. Settings can be changed on the admin Settings page ("Privacy and data retention").
+
+| # | Question | Current placeholder | Where it is used | Status |
+|---|---|---|---|---|
+| 8.1 | How long must paid order records (with the customer's name and email) be kept? Please check with your accountant. | **6 years** after the last payment (setting `privacy.order_retention_years`) | Account deletion: an account with a paid order inside this period stays locked and is anonymised once it has passed. Stated on `/account/privacy`. | Confirm |
+| 8.2 | How long can a customer undo "delete my account"? | **30 days** (setting `privacy.deletion_grace_days`) | `/account/privacy`, the sign-in page after deletion, the "Keep your account?" page. | Confirm |
+| 8.3 | What happens to unused package credits when a customer deletes their account? | **Forfeited**, after an explicit tick box | `/account/privacy`. No refund is promised. | Confirm |
+| 8.4 | Marketing consent wording | **"Send me news and offers. Occasional emails about new sessions and expeditions. Unsubscribe any time."** Unticked by default. | `/account/profile`. No marketing emails are sent yet. | Confirm |
+| 8.5 | Sign-in code limits | **6 digits, 10 minutes, 5 tries per code; 3 codes per 10 minutes and 10 a day per email; 10 requests an hour per network** (`config/login.php`) | `/login`. Changing them needs a deploy. | Confirm |
+| 8.6 | Customers change their email by contacting you (no self-service yet). OK? | **"To change it, contact us"** | `/account/profile`. | Confirm |
+
 ## Confirmed in PLAN (no action needed)
 
 For reference, these facts are used as stated in `docs/PLAN.md`: prices and validity (single PKR 10,000 and private PKR 15,000 per rider; 8-class PKR 60,000 for 6 weeks; 16-class PKR 100,000 for 10 weeks, from confirmation); Saturday and Sunday, 08:00–10:00 and 15:00–17:00 Asia/Karachi, shifting with the seasons; session content (bring in, groom, tack up, ride mostly trail with arena work on request, untack, massage and stretch); trainer Omar Saleem; location shown as "Islamabad" with the exact pin sent after confirmation; no experience needed; private sessions block the whole slot; card and bank-transfer payment; expired credits cannot be used; "Selling fast" at 2 seats or fewer (`docs/reference/DESIGN-REFERENCES.md`).

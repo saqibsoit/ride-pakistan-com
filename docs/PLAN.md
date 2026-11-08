@@ -89,7 +89,8 @@ Built in milestone 2 (ahead of milestone 3, because public pages need them): `se
 Roles (milestone 3): `customer` (site and own account only), `staff` (admin panel: read-only slots and bookings; check-in from milestone 8), `admin` (everything). Staff and admins must use app-based (TOTP) MFA with recovery codes; passwords are at least 12 characters with mixed case, numbers and symbols (plus a breached-password check in production). Team accounts are created with `php artisan admin:create`. Role changes go through `ChangeUserRole` (an admin cannot change their own role) and are logged.
 
 
-- `users` (customers and staff; `role` enum: customer, staff, admin; phone E.164; marketing consent flag + timestamp; encrypted TOTP secret and recovery codes)
+- `users` (customers and staff; `role` enum: customer, staff, admin; phone E.164; marketing consent flag + timestamp of the last change; encrypted TOTP secret and recovery codes; `name` and `password` nullable for code-only customers; `session_version` for sign-out everywhere; soft deletes (`deleted_at` = deletion requested) and `anonymised_at`)
+- `login_codes` (milestone 4: channel, destination, HMAC-SHA256 `code_hash`, attempts, expires_at, consumed_at, ip_address; pruned daily a day after expiry)
 - `riders` (belongs to user; name, age bracket, experience level, notes, emergency contact; notes and emergency contact encrypted and redacted in the audit log)
 - `products` (type: single, private, package; name; price_minor; sessions_count; validity_days; is_active; sort)
 - `schedule_rules` (day_of_week, start_time, end_time, capacity, valid_from, valid_to, is_active)
@@ -130,9 +131,9 @@ Public (server-rendered, cached):
 - `/privacy`, `/terms`, `/refund-policy` (required by Stripe)
 - `/sitemap.xml`, `/robots.txt`, `/llms.txt`
 
-Customer (auth, not cached):
-- `/login` (email one-time code; phone/WhatsApp OTP later)
-- `/account` dashboard, `/account/bookings`, `/account/tickets/{code}`, `/account/credits`, `/account/orders/{reference}`
+Customer (auth, not cached, `Cache-Control: no-store, private`, noindex):
+- `/login` (email → 6-digit one-time code at `/login/code`; phone/WhatsApp later behind the same `LoginCodeChannel` contract), `/login/restore` (keep an account scheduled for deletion), `POST /logout`
+- `/account` dashboard (next session, credits left with expiry), `/account/bookings`, `/account/tickets` and `/account/tickets/{code}`, `/account/credits`, `/account/orders` and `/account/orders/{reference}` (printable receipt), `/account/riders` (Livewire), `/account/profile`, `/account/privacy` (download my data, sign out everywhere, delete my account)
 
 Payment:
 - `/checkout/{reference}` choose method, `/checkout/{reference}/transfer` bank details + upload, `/checkout/{reference}/status`
@@ -155,6 +156,8 @@ Target OWASP ASVS Level 2 and OWASP Top 10 coverage.
 - Stripe webhook signature verification, idempotency on event id, amount and currency re-checked against the order before fulfilment.
 - Secrets only in `.env` outside the web root; `APP_DEBUG=false` in production; no stack traces to users.
 - PII minimisation; encrypted casts for sensitive fields (emergency contact, notes); data export and deletion on request.
+- Customer sign-in (milestone 4): one-time email codes, 6 digits, 10-minute expiry, single use, stored as an HMAC keyed with the app key, dead after 5 wrong guesses; a new code replaces earlier ones. Requests limited to 3 per 10 minutes and 10 a day per email and 10 an hour per IP; submissions to 10 a minute per IP (`config/login.php`). Turnstile on the request form (fails closed in production without keys). Responses never reveal whether an account exists. The account is created on the first verified code. **Staff and admins never get a code** (it would skip the admin panel's MFA); they sign in at the admin path. Sessions are regenerated on sign-in; "sign out everywhere" bumps `users.session_version`, which ends every session (customer and admin panel) carrying the old one.
+- Account deletion (milestone 4): blocked while the customer has upcoming confirmed bookings or unpaid open orders; unused credits are forfeited only with explicit consent; team accounts are removed by an admin. The account is soft-deleted and signed out. Inside the grace period (`privacy.deletion_grace_days` [30]) signing in again offers "Keep my account". After it, `accounts:anonymise` (daily) anonymises the account once its newest paid order (`paid_at`, refunded orders included) is older than the retention period (`privacy.order_retention_years` [6]); until then it stays locked. Anonymising clears the name, phone, consent and email (replaced by `deleted-{id}@anonymised.invalid`), deletes unused riders, strips booked riders to "Former rider", clears linked leads and login codes, and redacts audit-log values for the account and its riders. Orders, bookings and payments are kept.
 - Full audit log for admin actions and all order/payment state changes.
 - Dependencies: `composer audit` and `npm audit` in CI; Dependabot.
 - Daily encrypted off-site backups (database + private files), 30-day retention, restore tested before launch.

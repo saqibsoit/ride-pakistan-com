@@ -9,14 +9,47 @@ use App\Models\Rider;
 use App\Models\Slot;
 use App\Models\User;
 use Carbon\CarbonImmutable;
+use Pest\Browser\Playwright\Page;
 
 /*
  * Browser smoke test of the run sheet (milestone 10b): a trainer on a phone
  * opens their session, puts a rider on a horse and checks them in, with
  * no JavaScript errors or console errors on the page.
+ *
+ * Why it is written this way (it used to fail at random under load):
+ * - The page wrapper retries every call with a 1-second step until its
+ *   timeout. That's right for assertions, but a retried click submits a
+ *   form again. So actions (select, submit) go to Playwright once, and
+ *   assertions use the wrapper.
+ * - After each submit (a POST and a redirect) the test waits for that
+ *   step's own result: the status message in the rider's card. Only the
+ *   new page has that message. RUN_SHEET_WAIT_MS is the limit before
+ *   giving up, not a delay.
+ * - visit()->on()->mobile() opens a new browser page on every call made on
+ *   it, so the page is resolved once (the first assertion) and reused.
+ * - The slot runs during the current Pakistan hour, so check-in is open at
+ *   any time of day. A slot starting "next hour" fell on the next Pakistan
+ *   date after 23:00, where check-in is refused.
  */
+const RUN_SHEET_WAIT_MS = 30_000;
+
+/**
+ * Press a submit button once and wait for the page it leads to: the status
+ * message in the rider's card containing $expected.
+ */
+function submitOnRunSheet(Page $page, string $button, Booking $booking, string $expected): void
+{
+    $page->getByRole('button', ['name' => $button, 'exact' => true])
+        ->click(['timeout' => RUN_SHEET_WAIT_MS]);
+
+    $page->locator('#rider-'.$booking->id.' [role="status"]')
+        ->filter(['hasText' => $expected])
+        ->waitFor(['state' => 'visible', 'timeout' => RUN_SHEET_WAIT_MS]);
+}
+
 it('lets a trainer work the run sheet on a phone', function (): void {
-    $start = CarbonImmutable::now('Asia/Karachi')->addHour()->startOfHour();
+    // In progress now: started at the top of this Pakistan hour, runs two hours.
+    $start = CarbonImmutable::now('Asia/Karachi')->startOfHour();
     $trainer = User::factory()->trainer()->withMfa()->create();
     $slot = Slot::factory()->at($start)->create(['trainer_id' => $trainer->id]);
     $rider = Rider::factory()->create(['name' => 'Zara Khan', 'emergency_contact_phone' => '+923001112233']);
@@ -25,17 +58,24 @@ it('lets a trainer work the run sheet on a phone', function (): void {
 
     $this->actingAs($trainer);
 
-    $page = visit(route('team.sessions.show', $slot))->on()->mobile();
+    // The first call opens the page; keep that one page for the whole test.
+    $page = visit(route('team.sessions.show', $slot))->on()->mobile()
+        ->assertSee('Zara Khan');
+    $playwright = $page->page();
 
-    $page->assertSee('Zara Khan')
-        ->assertSee('Call +923001112233')
+    $page->assertSee('Call +923001112233')
         ->assertNoJavaScriptErrors()
-        ->assertNoConsoleLogs()
-        ->select('#horse-'.$booking->id, (string) $horse->id)
-        ->press('Save horse')
-        ->assertSee('Zara Khan is on Toofan')
-        ->press('Check in Zara Khan')
-        ->assertSee('Checked in: Zara Khan')
+        ->assertNoConsoleLogs();
+
+    $playwright->locator('#horse-'.$booking->id)->selectOption((string) $horse->id);
+    submitOnRunSheet($playwright, 'Save horse', $booking, 'Zara Khan is on Toofan');
+
+    expect($booking->refresh()->horse?->name)->toBe('Toofan');
+
+    submitOnRunSheet($playwright, 'Check in Zara Khan', $booking, 'Checked in: Zara Khan');
+
+    $page->assertSee('Checked in: Zara Khan')
+        ->assertDontSee('Already checked in')
         ->assertNoJavaScriptErrors();
 
     expect($booking->refresh()->status)->toBe(BookingStatus::Attended)

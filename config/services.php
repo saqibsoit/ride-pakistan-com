@@ -70,4 +70,11 @@ return [
         'measurement_id' => env('GA4_MEASUREMENT_ID'),
     ],
 
+    // Open-Meteo forecast API (weather alerts, milestone 10f). Free, no key;
+    // called from the server only, so it needs no CSP entry.
+    'open_meteo' => [
+        'url' => env('OPEN_METEO_URL', 'https://api.open-meteo.com/v1/forecast'),
+        'timeout' => 10,
+    ],
+
 ];

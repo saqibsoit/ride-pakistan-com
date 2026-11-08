@@ -32,5 +32,9 @@ Schedule::command('notifications:send credits')->dailyAt('10:00')->timezone('Asi
 // Leads due for follow-up, to admins and staff (milestone 10c).
 Schedule::command('leads:digest')->dailyAt('09:00')->timezone('Asia/Karachi')->withoutOverlapping();
 
+// Weather alerts (milestone 10f): fetches the forecast at 06:00 and 18:00
+// Pakistan time (hourly retries after a failure) and emails level changes.
+Schedule::command('weather:check')->hourly()->withoutOverlapping();
+
 // Credit packs past their expiry (PLAN §2).
 Schedule::command('credits:expire')->dailyAt('00:15')->withoutOverlapping();

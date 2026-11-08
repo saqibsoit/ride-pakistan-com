@@ -37,6 +37,18 @@ final class Settings
         return is_scalar($value) ? (string) $value : '';
     }
 
+    public function float(SettingKey $key): ?float
+    {
+        $value = $this->get($key);
+
+        return is_numeric($value) ? (float) $value : null;
+    }
+
+    public function bool(SettingKey $key): bool
+    {
+        return (bool) $this->get($key);
+    }
+
     public function int(SettingKey $key): ?int
     {
         $value = $this->get($key);
@@ -95,6 +107,8 @@ final class Settings
     {
         return match ($key->type()) {
             SettingType::Integer => is_numeric($value) ? (int) $value : null,
+            SettingType::Decimal => is_numeric($value) ? (float) $value : null,
+            SettingType::Roles => self::cleanList(is_array($value) ? $value : []),
             SettingType::Boolean => (bool) $value,
             SettingType::List => self::cleanList(is_array($value) ? $value : []),
             default => is_scalar($value) ? trim((string) $value) : '',

@@ -35,6 +35,8 @@
             </div>
         </dl>
 
+        <x-weather-badge :session="$slot" detailed class="mt-4" />
+
         <p class="mt-4 text-sm">
             <a href="{{ route('team.sessions.show', [$slot, 'print' => 1]) }}" class="underline underline-offset-4 hover:text-sand-dim">Printable version</a>
         </p>

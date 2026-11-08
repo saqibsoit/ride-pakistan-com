@@ -10,6 +10,7 @@ use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
 
 class SlotInfolist
 {
@@ -44,6 +45,22 @@ class SlotInfolist
                         ->state(fn (Slot $record): int => $record->seatsHeld()),
                     TextEntry::make('seats_free')->label('Free')
                         ->state(fn (Slot $record): int => $record->seatsFree()),
+                ]),
+            Section::make('Weather')
+                ->description('Open-Meteo forecast for the venue, checked twice a day for sessions in the next 48 hours.')
+                ->columns(3)
+                ->visible(fn (Slot $record): bool => $record->currentWeather() !== null)
+                ->schema([
+                    TextEntry::make('weather_level')->label('Level')
+                        ->state(fn (Slot $record): ?string => $record->currentWeather()?->severity->label())
+                        ->badge()
+                        ->color(fn (Slot $record): string => $record->currentWeather()?->severity->filamentColor() ?? 'gray')
+                        ->icon(fn (Slot $record): ?Heroicon => $record->currentWeather()?->severity->filamentIcon()),
+                    TextEntry::make('weather_summary')->label('Crossed thresholds')
+                        ->state(fn (Slot $record): ?string => $record->currentWeather()?->summary() ?: null)
+                        ->placeholder('None'),
+                    TextEntry::make('weather_assessed')->label('Checked')
+                        ->state(fn (Slot $record): ?string => $record->currentWeather()?->assessed_at->setTimezone(Slot::displayTimezone())->format('j M Y H:i')),
                 ]),
             Section::make('Cancellation')
                 ->columns(3)

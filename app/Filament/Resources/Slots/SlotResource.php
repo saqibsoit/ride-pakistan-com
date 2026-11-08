@@ -39,7 +39,7 @@ class SlotResource extends Resource
      */
     public static function getEloquentQuery(): Builder
     {
-        return Slot::query()->withSeatCounts();
+        return Slot::query()->withSeatCounts()->with('weather');
     }
 
     public static function infolist(Schema $schema): Schema

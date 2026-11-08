@@ -14,7 +14,9 @@ use Spatie\Activitylog\Models\Activity;
 
 it('has a default for every setting except the undecided ones', function (SettingKey $key): void {
     // Empty until confirmed with Omar (OPEN-QUESTIONS); hidden on the site and in emails while empty.
-    $undecided = [SettingKey::MinRiderAge, SettingKey::RefundPolicy, SettingKey::MapPinUrl, SettingKey::ArrivalMinutes, SettingKey::GoogleReviewUrl];
+    // The venue coordinates come from .env or the admin (milestone 10f); alerts stay off without them.
+    $undecided = [SettingKey::MinRiderAge, SettingKey::RefundPolicy, SettingKey::MapPinUrl, SettingKey::ArrivalMinutes, SettingKey::GoogleReviewUrl,
+        SettingKey::WeatherLatitude, SettingKey::WeatherLongitude];
 
     if (in_array($key, $undecided, true)) {
         expect(true)->toBeTrue();

@@ -44,7 +44,7 @@ final class RunSheetController extends Controller
 
         $slots = Slot::query()
             ->withSeatCounts()
-            ->with('trainer')
+            ->with(['trainer', 'weather'])
             ->where('status', '!=', SlotStatus::Cancelled)
             ->where('starts_at', '>=', $today->utc())
             ->where('starts_at', '<', $today->addDays(self::DAYS_AHEAD)->utc())
@@ -72,7 +72,7 @@ final class RunSheetController extends Controller
         $horses = Horse::query()->working()->orderBy('sort')->orderBy('name')->get();
 
         return view($request->boolean('print') ? 'team.sessions.print' : 'team.sessions.show', [
-            'slot' => $slot->loadMissing('trainer'),
+            'slot' => $slot->loadMissing(['trainer', 'weather']),
             'bookings' => $bookings,
             'horses' => $horses,
             'states' => $bookings->mapWithKeys(fn (Booking $booking): array => [$booking->id => [

@@ -7,13 +7,16 @@ namespace App\Filament\Pages;
 use App\Actions\Settings\UpdateSettings;
 use App\Enums\SettingKey;
 use App\Enums\SettingType;
+use App\Enums\UserRole;
 use App\Filament\Support\ContentFields;
 use App\Models\User;
 use App\Support\Settings;
 use BackedEnum;
+use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Field;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\Section;
@@ -48,6 +51,7 @@ class ManageSettings extends Page
         'leads' => 'Leads',
         'privacy' => 'Privacy and data retention',
         'seo' => 'Search engines',
+        'weather' => 'Weather alerts',
     ];
 
     /** @var array<string, mixed> */
@@ -116,6 +120,18 @@ class ManageSettings extends Page
         return str_replace('.', '__', $key->value);
     }
 
+    /** Coordinates within their range; the rain amount from 0. */
+    private static function decimal(SettingKey $key, string $name): TextInput
+    {
+        [$min, $max] = match ($key) {
+            SettingKey::WeatherLatitude => [-90, 90],
+            SettingKey::WeatherLongitude => [-180, 180],
+            default => [0, 1000],
+        };
+
+        return TextInput::make($name)->numeric()->minValue($min)->maxValue($max);
+    }
+
     private static function input(SettingKey $key): Field
     {
         $name = self::field($key);
@@ -123,7 +139,16 @@ class ManageSettings extends Page
         $field = match ($key->type()) {
             SettingType::LongText => Textarea::make($name)->rows(3)->maxLength(2000)->columnSpanFull(),
             SettingType::List => ContentFields::list($name, $key->label()),
-            SettingType::Integer => TextInput::make($name)->integer()->minValue(0),
+            SettingType::Integer => $key === SettingKey::WeatherColdC
+                ? TextInput::make($name)->integer()->minValue(-50)->maxValue(50)
+                : TextInput::make($name)->integer()->minValue(0),
+            SettingType::Decimal => self::decimal($key, $name),
+            SettingType::Boolean => Toggle::make($name),
+            SettingType::Roles => CheckboxList::make($name)->options([
+                UserRole::Admin->value => 'Admins',
+                UserRole::Staff->value => 'Staff',
+                UserRole::Trainer->value => 'Trainers (only the sessions they run)',
+            ]),
             SettingType::Url => TextInput::make($name)->url()->maxLength(500),
             SettingType::Email => TextInput::make($name)->email()->maxLength(190),
             default => TextInput::make($name)->maxLength(255),

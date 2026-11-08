@@ -8,6 +8,7 @@
         ['label' => 'Experiences', 'url' => route('experiences')],
         ['label' => 'Schedule', 'url' => route('schedule')],
         ['label' => 'Prices', 'url' => route('prices')],
+        ['label' => 'Gift vouchers', 'url' => route('gift-vouchers')],
         ['label' => 'Your trainer', 'url' => route('trainer')],
         ['label' => 'Guides', 'url' => route('guides.index')],
         ['label' => 'FAQ', 'url' => route('faq')],

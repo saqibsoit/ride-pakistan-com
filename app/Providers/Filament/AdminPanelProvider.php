@@ -59,6 +59,7 @@ class AdminPanelProvider extends PanelProvider
             ->navigationGroups([
                 'Bookings',
                 'Leads',
+                'Sales & promotions',
                 'Schedule',
                 'Customers',
                 'Content',

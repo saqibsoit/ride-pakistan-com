@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions\Payments;
 
 use App\Actions\Booking\FulfilOrder;
+use App\Actions\Vouchers\HandleVoucherStripeEvent;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentProvider;
 use App\Enums\PaymentStatus;
@@ -36,6 +37,10 @@ use Throwable;
  *   bank transfer under the same reference; holds:release expires it.
  * - charge.refunded: refunds not yet recorded (made in the Stripe
  *   dashboard) are recorded and the order is flagged for review.
+ *
+ * Gift voucher purchases (milestone 10e, metadata.kind = "voucher", and
+ * refunds of their payments) go to HandleVoucherStripeEvent instead and
+ * never reach FulfilOrder.
  */
 final class HandleStripeEvent
 {
@@ -52,6 +57,7 @@ final class HandleStripeEvent
         private readonly RecordRefund $refunds,
         private readonly FlagOrderForReview $flag,
         private readonly StripeGateway $stripe,
+        private readonly HandleVoucherStripeEvent $vouchers,
     ) {}
 
     /** @return bool false when the event had already been processed */
@@ -71,14 +77,25 @@ final class HandleStripeEvent
             /** @var array<string, mixed> $object */
             $object = $event->data->object->toArray();
 
-            match ($event->type) {
-                'checkout.session.completed',
-                'checkout.session.async_payment_succeeded' => $this->sessionPaid($event, $object),
-                'checkout.session.async_payment_failed' => $this->sessionFailed($event, $object, 'failed'),
-                'checkout.session.expired' => $this->sessionFailed($event, $object, 'expired'),
-                'charge.refunded' => $this->chargeRefunded($event, $object),
-                default => null,
-            };
+            if (str_starts_with($event->type, 'checkout.session.') && HandleVoucherStripeEvent::isVoucherSession($object)) {
+                // Gift voucher purchases (milestone 10e) never reach order fulfilment.
+                match ($event->type) {
+                    'checkout.session.completed',
+                    'checkout.session.async_payment_succeeded' => $this->vouchers->sessionPaid($event, $object),
+                    'checkout.session.async_payment_failed' => $this->vouchers->sessionFailed($event, $object, 'failed'),
+                    'checkout.session.expired' => $this->vouchers->sessionFailed($event, $object, 'expired'),
+                    default => null,
+                };
+            } else {
+                match ($event->type) {
+                    'checkout.session.completed',
+                    'checkout.session.async_payment_succeeded' => $this->sessionPaid($event, $object),
+                    'checkout.session.async_payment_failed' => $this->sessionFailed($event, $object, 'failed'),
+                    'checkout.session.expired' => $this->sessionFailed($event, $object, 'expired'),
+                    'charge.refunded' => $this->chargeRefunded($event, $object),
+                    default => null,
+                };
+            }
 
             $record->processed_at = CarbonImmutable::now();
             $record->save();
@@ -177,6 +194,10 @@ final class HandleStripeEvent
         $intent = self::str($charge['payment_intent'] ?? null);
 
         $order = $intent === '' ? null : Order::query()->where('stripe_payment_intent_id', $intent)->lockForUpdate()->first();
+
+        if ($order === null && $this->vouchers->chargeRefunded($event, $charge)) {
+            return; // a gift voucher payment (milestone 10e)
+        }
 
         if ($order === null) {
             Log::warning('charge.refunded for an unknown payment intent', ['stripe_event_id' => $event->id, 'payment_intent' => $intent]);

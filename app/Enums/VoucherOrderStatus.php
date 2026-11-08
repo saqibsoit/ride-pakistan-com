@@ -62,7 +62,10 @@ enum VoucherOrderStatus: string implements HasColor, HasLabel
             self::AwaitingTransfer => [self::AwaitingVerification, self::Paid, self::Expired, self::Cancelled],
             self::AwaitingVerification => [self::Paid, self::Rejected, self::Cancelled],
             self::Paid => [self::Refunded],
-            self::Rejected, self::Expired, self::Cancelled, self::Refunded => [],
+            // A late card payment on an expired purchase still issues the
+            // voucher: nothing is scarce, so there is nothing to refund.
+            self::Expired => [self::Paid],
+            self::Rejected, self::Cancelled, self::Refunded => [],
         };
     }
 

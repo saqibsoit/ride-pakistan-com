@@ -23,6 +23,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
@@ -64,6 +65,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Debug mode shows stack traces and config to visitors (PLAN §7).
+        if ($this->app->isProduction() && config('app.debug') === true) {
+            Log::critical('APP_DEBUG is on in production. Set APP_DEBUG=false now.');
+        }
+
         // Full admin rights (content, settings, customers, orders, audit log).
         // Staff reach the panel too, but only what their policies allow.
         Gate::define('access-admin', fn (User $user): bool => $user->isAdmin());
@@ -112,6 +118,15 @@ class AppServiceProvider extends ServiceProvider
         // Stripe sends bursts on retries; anything far above this is not Stripe.
         RateLimiter::for('stripe-webhook', fn (Request $request): Limit => Limit::perMinute(300)
             ->by('stripe-webhook:'.$request->ip()));
+
+        // CSP reports: a page with a broken policy sends a few per view.
+        RateLimiter::for('csp-report', fn (Request $request): Limit => Limit::perMinute(30)
+            ->by('csp-report:'.$request->ip()));
+
+        // Account changes (profile, reschedule, cancel, sign out, delete,
+        // restore): plenty for a person, not for a script.
+        RateLimiter::for('account-actions', fn (Request $request): Limit => Limit::perMinute(20)
+            ->by('account-actions:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
 
         // Every new sign-in (customer code or admin panel) records the
         // account's session version for "sign out everywhere".

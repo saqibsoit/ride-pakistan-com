@@ -1,4 +1,7 @@
-{{-- Site footer: brand, site links, contact, legal. Contact details come from settings. --}}
+{{-- Site footer: brand, site links, contact, legal. Contact details come from settings.
+     `cookieSettings`: a button that reopens the consent banner (tracking configured). --}}
+@props(['cookieSettings' => false])
+
 @php
     $settings = app(\App\Support\Settings::class);
     $siteLinks = [
@@ -54,12 +57,15 @@
 
     <div class="wrap mt-12 flex flex-wrap items-center justify-between gap-4 border-t border-line pt-6">
         <p>&copy; {{ now()->year }} Ride Pakistan</p>
-        @if ($legalLinks !== [])
+        @if ($legalLinks !== [] || $cookieSettings)
         <nav aria-label="Legal">
             <ul class="flex flex-wrap gap-6">
                 @foreach ($legalLinks as $link)
                     <li><a href="{{ $link['url'] }}" class="no-underline hover:text-sand hover:underline">{{ $link['label'] }}</a></li>
                 @endforeach
+                @if ($cookieSettings)
+                    <li x-data="consentSettings"><button type="button" x-on:click="reopen" class="cursor-pointer hover:text-sand hover:underline">Cookie settings</button></li>
+                @endif
             </ul>
         </nav>
         @endif

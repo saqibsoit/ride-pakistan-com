@@ -7,6 +7,8 @@ namespace App\Livewire\Checkout;
 use App\Enums\OrderStatus;
 use App\Models\Order;
 use App\Models\User;
+use App\Support\Tracking\BrowserEvents;
+use App\Support\Tracking\TrackingConfig;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Locked;
@@ -28,6 +30,10 @@ final class PaymentStatus extends Component
 
     #[Locked]
     public int $polls = 0;
+
+    /** The browser Purchase event went out (once per page visit). */
+    #[Locked]
+    public bool $purchaseTracked = false;
 
     public function mount(string $reference): void
     {
@@ -52,6 +58,13 @@ final class PaymentStatus extends Component
             ! $order->status->isUnpaid() => 'closed',
             default => 'waiting',
         };
+
+        // Browser Pixel/GA4 Purchase (fired by tracking.js only with
+        // consent); same event id as the Meta CAPI event from the webhook.
+        if ($state === 'paid' && ! $this->purchaseTracked && app(TrackingConfig::class)->anyEnabled()) {
+            $this->purchaseTracked = true;
+            $this->dispatch('rp-track', tracking: BrowserEvents::forOrder(BrowserEvents::PURCHASE, $order));
+        }
 
         return view('livewire.checkout.payment-status', [
             'order' => $order,

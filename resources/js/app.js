@@ -1,5 +1,7 @@
 import Alpine from 'alpinejs';
 import registerComponents from './components/register';
+import fillLeadAttribution from './lead-attribution';
+import { initTracking } from './tracking';
 
 // Emit fonts and brand images into the Vite manifest so Blade can reference
 // them with Vite::asset() (e.g. the display font preload). No JS cost.
@@ -12,3 +14,8 @@ registerComponents(Alpine);
 
 window.Alpine = Alpine;
 Alpine.start();
+
+// Consent-gated Pixel/GA4 (no-op unless configured and accepted) and
+// per-visit attribution for lead forms on cached pages.
+initTracking();
+fillLeadAttribution();

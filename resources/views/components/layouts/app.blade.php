@@ -52,6 +52,20 @@
     @endif
 
     {{ $head ?? '' }}
+
+    @php
+        $tracking = app(\App\Support\Tracking\TrackingConfig::class);
+        $trackingConfig = $tracking->anyEnabled() ? [
+            'metaPixelId' => $tracking->metaPixelId(),
+            'ga4Id' => $tracking->ga4Id(),
+            'events' => app(\App\Support\Tracking\BrowserEvents::class)->all(),
+        ] : null;
+    @endphp
+    @if ($trackingConfig !== null)
+        {{-- Data only (not executed). resources/js/tracking.js loads the
+             vendors with this nonce after the visitor accepts. --}}
+        <script type="application/json" id="rp-tracking" @nonce>@json($trackingConfig)</script>
+    @endif
 </head>
 <body class="flex min-h-svh flex-col">
     <a href="#main" class="sr-only z-50 rounded-sm bg-sand px-4 py-3 font-semibold text-earth focus:not-sr-only focus:fixed focus:top-4 focus:left-4">Skip to content</a>
@@ -62,6 +76,10 @@
         {{ $slot }}
     </main>
 
-    <x-site-footer />
+    <x-site-footer :cookie-settings="$tracking->anyEnabled()" />
+
+    @if ($tracking->anyEnabled())
+        <x-consent-banner />
+    @endif
 </body>
 </html>

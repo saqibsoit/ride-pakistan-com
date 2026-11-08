@@ -49,6 +49,13 @@ enum SettingKey: string
 
     case LeadFollowUpDays = 'leads.follow_up_days';
 
+    case VoucherValidityMonths = 'vouchers.validity_months';
+    case VoucherMinAmountPkr = 'vouchers.min_amount_pkr';
+    case VoucherMaxAmountPkr = 'vouchers.max_amount_pkr';
+
+    case ReferralFriendDiscountPkr = 'referrals.friend_discount_pkr';
+    case ReferralReferrerCreditPkr = 'referrals.referrer_credit_pkr';
+
     case DeletionGraceDays = 'privacy.deletion_grace_days';
     case OrderRetentionYears = 'privacy.order_retention_years';
     case TransferProofRetentionDays = 'privacy.transfer_proof_retention_days';
@@ -80,7 +87,9 @@ enum SettingKey: string
             self::SellingFastThreshold, self::MinRiderAge, self::CheckinOpensMinutes, self::ArrivalMinutes, self::SlotHorizonWeeks,
             self::CardHoldMinutes, self::MinNoticeHours, self::WaitlistOfferHours,
             self::DeletionGraceDays, self::OrderRetentionYears, self::TransferProofRetentionDays, self::LeadFollowUpDays,
-            self::WeatherRainProbability, self::WeatherWindKmh, self::WeatherHeatC, self::WeatherColdC => SettingType::Integer,
+            self::WeatherRainProbability, self::WeatherWindKmh, self::WeatherHeatC, self::WeatherColdC,
+            self::VoucherValidityMonths, self::VoucherMinAmountPkr, self::VoucherMaxAmountPkr,
+            self::ReferralFriendDiscountPkr, self::ReferralReferrerCreditPkr => SettingType::Integer,
             self::WeatherLatitude, self::WeatherLongitude, self::WeatherPrecipitationMm => SettingType::Decimal,
             self::WeatherEnabled => SettingType::Boolean,
             self::WeatherRecipients => SettingType::Roles,
@@ -133,6 +142,11 @@ enum SettingKey: string
             self::BankCountry => 'Country',
             self::BankAddress => 'Bank address',
             self::LeadFollowUpDays => 'Suggest a follow-up this many days after a lead is contacted (0 = no suggestion)',
+            self::VoucherValidityMonths => 'Gift vouchers are valid for (months)',
+            self::VoucherMinAmountPkr => 'Smallest gift voucher amount (PKR)',
+            self::VoucherMaxAmountPkr => 'Largest gift voucher amount (PKR)',
+            self::ReferralFriendDiscountPkr => 'Discount for a referred friend on their first paid booking (PKR)',
+            self::ReferralReferrerCreditPkr => 'Account credit for the referrer (PKR)',
             self::DeletionGraceDays => 'Days a deleted account can still be restored by its owner',
             self::OrderRetentionYears => 'Keep accounts with paid orders for this many years after the last payment',
             self::TransferProofRetentionDays => 'Delete bank transfer screenshots this many days after review (the payment record is kept)',
@@ -195,6 +209,11 @@ enum SettingKey: string
             self::BankCountry => 'Country of the bank account, shown on the checkout transfer page.',
             self::BankAddress => 'Branch address, shown on the checkout transfer page for international transfers.',
             self::LeadFollowUpDays => 'When a lead is moved to "Contacted", its next follow-up date is suggested this many days later (you can change it). Leads due appear on the dashboard and in the 09:00 email digest.',
+            self::VoucherValidityMonths => 'A gift voucher can be used for this many months after it is issued (payment confirmed). Vouchers already issued keep their own expiry date.',
+            self::VoucherMinAmountPkr => 'Customers can buy a gift voucher for any amount from this many rupees (or for the price of a product).',
+            self::VoucherMaxAmountPkr => 'The most a customer can put on one gift voucher, in rupees.',
+            self::ReferralFriendDiscountPkr => 'A new customer who signs up through a referral link gets this many rupees off their first paid booking. 0 turns the discount off.',
+            self::ReferralReferrerCreditPkr => 'The customer who shared the link earns this much account credit once the friend has paid for and attended a session. 0 turns the reward off.',
             self::DeletionGraceDays => 'A customer who deletes their account can sign in and keep it for this many days.',
             self::OrderRetentionYears => 'Deleted accounts with paid orders are anonymised only after this many years since the last payment (accounting records).',
             self::TransferProofRetentionDays => 'Transfer screenshots are deleted this many days after an admin approves or rejects them. The payment record is kept.',

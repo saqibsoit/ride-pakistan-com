@@ -16,6 +16,7 @@ use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -35,6 +36,7 @@ use Illuminate\Notifications\Notifiable;
  * @property int $session_version bumped by "sign out everywhere"
  * @property CarbonImmutable|null $deleted_at deletion requested (grace period)
  * @property CarbonImmutable|null $anonymised_at
+ * @property string|null $referral_code personal referral link code (milestone 10e), set by EnsureReferralCode
  */
 class User extends Authenticatable implements FilamentUser, HasAppAuthentication, HasAppAuthenticationRecovery
 {
@@ -201,6 +203,40 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
     public function creditPacks(): HasMany
     {
         return $this->hasMany(CreditPack::class);
+    }
+
+    /**
+     * @return HasMany<VoucherOrder, $this>
+     */
+    public function voucherOrders(): HasMany
+    {
+        return $this->hasMany(VoucherOrder::class);
+    }
+
+    /**
+     * @return HasMany<AccountCreditEntry, $this>
+     */
+    public function accountCredit(): HasMany
+    {
+        return $this->hasMany(AccountCreditEntry::class);
+    }
+
+    /**
+     * Customers who signed up through this customer's link.
+     *
+     * @return HasMany<Referral, $this>
+     */
+    public function referrals(): HasMany
+    {
+        return $this->hasMany(Referral::class, 'referrer_id');
+    }
+
+    /**
+     * @return HasOne<Referral, $this>
+     */
+    public function referredBy(): HasOne
+    {
+        return $this->hasOne(Referral::class, 'referred_id');
     }
 
     /**

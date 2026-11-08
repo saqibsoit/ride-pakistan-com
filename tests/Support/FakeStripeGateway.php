@@ -28,6 +28,13 @@ final class FakeStripeGateway implements StripeGateway
 
     public bool $failRetrieve = false;
 
+    /**
+     * Browser tests: send the customer straight back to the session's
+     * success_url (as Stripe does after paying) instead of a checkout.stripe.com
+     * address the test browser can't use. Payment still needs the webhook.
+     */
+    public bool $returnToSuccessUrl = false;
+
     /** @var array<string, array<string, mixed>> */
     public array $sessions = [];
 
@@ -75,7 +82,9 @@ final class FakeStripeGateway implements StripeGateway
             'id' => $id,
             'object' => 'checkout.session',
             'status' => Session::STATUS_OPEN,
-            'url' => 'https://checkout.stripe.com/c/pay/'.$id,
+            'url' => $this->returnToSuccessUrl && is_string($params['success_url'] ?? null)
+                ? str_replace('{CHECKOUT_SESSION_ID}', $id, $params['success_url'])
+                : 'https://checkout.stripe.com/c/pay/'.$id,
             'amount_total' => $total,
             'currency' => $currency,
             'client_reference_id' => $params['client_reference_id'] ?? null,

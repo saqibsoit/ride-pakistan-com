@@ -141,7 +141,7 @@ Refunds (milestone 6, card orders): admins refund from the order page (`RefundOr
 - **Media:** responsive AVIF/WebP generated at upload time; private disk for transfer screenshots.
 - **Queues:** `database` driver, processed by cron (no Supervisor on shared hosting).
 - **Cache/session:** `file` or `database` (no Redis on shared hosting); full-page response cache for public pages.
-- **Email:** transactional provider via SMTP/API (Postmark, Resend or Amazon SES) with SPF, DKIM and DMARC on ride-pakistan.com.
+- **Email:** Resend (`resend/resend-laravel`, decided 2026-11-08) from `bookings@mail.ride-pakistan.com` ("Ride Pakistan"; `mail.ride-pakistan.com` is the verified sending domain), Reply-To `hello@ride-pakistan.com` on every email (global `mail.reply_to`). `MAIL_MAILER=log` locally (tests: `array`), `resend` on the servers; `RESEND_API_KEY` is a server secret. Notifications are queued with 5 tries and backoff (1, 5, 15, 60 minutes). Sign-in codes are sent straight away and queued (encrypted) for a retry only when the send fails; ops, backup and email-failure alerts are sent straight away. A send that fails for good is logged without its contents and emails every admin, at most once an hour (`ReportMailFailure`). `php artisan mail:test {email}` checks delivery. SPF, DKIM and DMARC as in `docs/DEPLOY.md` §10 (one apex DMARC record, `p=none` for now). Resend's free plan allows 100 emails a day.
 - **Bot protection:** Cloudflare Turnstile on public forms + honeypot + rate limits.
 - **CDN/WAF:** Cloudflare in front of Hostinger (proxied DNS, Full (strict) SSL).
 - **Quality:** Pest, Larastan (level 8, reached at bootstrap; never lower it), Pint (with `declare_strict_types`), `composer audit`, `npm audit`, GitHub Actions CI.

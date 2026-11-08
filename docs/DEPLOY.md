@@ -50,7 +50,10 @@ Use absolute paths, not `~`.
 | `ADMIN_PATH` | random, long | random, long, different from staging |
 | `SITE_INDEXABLE` | `false` | `true` (or leave empty) |
 | `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD` | staging database (section 4) | production database |
-| `MAIL_*`, `MAIL_FROM_ADDRESS` | mail provider SMTP/API (section 10) | same provider |
+| `MAIL_MAILER` | `resend` | `resend` |
+| `RESEND_API_KEY` | Resend API key, **server secret**: only in `shared/.env` (section 10) | same or a second key |
+| `MAIL_FROM_ADDRESS`, `MAIL_FROM_NAME` | `bookings@mail.ride-pakistan.com`, `Ride Pakistan` | same |
+| `MAIL_REPLY_TO_ADDRESS`, `MAIL_REPLY_TO_NAME` | `hello@ride-pakistan.com`, `Ride Pakistan` | same |
 | `STRIPE_KEY`, `STRIPE_SECRET` | **test** keys | live keys |
 | `STRIPE_WEBHOOK_SECRET` | from the staging webhook endpoint | from the production endpoint |
 | `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile widget for both host names | same widget |
@@ -67,7 +70,7 @@ Use absolute paths, not `~`.
 | Item | Needed for |
 |---|---|
 | Cloudflare account with the `ride-pakistan.com` zone, and the plan (Free or Pro) | section 9 |
-| Mail provider (Postmark, Resend or Amazon SES) and the DKIM records it gives you | section 10 |
+| Resend: done. `mail.ride-pakistan.com` is verified; keep its DNS records when the nameservers move to Cloudflare | section 10 |
 | UptimeRobot account and the alert email | section 8 |
 | Who approves production deploys | GitHub settings above |
 
@@ -244,6 +247,7 @@ Rollback switches code only; the database stays as the newer release left it (se
   - **Transfers waiting:** a booking or gift-voucher bank transfer has waited more than 12 hours for review.
 
   Each alert emails when the problem starts, every 6 hours while it lasts, and once with "All clear". These emails are sent straight away, not through the queue, so a stuck queue still alerts. They need working mail settings.
+- **Email failures:** every failed send is logged (`Email delivery attempt failed`, then `Email delivery failed`) with the kind of email, the job id and the error, never the contents or addresses. When an email fails for good, every admin gets "Emails are failing to send", at most once an hour (section 10).
 - **Backups:** failures are emailed straight away, and a health report goes out every Monday (section 11).
 - **Error tracking: deferred** (decided 2026-11-08, no budget). Errors go to `storage/logs/laravel-YYYY-MM-DD.log`; check it after each deploy and when an alert fires. To add it later: Sentry's free Developer plan works server-side with `composer require sentry/sentry-laravel` and `SENTRY_LARAVEL_DSN`, and needs no CSP or consent change because no browser script is added.
 
@@ -267,18 +271,37 @@ DNS for `ride-pakistan.com` on Cloudflare, nameservers changed at the registrar.
 
 The app trusts `X-Forwarded-For` and `X-Forwarded-Proto` only from Cloudflare's published IP ranges (`config/security.php`, checked 2026-11-08). Before launch, compare them with https://www.cloudflare.com/ips/ and set `TRUSTED_PROXIES` if they've changed. Without this, every visitor would share Cloudflare's IP in the rate limits.
 
-## 10. Email DNS (SPF, DKIM, DMARC)
+## 10. Email: Resend (SPF, DKIM, DMARC)
 
-Pick the transactional provider (PLAN §4: Postmark, Resend or Amazon SES) and verify `ride-pakistan.com` (or a `mail.` / `send.` subdomain) there. All mail records are **DNS only** in Cloudflare.
+Transactional email goes through **Resend** (`resend/resend-laravel`, the `resend` mailer in `config/mail.php`). Locally and in tests the mailer stays `log` (tests use `array`); staging and production set `MAIL_MAILER=resend`.
 
-| Record | Template | Notes |
-|---|---|---|
-| SPF (`TXT @`) | `v=spf1 include:<provider SPF> ~all` | Postmark: `include:spf.mtasv.net`; Resend: on its `send` subdomain as the provider shows; SES: `include:amazonses.com` on the MAIL FROM domain. **Only one SPF record per name**: if Hostinger mail or Google Workspace is used for inboxes, merge the includes into that one record. |
-| DKIM (`TXT` or `CNAME`) | exactly as the provider dashboard shows | e.g. `<selector>._domainkey` |
-| Return-Path / MAIL FROM | `CNAME` as the provider shows | aligns SPF for DMARC |
-| DMARC (`TXT _dmarc`) | start: `v=DMARC1; p=none; rua=mailto:<reports address>; adkim=s; aspf=r` | after 2–4 clean weeks of reports: `p=quarantine; pct=100`, later `p=reject` |
+- **Sender:** `bookings@mail.ride-pakistan.com`, name "Ride Pakistan", on the domain verified in Resend, **`mail.ride-pakistan.com`**. Sending from a subdomain keeps Resend's reputation separate from the apex, where the Hostinger mailboxes live.
+- **Reply-To:** `hello@ride-pakistan.com` on every email (the mailer's global `mail.reply_to`; no email sets its own). Replies land in the Hostinger inbox.
+- **API key:** `RESEND_API_KEY` is a **server secret**: put it only in each server's `shared/.env`, never in the repository, a GitHub variable or a log. Use a key with "Sending access" for the one domain only. To rotate it: create a new key in Resend, update `shared/.env`, run `php artisan optimize`, then delete the old key.
+- **Free plan: 100 emails a day** (and 3,000 a month). A busy weekend (confirmations, reminders, thank-yous, sign-in codes) can come close. Past the limit Resend refuses sends; the queue retries them with backoff (1, 5 and 15 minutes, then an hour; 5 attempts), and once they fail for good the admins get one "Emails are failing to send" email an hour. Watch Resend → Usage, and move to the paid plan before launch traffic.
+- **What's queued:** every customer and team notification is queued (cron drains the queue every minute) with that retry policy. **Sign-in codes are sent straight away**, so signing in isn't held up by the cron queue; if Resend errors, the same email is queued (encrypted, because it holds the code) and retried after 30 s and 2 min (decided 2026-11-08). The ops, backup and email-failure alerts and `mail:test` are also sent straight away, so they still go out when the queue is stuck.
+- **Test:** `php artisan mail:test <address>` sends a branded test email at once and prints Resend's email ID, or the error (addresses masked).
+- The package's webhook route is **off** (`config/resend.php`, `RESEND_ROUTES`): nothing uses Resend webhooks, and without a signing secret the route would accept unsigned requests.
 
-Check: send the "Payment received" or a sign-in code email to the address https://www.mail-tester.com gives you (aim for 9/10 or better, with SPF, DKIM and DMARC passing), and to a Gmail address ("Show original": SPF, DKIM and DMARC all PASS).
+### DNS records (checked live on 2026-11-08)
+
+The zone is still on Hostinger's nameservers (`artemis` / `hermes.dns-parking.com`). When it moves to Cloudflare (section 9), **copy these records exactly and keep them "DNS only"** (grey cloud), or mail stops verifying.
+
+| Name | Type | Value | Purpose |
+|---|---|---|---|
+| `resend._domainkey.mail` | TXT | `p=MIGfMA0…` (the public key Resend shows under Domains → mail.ride-pakistan.com) | DKIM for `mail.ride-pakistan.com` |
+| `send.mail` | CNAME | `send.forge.rmta.net` | Resend's bounce (Return-Path) domain: carries Resend's SPF (`v=spf1 ip4:… ~all`) and the feedback MX, so SPF aligns with the sender |
+| `_dmarc` (apex) | TXT | `v=DMARC1; p=none; rua=mailto:hello@ride-pakistan.com` | **Existing record: keep it, don't add a second one.** It also covers `mail.` (subdomains inherit the apex policy), so there's no `_dmarc.mail` record. |
+| `@` | TXT | `v=spf1 include:_spf.mail.hostinger.com ~all` | Apex SPF for the Hostinger mailboxes. Resend doesn't send as the apex, so it needs no change. **One SPF record per name only.** |
+| `@` | MX | `mx1.hostinger.com` (5), `mx2.hostinger.com` (10) | Inboxes (hello@, the reply-to) |
+
+If Resend ever shows different values (Domains → mail.ride-pakistan.com → DNS records), its dashboard wins; update this table.
+
+**DMARC later:** after 2 to 4 weeks of clean aggregate reports to `hello@`, change the **same** apex record to `p=quarantine`, then `p=reject`. Never publish a second `_dmarc` record: receivers then ignore DMARC entirely.
+
+Check: send a sign-in code or `mail:test` to the address https://www.mail-tester.com gives you (aim for 9/10 or better, with SPF, DKIM and DMARC passing), and to a Gmail address ("Show original": SPF, DKIM and DMARC all PASS, signed by `mail.ride-pakistan.com`).
+
+**Live test 2026-11-08** (from this worktree, `MAIL_MAILER=resend` for the test only): `mail:test hello@ride-pakistan.com` and a real sign-in code (`RequestLoginCode`) were both accepted by Resend, which returned an email ID for each; the code was sent straight away, nothing queued.
 
 ## 11. Backups and restore
 
@@ -319,6 +342,7 @@ Check: send the "Payment received" or a sign-in code email to the address https:
 |---|---|
 | Deploy failed before "Switching current" | Nothing changed for visitors. Read the job log, fix, push again. |
 | Smoke test failed | It rolled back automatically. Look at `shared/storage/logs/laravel-*.log` on the server. |
+| "Emails are failing to send" email, or customers say no email arrived | `php artisan mail:test you@example.com` over SSH shows Resend's exact error. Resend dashboard → Emails/Logs (daily limit of 100 on the free plan, domain still verified, key not revoked). Fix it, then `php artisan queue:retry all` resends the failed ones (stale sign-in codes are harmless: the customer asks for a new one). |
 | "Background jobs are stuck" email | hPanel cron job present and pointing at `current`? Run `cd <DEPLOY_PATH>/current && <PHP_BIN> artisan schedule:run` by hand and read the output. |
 | "Bank transfers waiting" email | Admin → Verify transfers / Verify voucher transfers. |
 | Stripe payments not confirming | Stripe dashboard → Webhooks → recent deliveries (403 or a challenge means Cloudflare, section 9). |
@@ -339,4 +363,6 @@ These need the real servers, so they're for you (or the next session once the va
 - [ ] **Restore tested on staging** (section 11) and the date written here.
 - [ ] Stripe test webhook to staging returns 200 through Cloudflare.
 - [ ] UptimeRobot monitors green; mail-tester score 9+ with SPF, DKIM and DMARC passing.
+- [ ] `php artisan mail:test hello@ride-pakistan.com` on staging and production prints a Resend email ID.
+- [ ] Nameserver move to Cloudflare: the Resend and Hostinger mail records copied exactly (section 10) before switching.
 - [ ] Cloudflare ranges in `config/security.php` still match cloudflare.com/ips.

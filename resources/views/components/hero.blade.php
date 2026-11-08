@@ -27,11 +27,14 @@
 
 {{-- The hero photo is the LCP element: start fetching it with the CSS (milestone 11). --}}
 @push('head')
-    @foreach ($preload->sources as $type => $srcset)
+    @forelse ($preload->sources as $type => $srcset)
         @if ($loop->first)
             <link rel="preload" as="image" type="{{ $type }}" imagesrcset="{{ $srcset }}" imagesizes="100vw" fetchpriority="high">
         @endif
-    @endforeach
+    @empty
+        {{-- No variants generated yet (e.g. a fresh checkout): the original file. --}}
+        <link rel="preload" as="image" href="{{ $preload->src }}" fetchpriority="high">
+    @endforelse
 @endpush
 
 <section {{ $attributes->class('hero-scrim relative flex min-h-svh items-end overflow-hidden') }}>

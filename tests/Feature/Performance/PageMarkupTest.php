@@ -21,7 +21,8 @@ it('preloads the hero image in the head with high priority', function (): void {
     $html = (string) $this->get('/')->getContent();
     $head = (string) strstr($html, '</head>', true);
 
-    expect($head)->toMatch('#<link rel="preload" as="image" type="image/avif" imagesrcset="[^"]*hero[^"]*" imagesizes="100vw" fetchpriority="high">#')
+    // With generated variants: the AVIF srcset; without (CI, fresh checkout): the original file.
+    expect($head)->toMatch('#<link rel="preload" as="image" (type="image/avif" imagesrcset="[^"]*hero[^"]*" imagesizes="100vw"|href="[^"]*hero[^"]*") fetchpriority="high">#')
         ->and(substr_count($head, 'rel="preload" as="image"'))->toBe(1);
 
     // The hero image itself: eager and high priority, never lazy.

@@ -122,6 +122,13 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('checkout', fn (Request $request): Limit => Limit::perMinute(10)
             ->by('checkout:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
 
+        // Discount codes at checkout (milestone 10e Part B): enough to fix a
+        // typo, too few to guess voucher or promo codes.
+        RateLimiter::for('checkout-discounts', fn (Request $request): array => [
+            Limit::perMinute(10)->by('checkout-discounts:'.($request->user()?->getAuthIdentifier() ?? $request->ip())),
+            Limit::perDay(50)->by('checkout-discounts-day:'.($request->user()?->getAuthIdentifier() ?? $request->ip())),
+        ]);
+
         // Gate check-in: generous for a busy morning, but not a scanner loop.
         RateLimiter::for('checkin', fn (Request $request): Limit => Limit::perMinute(60)
             ->by('checkin:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));

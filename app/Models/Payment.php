@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Enums\PaymentProvider;
 use App\Enums\PaymentStatus;
+use Carbon\CarbonImmutable;
 use Database\Factories\PaymentFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -19,6 +20,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $amount_minor
  * @property string $currency
  * @property PaymentStatus $status
+ * @property CarbonImmutable|null $transferred_on bank refunds: the Pakistan date the outgoing transfer was made
  * @property array<string, mixed>|null $raw
  * @property-read Order $order
  */
@@ -35,6 +37,7 @@ class Payment extends Model
         'amount_minor',
         'currency',
         'status',
+        'transferred_on',
         'raw',
     ];
 
@@ -64,6 +67,7 @@ class Payment extends Model
             'provider' => PaymentProvider::class,
             'status' => PaymentStatus::class,
             'amount_minor' => 'integer',
+            'transferred_on' => 'immutable_date',
             'raw' => 'array',
         ];
     }

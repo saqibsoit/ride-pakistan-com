@@ -76,12 +76,23 @@
     </x-filament::section>
 
     <x-filament::section heading="Gift vouchers, promo codes and referrals" :collapsible="true">
-        <p>Everything here is under <strong>Sales &amp; promotions</strong> and is for admins only. Customers can't use promo codes, vouchers or credit at checkout yet: that arrives with the next release. Until then you can set everything up.</p>
+        <p>Everything here is under <strong>Sales &amp; promotions</strong> and is for admins only. Customers use them on the checkout page (see “Discounts at checkout and refunds”).</p>
         <ol>
             <li><strong>Gift vouchers</strong>: customers buy them on /gift-vouchers for a session or an amount, by card or bank transfer. A voucher exists only once the payment is confirmed, and the recipient gets an email with the code and a printable voucher (straight away or at 9 am on the chosen day). Bank transfers for vouchers are checked under <strong>Verify voucher transfers</strong>, like order transfers.</li>
             <li><strong>Issue voucher</strong> (Gift vouchers list) gives one without a purchase, for example after a rain cancellation. Give the reason; it's kept in the history. <strong>Void</strong> cancels what's left (it doesn't refund anyone), <strong>Extend expiry</strong> moves the date (an expired voucher gets its balance back), and you can change the recipient until the email has gone.</li>
             <li><strong>Promo codes</strong>: percentage or a fixed amount, optional products (none means all), start and end, total and per-customer limits, a minimum order and "first paid booking only". One code per order; it never combines with another code, only with a gift voucher. Once a code has been used its code, discount and products are fixed; archive it and make a new one instead.</li>
             <li><strong>Referrals</strong>: every customer has a personal link under Account → Refer a friend. When a new customer who signed up with it has paid for and attended a session, the referrer gets account credit (amount in Settings → Referrals). Same email, same phone or a self-referral is rejected automatically with the reason; you can reject or reinstate a referral by hand. Change a customer's credit on their page under <strong>Account credit</strong>.</li>
+        </ol>
+    </x-filament::section>
+
+    <x-filament::section heading="Discounts at checkout and refunds" :collapsible="true">
+        <ol>
+            <li><strong>At checkout</strong> the customer types a gift voucher or promo code, and can use their account credit. The order shows the price, each discount and what is left to pay; card or bank transfer is for that amount only. A friend who signed up through a referral link gets the welcome discount by itself on their first paid booking (a promo code replaces it).</li>
+            <li><strong>Nothing left to pay?</strong> When a voucher and credit cover everything, the customer presses “Confirm booking” and gets their tickets as usual. The order shows the method “Gift voucher / account credit”.</li>
+            <li><strong>Unpaid orders</strong> that run out, are cancelled or rejected give the voucher balance, the credit and the promo use back by themselves.</li>
+            <li><strong>Refunds</strong> by card are limited to what the customer paid by card. The same share of any voucher and credit comes back with it (refund half, half comes back; the last refund brings back the rest). A voucher that has expired or been voided since gets its share as account credit instead. For an order paid only by voucher and credit, use “Cancel and restore balances”. Promo and referral discounts stay used.</li>
+            <li><strong>Bank transfer orders</strong>: send the money back from online banking first, then open the order and choose <strong>Record bank refund</strong>. Enter the amount, the bank reference of your transfer, the date you made it and a reason. Bookings, package credits, voucher and credit are handled exactly as for a card refund. A gift voucher bought by bank transfer is refunded the same way from <strong>Voucher purchases</strong>: only what is still unspent on the voucher can be refunded, and the voucher stops working once nothing is left.</li>
+            <li><strong>Reports</strong>: revenue counts money received plus gift voucher balance spent (vouchers count when they are used, not when they are sold). The orders export has columns for the subtotal and each kind of discount. For the accountant, the <strong>Gift voucher sales</strong> export lists the cash received for vouchers on the day it came in, to tick off against the bank statement.</li>
         </ol>
     </x-filament::section>
 

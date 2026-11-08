@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace App\Actions\Payments;
 
-use App\Actions\Booking\CancelBooking;
-use App\Actions\Booking\CreditPacks;
 use App\Actions\Orders\OrderStateMachine;
 use App\Enums\BookingStatus;
 use App\Enums\CreditPackStatus;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentMethod;
+use App\Enums\PaymentProvider;
 use App\Exceptions\BookingRejected;
 use App\Models\Booking;
 use App\Models\CreditPack;
@@ -19,7 +18,6 @@ use App\Models\User;
 use App\Support\Stripe\StripeGateway;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -41,9 +39,7 @@ final class RefundOrder
 {
     public function __construct(
         private readonly StripeGateway $stripe,
-        private readonly RecordRefund $record,
-        private readonly CancelBooking $cancel,
-        private readonly CreditPacks $credits,
+        private readonly ApplyRefund $refund,
     ) {}
 
     /**
@@ -73,77 +69,30 @@ final class RefundOrder
                 throw BookingRejected::notAllowed('Only paid card orders can be refunded here.');
             }
 
-            $refundable = $locked->amount_minor - $locked->amount_refunded_minor;
+            $intent = $locked->stripe_payment_intent_id;
+            $refundedSoFar = $locked->amount_refunded_minor;
 
-            if ($amountMinor <= 0 || $amountMinor > $refundable) {
-                throw BookingRejected::notAllowed('The refund must be between PKR 0.01 and the amount not yet refunded.');
-            }
+            // Same rules as every refund (ApplyRefund); Stripe is called only once they pass.
+            $this->refund->handle($locked, $admin, $amountMinor, $reason, $cancelBookingIds, $removeCredits, PaymentProvider::Stripe, function () use ($locked, $admin, $amountMinor, $intent, $refundedSoFar): array {
+                try {
+                    $refund = $this->stripe->createRefund([
+                        'payment_intent' => $intent,
+                        'amount' => $amountMinor,
+                        'reason' => 'requested_by_customer',
+                        'metadata' => ['order_id' => (string) $locked->id, 'reference' => $locked->reference, 'admin_id' => (string) $admin->id],
+                    ], 'refund:'.$locked->id.':'.$refundedSoFar.':'.$amountMinor);
+                } catch (Throwable $e) {
+                    Log::error('Stripe refund failed for order '.$locked->reference, ['error' => $e->getMessage()]);
 
-            $full = $amountMinor === $refundable;
-            $pack = CreditPack::query()->where('order_id', $locked->id)->lockForUpdate()->first();
-            $upcoming = self::upcomingBookings($locked, $pack)->get();
-
-            if ($full) {
-                $toCancel = $upcoming;
-            } else {
-                $toCancel = $upcoming->whereIn('id', $cancelBookingIds)->values();
-
-                if ($toCancel->count() !== count(array_unique($cancelBookingIds))) {
-                    throw BookingRejected::notAllowed('Some of the chosen bookings are not upcoming bookings of this order.');
+                    throw BookingRejected::notAllowed('Stripe did not accept the refund: '.$e->getMessage());
                 }
 
-                if ($removeCredits < 0 || $removeCredits > ($pack?->creditsRemaining() ?? 0)) {
-                    throw BookingRejected::notAllowed('That is more credits than the pack has left.');
-                }
-            }
-
-            try {
-                $refund = $this->stripe->createRefund([
-                    'payment_intent' => $locked->stripe_payment_intent_id,
-                    'amount' => $amountMinor,
-                    'reason' => 'requested_by_customer',
-                    'metadata' => ['order_id' => (string) $locked->id, 'reference' => $locked->reference, 'admin_id' => (string) $admin->id],
-                ], 'refund:'.$locked->id.':'.$locked->amount_refunded_minor.':'.$amountMinor);
-            } catch (Throwable $e) {
-                Log::error('Stripe refund failed for order '.$locked->reference, ['error' => $e->getMessage()]);
-
-                throw BookingRejected::notAllowed('Stripe did not accept the refund: '.$e->getMessage());
-            }
-
-            $this->record->handle($locked, $amountMinor, $refund->id, $reason, $admin, [
-                'id' => $refund->id,
-                'status' => $refund->status,
-                'amount' => $refund->amount,
-            ], ['stripe_refund' => $refund->id]);
-
-            /** @var Collection<int, Booking> $toCancel */
-            foreach ($toCancel as $booking) {
-                $this->cancel->handle($booking, $admin, 'Refunded: '.$reason, asAdmin: true, returnCredit: false);
-            }
-
-            if ($pack !== null) {
-                $pack->refresh();
-
-                if ($full) {
-                    $this->credits->remove($pack, $pack->creditsRemaining(), $admin, 'Order refunded: '.$reason, revoke: true);
-                } elseif ($removeCredits > 0) {
-                    $this->credits->remove($pack, $removeCredits, $admin, 'Partial refund: '.$reason);
-                }
-            }
-
-            activity('payments')
-                ->performedOn($locked)
-                ->causedBy($admin)
-                ->event('refunded')
-                ->withProperties([
-                    'amount_minor' => $amountMinor,
-                    'full' => $full,
-                    'stripe_refund' => $refund->id,
-                    'bookings_cancelled' => $toCancel->pluck('id')->all(),
-                    'credits_removed' => $full ? 'all' : $removeCredits,
-                    'reason' => $reason,
-                ])
-                ->log('Order '.$locked->reference.' refunded');
+                return [
+                    'provider_id' => $refund->id,
+                    'raw' => ['id' => $refund->id, 'status' => $refund->status, 'amount' => $refund->amount],
+                    'context' => ['stripe_refund' => $refund->id],
+                ];
+            });
 
             $order->setRawAttributes($locked->refresh()->getAttributes(), true);
 

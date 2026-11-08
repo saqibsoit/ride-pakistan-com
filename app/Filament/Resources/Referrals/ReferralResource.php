@@ -4,13 +4,17 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Referrals;
 
+use App\Actions\Leads\LeadReport;
 use App\Actions\Referrals\ReviewReferral;
+use App\Enums\DiscountKind;
 use App\Enums\ReferralStatus;
 use App\Exceptions\CreditRejected;
 use App\Filament\Resources\Customers\CustomerResource;
 use App\Filament\Resources\Referrals\Pages\ListReferrals;
+use App\Models\OrderDiscount;
 use App\Models\Referral;
 use App\Models\User;
+use App\Support\Money;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
@@ -56,6 +60,11 @@ class ReferralResource extends Resource
                 TextColumn::make('rejection_reason')->label('Reason')->placeholder('—')->wrap(),
                 TextColumn::make('created_at')->label('Signed up')->dateTime('j M Y', $tz)->sortable(),
                 TextColumn::make('rewarded_at')->label('Rewarded')->dateTime('j M Y', $tz)->placeholder('—'),
+                // The friend's welcome discount (milestone 10e Part B): on which paid order.
+                TextColumn::make('welcome_discount')
+                    ->label('Welcome discount')
+                    ->state(fn (Referral $record): ?string => self::welcomeDiscount($record))
+                    ->placeholder('—'),
             ])
             ->filters([
                 SelectFilter::make('status')->options(ReferralStatus::class),
@@ -110,5 +119,19 @@ class ReferralResource extends Resource
         return [
             'index' => ListReferrals::route('/'),
         ];
+    }
+
+    /** "PKR 1,000 on RP-ABC123" for the paid order that used the welcome discount. */
+    private static function welcomeDiscount(Referral $referral): ?string
+    {
+        $line = OrderDiscount::query()
+            ->where('kind', DiscountKind::Referral)
+            ->where('source_type', $referral->getMorphClass())
+            ->where('source_id', $referral->id)
+            ->whereHas('order', fn (Builder $q) => $q->whereIn('status', LeadReport::PAID_STATUSES))
+            ->with('order')
+            ->first();
+
+        return $line === null ? null : Money::format($line->amount_minor).' on '.$line->order->reference;
     }
 }

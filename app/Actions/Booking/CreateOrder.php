@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Actions\Booking;
 
+use App\Actions\Discounts\ReferralDiscount;
+use App\Actions\Discounts\RepriceOrder;
 use App\Actions\Orders\GenerateOrderReference;
 use App\Enums\OrderStatus;
 use App\Enums\ProductType;
@@ -34,6 +36,8 @@ final class CreateOrder
         private readonly SlotLock $slotLock,
         private readonly GenerateOrderReference $references,
         private readonly Settings $settings,
+        private readonly ReferralDiscount $referrals,
+        private readonly RepriceOrder $reprice,
     ) {}
 
     /**
@@ -84,6 +88,7 @@ final class CreateOrder
                 'reference' => $this->references->handle(),
                 'user_id' => $user->id,
                 'product_id' => $product->id,
+                'subtotal_minor' => $amount,
                 'amount_minor' => $amount,
                 'currency' => 'PKR',
                 'expires_at' => $expiresAt,
@@ -114,6 +119,11 @@ final class CreateOrder
                 ->event('created')
                 ->withProperties(['product' => $product->slug, 'slot_id' => $slotId, 'riders' => count($riderIds), 'amount_minor' => $amount])
                 ->log('Order '.$order->reference.' created');
+
+            // A friend's welcome discount applies by itself (milestone 10e Part B).
+            if ($this->referrals->referralFor($user, $order) !== null) {
+                $this->reprice->handle($order, null, $user);
+            }
 
             return $order;
         });

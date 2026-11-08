@@ -11,9 +11,9 @@ use App\Models\CreditPack;
 use App\Models\Lead;
 use App\Models\Order;
 use App\Models\Slot;
+use App\Support\OrderRevenue;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Support\Facades\DB;
 
 /**
  * The figures on the "Today" dashboard (milestone 10b). Read-only. Days,
@@ -114,16 +114,15 @@ final class TodaySummary
         return $this->today()->startOfMonth()->subMonthsNoOverflow($monthsBack);
     }
 
-    /** Net revenue (minor units) of orders paid in the Pakistan month. */
+    /** Net revenue (minor units) of orders paid in the Pakistan month: money net of refunds plus gift voucher balance spent (OrderRevenue). */
     public function revenue(int $monthsBack = 0): int
     {
         $from = $this->monthStart($monthsBack);
 
-        return (int) Order::query()
+        return OrderRevenue::total(Order::query()
             ->whereIn('status', LeadReport::PAID_STATUSES)
             ->where('paid_at', '>=', $from->utc())
-            ->where('paid_at', '<', $from->addMonthNoOverflow()->utc())
-            ->sum(DB::raw('greatest(amount_minor - amount_refunded_minor, 0)'));
+            ->where('paid_at', '<', $from->addMonthNoOverflow()->utc()));
     }
 
     /** Change from last month in whole percent; null when last month had none. */

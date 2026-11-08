@@ -4,13 +4,22 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\VoucherOrders;
 
+use App\Actions\Payments\BankRefund;
+use App\Actions\Vouchers\RecordVoucherTransferRefund;
+use App\Enums\PaymentMethod;
 use App\Enums\VoucherOrderStatus;
+use App\Exceptions\BookingRejected;
 use App\Filament\Resources\VoucherOrders\Pages\ListVoucherOrders;
 use App\Models\User;
 use App\Models\VoucherOrder;
 use App\Support\Money;
+use App\Support\SessionTimes;
 use BackedEnum;
+use Carbon\CarbonImmutable;
 use Filament\Actions\Action;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Support\Icons\Heroicon;
@@ -91,7 +100,72 @@ class VoucherOrderResource extends Resource
 
                         Notification::make()->success()->title('Marked as reviewed')->send();
                     }),
+                self::transferRefund(),
             ]);
+    }
+
+    /**
+     * A gift voucher bought by bank transfer, refunded by the team's own
+     * transfer (RecordVoucherTransferRefund): at most the unspent balance.
+     */
+    public static function transferRefund(): Action
+    {
+        return Action::make('transfer_refund')
+            ->label('Record bank refund')
+            ->icon(Heroicon::OutlinedBuildingLibrary)
+            ->color('danger')
+            ->visible(fn (VoucherOrder $record): bool => self::admin() !== null
+                && $record->status === VoucherOrderStatus::Paid
+                && $record->payment_method === PaymentMethod::BankTransfer)
+            ->modalDescription(fn (VoucherOrder $record): string => 'Make the transfer to the buyer in online banking first, then record it here. It comes off the voucher’s unspent balance; at zero the voucher stops working. Refundable now: '
+                .Money::format(RecordVoucherTransferRefund::refundableMinor($record), $record->currency).'.')
+            ->schema(fn (VoucherOrder $record): array => [
+                TextInput::make('amount')
+                    ->label('Amount transferred (PKR)')
+                    ->integer()
+                    ->required()
+                    ->minValue(1)
+                    ->maxValue(intdiv(RecordVoucherTransferRefund::refundableMinor($record), Money::MINOR_PER_MAJOR))
+                    ->default(intdiv(RecordVoucherTransferRefund::refundableMinor($record), Money::MINOR_PER_MAJOR)),
+                TextInput::make('bank_reference')
+                    ->label('Bank reference of your transfer')
+                    ->required()
+                    ->maxLength(BankRefund::MAX_REFERENCE_LENGTH),
+                DatePicker::make('transferred_on')
+                    ->label('Transfer date (Pakistan)')
+                    ->required()
+                    ->native(false)
+                    ->default(fn (): string => SessionTimes::now()->toDateString())
+                    ->maxDate(fn (): string => SessionTimes::now()->toDateString()),
+                Textarea::make('reason')->label('Reason')->required()->maxLength(500)->rows(2),
+            ])
+            ->requiresConfirmation()
+            ->action(function (VoucherOrder $record, array $data): void {
+                $admin = self::admin();
+
+                if ($admin === null) {
+                    return;
+                }
+
+                $amount = (int) ($data['amount'] ?? 0) * Money::MINOR_PER_MAJOR;
+
+                try {
+                    app(RecordVoucherTransferRefund::class)->handle(
+                        $record,
+                        $admin,
+                        $amount,
+                        (string) ($data['bank_reference'] ?? ''),
+                        CarbonImmutable::parse((string) $data['transferred_on'], (string) config('app.display_timezone')),
+                        (string) ($data['reason'] ?? ''),
+                    );
+                } catch (BookingRejected $e) {
+                    Notification::make()->danger()->title('Not recorded')->body($e->getMessage())->send();
+
+                    return;
+                }
+
+                Notification::make()->success()->title('Bank refund of '.Money::format($amount, $record->currency).' recorded')->send();
+            });
     }
 
     private static function admin(): ?User

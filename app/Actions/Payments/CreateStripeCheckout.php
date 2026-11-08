@@ -11,6 +11,7 @@ use App\Enums\SettingKey;
 use App\Exceptions\CheckoutUnavailable;
 use App\Models\BookingHold;
 use App\Models\Order;
+use App\Support\Money;
 use App\Support\Settings;
 use App\Support\Stripe\StripeGateway;
 use Carbon\CarbonImmutable;
@@ -135,6 +136,15 @@ final class CreateStripeCheckout
                 throw CheckoutUnavailable::notPayable();
             }
 
+            // After discounts (milestone 10e Part B): nothing to charge, or too little for a card.
+            if ($locked->amount_minor === 0) {
+                throw CheckoutUnavailable::nothingToPay();
+            }
+
+            if ($locked->amount_minor < self::minChargeMinor()) {
+                throw CheckoutUnavailable::belowCardMinimum();
+            }
+
             $slotIds = $locked->items()->whereNotNull('slot_id')->distinct()->orderBy('slot_id')->pluck('slot_id')->map(fn (mixed $id): int => (int) $id)->all();
 
             foreach ($slotIds as $slotId) {
@@ -217,9 +227,17 @@ final class CreateStripeCheckout
         return $params;
     }
 
+    /** Smallest card charge in paisa (services.stripe.min_charge_pkr). */
+    public static function minChargeMinor(): int
+    {
+        return max(1, (int) config('services.stripe.min_charge_pkr', 200)) * Money::MINOR_PER_MAJOR;
+    }
+
     /**
      * One line per distinct price, from the order's own items. Their sum
-     * must equal the order total.
+     * must equal the order total. An order with discounts (milestone 10e
+     * Part B) is one line for the amount left to pay, named with what the
+     * discounts were; the full breakdown is on our receipt.
      *
      * @return list<array<string, mixed>>
      */
@@ -232,6 +250,28 @@ final class CreateStripeCheckout
         $description = $order->isPackage()
             ? $order->sessionsCount().' sessions, valid '.$order->validityDays().' days from payment'
             : ($slot === null ? null : $slot->label().' (Pakistan time)');
+
+        $discounts = $order->discounts()->get();
+
+        if ($discounts->isNotEmpty()) {
+            if ($order->amount_minor <= 0 || strtoupper($order->currency) !== 'PKR') {
+                throw new LogicException('Order '.$order->reference.' has nothing to charge by card.');
+            }
+
+            $after = 'Price '.Money::format($order->subtotal_minor).' less '.$discounts->map(fn ($l): string => $l->label.' '.Money::format($l->amount_minor))->implode(', ');
+
+            return [[
+                'quantity' => 1,
+                'price_data' => [
+                    'currency' => 'pkr',
+                    'unit_amount' => $order->amount_minor,
+                    'product_data' => [
+                        'name' => $name.', after discounts',
+                        'description' => mb_substr(trim(($description === null ? '' : $description.'. ').$after), 0, 500),
+                    ],
+                ],
+            ]];
+        }
 
         $lines = [];
         $total = 0;

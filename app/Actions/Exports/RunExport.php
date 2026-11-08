@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Actions\Exports;
 
+use App\Enums\DiscountKind;
 use App\Enums\ExportDataset;
 use App\Enums\ExportFormat;
+use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Models\Booking;
 use App\Models\Lead;
@@ -13,7 +15,9 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Payment;
 use App\Models\User;
+use App\Models\VoucherOrder;
 use App\Support\Money;
+use App\Support\OrderRevenue;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -92,9 +96,10 @@ final class RunExport
     public static function headers(ExportDataset $dataset): array
     {
         return match ($dataset) {
-            ExportDataset::Orders => ['Reference', 'Created (Pakistan time)', 'Status', 'Payment method', 'Customer', 'Customer email', 'Product', 'Type', 'Amount (PKR)', 'Refunded (PKR)', 'Net (PKR)', 'Paid at (Pakistan time)'],
-            ExportDataset::Payments, ExportDataset::Refunds => ['Order reference', 'Date (Pakistan time)', 'Provider', 'Provider ID', 'Status', 'Amount (PKR)', 'Currency', 'Customer email'],
-            ExportDataset::Bookings => ['Ticket', 'Session (Pakistan time)', 'Product', 'Rider', 'Customer email', 'Status', 'Private', 'Paid with', 'Order reference', 'Price (PKR)', 'Horse'],
+            ExportDataset::Orders => ['Reference', 'Created (Pakistan time)', 'Status', 'Payment method', 'Customer', 'Customer email', 'Product', 'Type', 'Amount (PKR)', 'Refunded (PKR)', 'Net (PKR)', 'Paid at (Pakistan time)', 'Subtotal (PKR)', 'Promo or referral (PKR)', 'Gift voucher (PKR)', 'Account credit (PKR)', 'Revenue (PKR)'],
+            ExportDataset::Payments, ExportDataset::Refunds => ['Order reference', 'Date (Pakistan time)', 'Provider', 'Provider ID', 'Status', 'Amount (PKR)', 'Currency', 'Customer email', 'Bank transfer date (Pakistan)'],
+            ExportDataset::VoucherSales => ['Purchase reference', 'Paid at (Pakistan time)', 'Status', 'Payment method', 'Payment reference', 'Buyer email', 'Voucher for', 'Received (PKR)', 'Refunded (PKR)', 'Net cash (PKR)', 'Refunded on', 'Refund references'],
+            ExportDataset::Bookings => ['Ticket', 'Session (Pakistan time)', 'Product', 'Rider', 'Customer email', 'Status', 'Private', 'Paid with', 'Order reference', 'Price (PKR)', 'Horse', 'Price after discounts (PKR)'],
             ExportDataset::Leads => ['Received (Pakistan time)', 'Name', 'Email', 'Phone', 'Instagram', 'Source', 'Status', 'Interest', 'UTM source', 'UTM medium', 'UTM campaign', 'Assigned to', 'Booked order reference'],
         };
     }
@@ -111,7 +116,7 @@ final class RunExport
 
         match ($dataset) {
             ExportDataset::Orders => Order::query()
-                ->with('user')
+                ->with(['user', 'discounts'])
                 ->where('created_at', '>=', $from)->where('created_at', '<', $until)
                 ->orderBy('created_at')->orderBy('id')
                 ->chunk(500, fn ($orders) => $orders->each(fn (Order $order) => $add([
@@ -127,6 +132,12 @@ final class RunExport
                     Money::decimal($order->amount_refunded_minor),
                     Money::decimal(max(0, $order->amount_minor - $order->amount_refunded_minor)),
                     $date($order->paid_at),
+                    // Discounts (milestone 10e Part B). Amount is what was charged after them.
+                    Money::decimal($order->subtotal_minor),
+                    Money::decimal(self::discount($order, DiscountKind::Promo, DiscountKind::Referral)),
+                    Money::decimal(self::discount($order, DiscountKind::Voucher)),
+                    Money::decimal(self::discount($order, DiscountKind::AccountCredit)),
+                    $order->paid_at === null ? '' : Money::decimal(OrderRevenue::of($order)),
                 ]))),
 
             ExportDataset::Payments, ExportDataset::Refunds => Payment::query()
@@ -143,10 +154,43 @@ final class RunExport
                     Money::decimal($payment->amount_minor),
                     $payment->currency,
                     $payment->order->user->email,
+                    // Bank refunds (milestone 10e): the date the team's transfer was made.
+                    $payment->transferred_on?->format('Y-m-d') ?? '',
                 ]))),
 
+            // Cash received for gift vouchers (milestone 10e), by payment date, for
+            // reconciling with the bank statement. Revenue elsewhere counts a
+            // voucher when it is spent; this is the money when it came in.
+            // Codes are left out: a code can be spent like cash.
+            ExportDataset::VoucherSales => VoucherOrder::query()
+                ->with('user')
+                ->whereNotNull('paid_at')
+                ->where('paid_at', '>=', $from)->where('paid_at', '<', $until)
+                ->orderBy('paid_at')->orderBy('id')
+                ->chunk(500, fn ($sales) => $sales->each(function (VoucherOrder $sale) use ($add, $date): void {
+                    // Late payments on closed purchases count too (received, then refunded automatically).
+                    $received = $sale->receivedMinor();
+                    $refunded = $sale->refundedMinor();
+                    $refunds = collect($sale->refundEntries());
+
+                    $add([
+                        $sale->reference,
+                        $date($sale->paid_at),
+                        $sale->status->label(),
+                        $sale->payment_method?->label() ?? '',
+                        $sale->payment_method === PaymentMethod::Card ? (string) $sale->stripe_payment_intent_id : (string) $sale->transaction_ref,
+                        $sale->user->email ?? '',
+                        $sale->product_name ?? 'Amount',
+                        Money::decimal($received),
+                        Money::decimal($refunded),
+                        Money::decimal(max(0, $received - $refunded)),
+                        $refunds->pluck('on')->filter()->unique()->implode('; '),
+                        $refunds->pluck('provider_id')->filter()->implode('; '),
+                    ]);
+                })),
+
             ExportDataset::Bookings => Booking::query()
-                ->with(['slot', 'rider', 'user', 'horse', 'order.items', 'creditPack.order'])
+                ->with(['slot', 'rider', 'user', 'horse', 'order.items', 'order.discounts', 'creditPack.order'])
                 ->whereHas('slot', fn (Builder $q) => $q->where('starts_at', '>=', $from)->where('starts_at', '<', $until))
                 ->join('slots', 'slots.id', '=', 'bookings.slot_id')
                 ->orderBy('slots.starts_at')->orderBy('bookings.id')
@@ -163,6 +207,7 @@ final class RunExport
                     $booking->order->reference ?? $booking->creditPack?->order->reference ?? '',
                     self::bookingPrice($booking),
                     $booking->horse->name ?? '',
+                    self::bookingNetPrice($booking),
                 ]))),
 
             ExportDataset::Leads => Lead::query()
@@ -187,6 +232,32 @@ final class RunExport
         };
 
         return $rows;
+    }
+
+    /** Sum of an order's discount lines of these kinds. */
+    private static function discount(Order $order, DiscountKind ...$kinds): int
+    {
+        return (int) $order->discounts->filter(fn ($line): bool => in_array($line->kind, $kinds, true))->sum('amount_minor');
+    }
+
+    /** This rider's seat after the order's discounts (its share of what was charged and paid by voucher or credit, without promo or referral). */
+    private static function bookingNetPrice(Booking $booking): string
+    {
+        $order = $booking->order;
+
+        if ($order === null || $order->subtotal_minor <= 0) {
+            return '';
+        }
+
+        $item = $order->items->first(fn (OrderItem $item): bool => $item->slot_id === $booking->slot_id && $item->rider_id === $booking->rider_id);
+
+        if ($item === null) {
+            return '';
+        }
+
+        $afterPromo = $order->subtotal_minor - self::discount($order, DiscountKind::Promo, DiscountKind::Referral);
+
+        return Money::decimal(intdiv($item->unit_price_minor * $afterPromo, $order->subtotal_minor));
     }
 
     /** What this rider's seat cost on its own order; empty for credits and no-charge bookings. */

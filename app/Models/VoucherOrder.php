@@ -125,6 +125,74 @@ class VoucherOrder extends Model
     }
 
     /**
+     * Money actually received for this purchase (milestone 10e): what Stripe
+     * charged, which can differ from the price on a mismatch, or the price
+     * for an approved bank transfer. 0 before any money came in.
+     */
+    public function receivedMinor(): int
+    {
+        if (isset($this->meta['amount_received_minor'])) {
+            return (int) $this->meta['amount_received_minor'];
+        }
+
+        return $this->paid_at === null ? 0 : $this->amount_minor;
+    }
+
+    public function refundedMinor(): int
+    {
+        return (int) ($this->meta['amount_refunded_minor'] ?? 0);
+    }
+
+    /**
+     * Refunds recorded on this purchase, oldest first: Stripe (automatic or
+     * dashboard) and bank refunds the team made.
+     *
+     * @return list<array{provider: string, provider_id: string|null, amount_minor: int, on: string}>
+     */
+    public function refundEntries(): array
+    {
+        $entries = [];
+
+        foreach ((array) ($this->meta['payments'] ?? []) as $payment) {
+            if (is_array($payment) && ($payment['status'] ?? null) === 'refunded') {
+                $entries[] = [
+                    'provider' => (string) ($payment['provider'] ?? ''),
+                    'provider_id' => isset($payment['provider_id']) ? (string) $payment['provider_id'] : null,
+                    'amount_minor' => (int) ($payment['amount_minor'] ?? 0),
+                    'on' => (string) ($payment['transferred_on'] ?? substr((string) ($payment['at'] ?? ''), 0, 10)),
+                ];
+            }
+        }
+
+        return $entries;
+    }
+
+    /**
+     * Books a refund on the purchase: a refund entry in meta "payments" and
+     * the refunded total. The caller holds the purchase row lock.
+     *
+     * @param  array<string, scalar|null>  $extra
+     */
+    public function addRefund(string $provider, ?string $providerId, int $amountMinor, array $extra = []): void
+    {
+        $meta = $this->meta ?? [];
+        $payments = is_array($meta['payments'] ?? null) ? $meta['payments'] : [];
+        $payments[] = [
+            'provider' => $provider,
+            'provider_id' => $providerId,
+            'amount_minor' => $amountMinor,
+            'currency' => $this->currency,
+            'status' => 'refunded',
+            'at' => CarbonImmutable::now()->toIso8601String(),
+            ...$extra,
+        ];
+        $meta['payments'] = $payments;
+        $meta['amount_refunded_minor'] = (int) ($meta['amount_refunded_minor'] ?? 0) + $amountMinor;
+        $this->meta = $meta;
+        $this->save();
+    }
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array

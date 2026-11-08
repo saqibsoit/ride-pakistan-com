@@ -9,6 +9,7 @@ use App\Enums\PaymentMethod;
 use App\Enums\ProductType;
 use Carbon\CarbonImmutable;
 use Database\Factories\OrderFactory;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -25,7 +26,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property int $product_id
  * @property OrderStatus $status
  * @property PaymentMethod|null $payment_method
- * @property int $amount_minor
+ * @property int $subtotal_minor price before discounts (milestone 10e Part B)
+ * @property int $amount_minor what the customer pays by card or transfer, after discounts
  * @property int $amount_refunded_minor
  * @property string $currency
  * @property string|null $stripe_checkout_session_id
@@ -40,6 +42,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property int|null $validity_days snapshot at order time
  * @property-read User $user
  * @property-read Product $product
+ * @property-read Collection<int, OrderDiscount> $discounts
+ * @property-read PromoRedemption|null $promoRedemption
  */
 class Order extends Model
 {
@@ -52,6 +56,7 @@ class Order extends Model
         'user_id',
         'product_id',
         'payment_method',
+        'subtotal_minor',
         'amount_minor',
         'currency',
         'stripe_checkout_session_id',
@@ -76,6 +81,9 @@ class Order extends Model
     protected static function booted(): void
     {
         static::creating(function (Order $order): void {
+            // Before any discount the order costs its subtotal (milestone 10e Part B).
+            $order->subtotal_minor ??= $order->amount_minor;
+
             if ($order->product_name !== null) {
                 return;
             }
@@ -189,6 +197,30 @@ class Order extends Model
     }
 
     /**
+     * Discount lines, one per kind (milestone 10e Part B).
+     *
+     * @return HasMany<OrderDiscount, $this>
+     */
+    public function discounts(): HasMany
+    {
+        return $this->hasMany(OrderDiscount::class)->orderBy('id');
+    }
+
+    /**
+     * @return HasOne<PromoRedemption, $this>
+     */
+    public function promoRedemption(): HasOne
+    {
+        return $this->hasOne(PromoRedemption::class);
+    }
+
+    /** Total of the discount lines. */
+    public function discountMinor(): int
+    {
+        return $this->subtotal_minor - $this->amount_minor;
+    }
+
+    /**
      * @return HasOne<CreditPack, $this>
      */
     public function creditPack(): HasOne
@@ -207,6 +239,7 @@ class Order extends Model
             'product_type' => ProductType::class,
             'sessions_count' => 'integer',
             'validity_days' => 'integer',
+            'subtotal_minor' => 'integer',
             'amount_minor' => 'integer',
             'amount_refunded_minor' => 'integer',
             'expires_at' => 'immutable_datetime',

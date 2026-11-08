@@ -8,6 +8,7 @@ use App\Events\PublicContentChanged;
 use App\Models\Lead;
 use App\Models\LeadNote;
 use App\Models\LoginCode;
+use App\Models\Referral;
 use App\Models\Review;
 use App\Models\Rider;
 use App\Models\User;
@@ -92,6 +93,9 @@ final class AnonymiseAccount
                     'recipient_email' => null,
                     'message' => null,
                 ]);
+
+                // The email and phone kept for referral abuse checks.
+                Referral::query()->where('referred_id', $user->id)->update(['signup_email' => null, 'signup_phone' => null]);
 
                 LoginCode::query()->where('destination', $email)->delete();
 

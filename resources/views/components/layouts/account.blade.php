@@ -15,6 +15,7 @@
         ['label' => 'Credits', 'route' => 'account.credits', 'match' => 'account.credits'],
         ['label' => 'Orders', 'route' => 'account.orders', 'match' => 'account.orders*'],
         ['label' => 'Gift vouchers', 'route' => 'account.vouchers', 'match' => 'account.vouchers'],
+        ['label' => 'Refer a friend', 'route' => 'account.referrals', 'match' => 'account.referrals'],
         ['label' => 'Riders', 'route' => 'account.riders', 'match' => 'account.riders'],
         ['label' => 'Progress', 'route' => 'account.progress', 'match' => 'account.progress'],
         ['label' => 'Profile', 'route' => 'account.profile', 'match' => 'account.profile'],

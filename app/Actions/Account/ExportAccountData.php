@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Account;
 
+use App\Models\AccountCreditEntry;
 use App\Models\BankTransfer;
 use App\Models\Booking;
 use App\Models\CreditLedgerEntry;
@@ -122,6 +123,14 @@ final class ExportAccountData
                 'paid_at' => self::date($order->paid_at),
                 'voucher_balance_minor' => $order->voucher?->balance_minor,
                 'voucher_expires_at' => self::date($order->voucher?->expires_at),
+            ])->all(),
+            'referral_code' => $user->referral_code,
+            'referred_by_customer' => $user->referredBy()->exists(),
+            'friends_referred' => $user->referrals()->count(),
+            'account_credit' => $user->accountCredit()->orderBy('id')->get()->map(fn (AccountCreditEntry $entry): array => [
+                'delta_minor' => $entry->delta_minor,
+                'reason' => $entry->reason->value,
+                'created_at' => self::date($entry->created_at),
             ])->all(),
             'enquiries' => Lead::query()->where('user_id', $user->id)->orderBy('id')->get()->map(fn (Lead $lead): array => [
                 'name' => $lead->name,

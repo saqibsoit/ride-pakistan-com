@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions\Booking;
 
 use App\Enums\BookingStatus;
+use App\Events\BookingAttended;
 use App\Exceptions\BookingRejected;
 use App\Exceptions\InvalidStatusTransition;
 use App\Models\Booking;
@@ -58,6 +59,10 @@ final class ChangeBookingStatus
                 ->log(sprintf('Booking %s: %s → %s', $locked->ticket_code, $from->label(), $to->label()));
 
             $booking->setRawAttributes($locked->getAttributes(), true);
+
+            if ($to === BookingStatus::Attended) {
+                event(new BookingAttended($booking)); // after commit (milestone 10e: referral rewards)
+            }
 
             return $booking;
         });

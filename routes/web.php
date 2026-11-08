@@ -11,6 +11,7 @@ use App\Http\Controllers\Account\OrderController;
 use App\Http\Controllers\Account\PrivacyController;
 use App\Http\Controllers\Account\ProfileController;
 use App\Http\Controllers\Account\ProgressController;
+use App\Http\Controllers\Account\ReferralController as AccountReferralController;
 use App\Http\Controllers\Account\RiderController;
 use App\Http\Controllers\Account\SignOutEverywhereController;
 use App\Http\Controllers\Account\TicketController;
@@ -35,6 +36,7 @@ use App\Http\Controllers\Public\PriceController;
 use App\Http\Controllers\Public\ScheduleController;
 use App\Http\Controllers\Public\SeoFileController;
 use App\Http\Controllers\Public\SessionController;
+use App\Http\Controllers\ReferralLinkController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\Team\RiderHistoryController;
@@ -105,6 +107,12 @@ Route::middleware(['auth', 'cache.headers:private;no_store'])->prefix('gift-vouc
         Route::post('/transfer/proof', [VoucherCheckoutController::class, 'upload'])->middleware('throttle:transfer-upload')->name('transfer.upload');
     });
 });
+
+// Referral links (milestone 10e): remembered for this visit only, never cached.
+Route::get('/r/{code}', ReferralLinkController::class)
+    ->where('code', '[A-Za-z0-9]{8}')
+    ->middleware(['cache.headers:private;no_store', 'throttle:referral-link'])
+    ->name('referral');
 
 // Printable gift voucher from the recipient's email (milestone 10e): signed
 // link, no sign-in (the recipient may have no account), never cached.
@@ -211,6 +219,7 @@ Route::middleware(['auth', 'cache.headers:private;no_store'])->prefix('account')
     Route::get('/tickets/{code}', [TicketController::class, 'show'])->name('tickets.show');
     Route::get('/credits', CreditController::class)->name('credits');
     Route::get('/vouchers', [AccountVoucherController::class, 'index'])->name('vouchers');
+    Route::get('/referrals', AccountReferralController::class)->name('referrals');
     Route::put('/vouchers/{reference}/recipient', [AccountVoucherController::class, 'recipient'])->middleware('throttle:account-actions')->name('vouchers.recipient');
     Route::get('/orders', [OrderController::class, 'index'])->name('orders');
     Route::get('/orders/{reference}', [OrderController::class, 'show'])->name('orders.show');

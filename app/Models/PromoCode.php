@@ -73,6 +73,25 @@ class PromoCode extends Model
         return $this->archived_at !== null;
     }
 
+    /**
+     * What the admin list shows: Archived, Inactive, Scheduled, Ended,
+     * Used up or Active. Uses come from redemptions_count when loaded.
+     */
+    public function statusLabel(?CarbonImmutable $now = null): string
+    {
+        $now ??= CarbonImmutable::now();
+        $uses = $this->redemptions_count ?? $this->redemptions()->count();
+
+        return match (true) {
+            $this->isArchived() => 'Archived',
+            ! $this->is_active => 'Inactive',
+            $this->starts_at !== null && $this->starts_at->isAfter($now) => 'Scheduled',
+            $this->ends_at !== null && ! $this->ends_at->isAfter($now) => 'Ended',
+            $this->max_uses !== null && $uses >= $this->max_uses => 'Used up',
+            default => 'Active',
+        };
+    }
+
     /** Human summary, e.g. "10% off" or "PKR 2,000 off". */
     public function summary(): string
     {

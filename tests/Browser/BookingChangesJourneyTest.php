@@ -15,7 +15,6 @@ use App\Models\Product;
 use App\Models\Rider;
 use App\Models\Slot;
 use App\Models\User;
-use App\Models\WaitlistEntry;
 use Illuminate\Support\Facades\Notification;
 use Pest\Browser\Playwright\Page;
 

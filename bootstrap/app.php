@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 use App\Http\Middleware\AddRobotsHeader;
 use App\Http\Middleware\EnsureSessionIsCurrent;
+use App\Http\Middleware\SetCspNonce;
+use App\Support\Tracking\Attribution;
+use App\Support\Tracking\Consent;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -15,10 +18,16 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->web(append: [
+        $middleware->web(prepend: [
+            SetCspNonce::class,
+        ], append: [
             AddRobotsHeader::class,
             EnsureSessionIsCurrent::class,
         ]);
+
+        // Written by resources/js/tracking.js (consent answer, first-touch
+        // attribution) and the Meta Pixel: plain values, validated on read.
+        $middleware->encryptCookies(except: [Consent::COOKIE, Attribution::COOKIE, '_fbp', '_fbc']);
 
         // Stripe signs its webhooks; it can't send a CSRF token (PLAN §6).
         $middleware->validateCsrfTokens(except: ['webhooks/stripe']);

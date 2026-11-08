@@ -101,6 +101,8 @@ Route::get('/sitemap.xml', [SeoFileController::class, 'sitemap'])->name('sitemap
 // Contact form: CSRF token, flash status and per-visit attribution.
 Route::get('/contact', [ContactController::class, 'show'])->name('contact');
 Route::post('/contact', [ContactController::class, 'store'])->middleware('throttle:leads')->name('contact.store');
+// "Ask a question" on /prices (cached page): same rules, own source.
+Route::post('/prices/question', [ContactController::class, 'storeQuestion'])->middleware('throttle:leads')->name('prices.question');
 
 /*
 |--------------------------------------------------------------------------

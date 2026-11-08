@@ -13,6 +13,7 @@ use App\Support\Money;
 use App\Support\Seo\SchemaFactory;
 use App\Support\Seo\Seo;
 use App\Support\Settings;
+use App\Support\Turnstile;
 use Illuminate\Contracts\View\View;
 
 /**
@@ -21,7 +22,7 @@ use Illuminate\Contracts\View\View;
  */
 final class PriceController extends Controller
 {
-    public function __invoke(BusinessFacts $facts, Settings $settings, SchemaFactory $schema, Seo $seo): View
+    public function __invoke(BusinessFacts $facts, Settings $settings, SchemaFactory $schema, Seo $seo, Turnstile $turnstile): View
     {
         $products = $facts->products();
 
@@ -32,6 +33,7 @@ final class PriceController extends Controller
             'ridingRules' => $settings->policies(SettingKey::RidingRules),
             'bookingPolicies' => $settings->policies(SettingKey::BookingPolicies),
             'refundPolicy' => $settings->string(SettingKey::RefundPolicy),
+            'turnstileSiteKey' => $turnstile->configured() ? $turnstile->siteKey() : null,
             'seo' => $seo->make(
                 title: 'Horse riding lesson prices in Islamabad',
                 description: 'Riding lessons in Islamabad from '.$this->from($facts).' per rider. Single and private sessions, 8 and 16-class packages, validity and booking policies.',

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Enums\LeadInterest;
+use App\Enums\LeadSource;
 use App\Enums\LeadStatus;
 use App\Models\Lead;
 
@@ -43,7 +44,7 @@ it('stores a lead with its attribution', function (): void {
     expect($lead->name)->toBe('Ayesha Khan')
         ->and($lead->interest)->toBe(LeadInterest::Package)
         ->and($lead->status)->toBe(LeadStatus::New)
-        ->and($lead->source)->toBe('contact_form')
+        ->and($lead->source)->toBe(LeadSource::ContactForm)
         ->and($lead->utm_source)->toBe('instagram')
         ->and($lead->utm_medium)->toBe('paid_social')
         ->and($lead->fbclid)->toBe('abc123')

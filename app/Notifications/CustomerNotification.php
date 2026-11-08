@@ -22,6 +22,13 @@ abstract class CustomerNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
+    /**
+     * Delivery attempts before the job fails for good (milestone 12). A
+     * permanent failure is logged without the email's contents and alerts
+     * the admins (App\Actions\Mail\ReportMailFailure).
+     */
+    public int $tries = 5;
+
     /** notification_log row, set by Notifier; marked sent when mail goes out. */
     public ?int $logId = null;
 
@@ -47,6 +54,18 @@ abstract class CustomerNotification extends Notification implements ShouldQueue
         return config('notifications.whatsapp.enabled') === true
             ? ['mail', WhatsAppChannel::class]
             : ['mail'];
+    }
+
+    /**
+     * Seconds to wait before each retry: 1 min, 5 min, 15 min, then 1 hour.
+     * Covers a short provider outage or a rate limit (Resend's free plan
+     * allows 100 emails a day).
+     *
+     * @return list<int>
+     */
+    public function backoff(): array
+    {
+        return [60, 300, 900, 3600];
     }
 
     public function toWhatsApp(object $notifiable): ?WhatsAppMessage

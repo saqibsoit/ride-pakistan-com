@@ -85,7 +85,7 @@
                     <form method="POST" action="{{ route('checkout.discount', $order->reference) }}" class="flex flex-col gap-3 sm:flex-row sm:items-end">
                         @csrf
                         <div class="grow">
-                            <x-form.field name="code" label="Code" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="60" hint="One promo code per order; a gift voucher can be added as well." />
+                            <x-form.field name="code" label="Code" required autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="60" hint="One promo code per order; a gift voucher can be added as well." />
                         </div>
                         <x-button type="submit" variant="ghost">Apply</x-button>
                     </form>

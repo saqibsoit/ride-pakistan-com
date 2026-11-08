@@ -1,15 +1,17 @@
 name: CI
 
+# Pushes to main run this through deploy.yml (tests gate every deploy).
 on:
-  push:
-    branches: [main]
   pull_request:
+  workflow_call:
 
 permissions:
   contents: read
 
+# github.workflow is the caller's name when deploy.yml calls this, so the
+# deploy's test run never cancels (or is cancelled by) a pull request run.
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:

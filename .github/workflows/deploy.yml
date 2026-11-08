@@ -1,0 +1,249 @@
+name: Deploy
+
+# Milestone 12 (docs/DEPLOY.md). Push to main: tests -> build -> staging ->
+# production (waits for a reviewer on the "production" environment).
+# Pull requests only run the build, so the image and asset steps are proven
+# before merge. Run by hand for a single environment or a rollback.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment
+        type: choice
+        options: [staging, production]
+        default: staging
+      action:
+        description: Deploy the selected commit, or roll back to the previous release
+        type: choice
+        options: [deploy, rollback]
+        default: deploy
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: Tests
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.action == 'deploy')
+    uses: ./.github/workflows/ci.yml
+
+  build:
+    name: Build release
+    needs: tests
+    # Pull requests skip the tests here (ci.yml runs them) but still build.
+    if: >-
+      always() &&
+      (needs.tests.result == 'success' || (github.event_name == 'pull_request' && needs.tests.result == 'skipped'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      release: ${{ steps.name.outputs.release }}
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, intl, pdo_mysql, bcmath, gd, zip, exif, fileinfo
+          coverage: none
+          tools: composer:v2
+
+      # Hostinger's PHP may lack AVIF, so the shipped variants are made here.
+      - name: Check GD can write AVIF and WebP
+        run: |
+          php -r '$gd = gd_info(); echo json_encode(["avif" => $gd["AVIF Support"] ?? false, "webp" => $gd["WebP Support"] ?? false]), PHP_EOL; exit(($gd["AVIF Support"] ?? false) && ($gd["WebP Support"] ?? false) ? 0 : 1);'
+
+      - name: Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v6
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-nodev-${{ runner.os }}-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-nodev-${{ runner.os }}-
+
+      # The composer scripts boot the app (package:discover, filament:upgrade),
+      # which needs a key; this .env never leaves the runner.
+      - name: Build-time environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate --no-interaction || sed -i "s|^APP_KEY=.*|APP_KEY=base64:$(openssl rand -base64 32)|" .env
+
+      - name: Install PHP dependencies (production)
+        run: composer install --no-dev --optimize-autoloader --classmap-authoritative --no-interaction --prefer-dist --no-progress
+
+      # filament:upgrade runs in composer's post-autoload-dump; make sure the
+      # panel's CSS, JS and fonts are in the release.
+      - name: Check Filament assets
+        run: |
+          test -d public/js/filament && test -d public/css/filament || { echo "Filament assets missing"; exit 1; }
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Build frontend
+        run: |
+          npm ci
+          npm run build
+          test -f public/build/manifest.json
+
+      - name: Generate responsive images (AVIF and WebP)
+        run: |
+          php artisan images:responsive --no-interaction
+          avif=$(find public/images/_variants -name '*.avif' | wc -l)
+          webp=$(find public/images/_variants -name '*.webp' | wc -l)
+          echo "AVIF: $avif, WebP: $webp"
+          if [ "$avif" -eq 0 ] || [ "$webp" -eq 0 ]; then
+            echo "::error::No AVIF or WebP variants were produced"
+            exit 1
+          fi
+
+      - name: Release name
+        id: name
+        run: echo "release=$(date -u +%Y%m%d-%H%M%S)-${GITHUB_SHA::8}" >> "$GITHUB_OUTPUT"
+
+      - name: Package release
+        run: |
+          rm -f .env
+          printf '%s\n' "${{ steps.name.outputs.release }}" > RELEASE
+          tar -czf "$RUNNER_TEMP/release.tar.gz" \
+            --exclude=./.git --exclude=./.github --exclude=./node_modules --exclude=./tests \
+            --exclude=./docs --exclude=./prompts --exclude=./storage --exclude=./.env \
+            --exclude=./public/hot --exclude=./public/storage --exclude=./public/images/uploads \
+            .
+          ls -lh "$RUNNER_TEMP/release.tar.gz"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release
+          path: ${{ runner.temp }}/release.tar.gz
+          retention-days: 7
+          if-no-files-found: error
+
+  deploy-staging:
+    name: Deploy to staging
+    needs: build
+    if: >-
+      always() && needs.build.result == 'success' &&
+      (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.environment == 'staging'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: staging
+      url: ${{ vars.APP_URL }}
+    concurrency:
+      group: deploy-staging
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: .github/actions
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: release
+          path: ${{ runner.temp }}
+
+      - name: Deploy
+        uses: ./.github/actions/hostinger-deploy
+        with:
+          release: ${{ needs.build.outputs.release }}
+          archive: ${{ runner.temp }}/release.tar.gz
+          ssh-host: ${{ secrets.SSH_HOST }}
+          ssh-port: ${{ secrets.SSH_PORT }}
+          ssh-user: ${{ secrets.SSH_USER }}
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+          ssh-known-hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
+          deploy-path: ${{ vars.DEPLOY_PATH }}
+          php-bin: ${{ vars.PHP_BIN }}
+          app-url: ${{ vars.APP_URL }}
+          smoke-token: ${{ secrets.SMOKE_TEST_TOKEN }}
+
+  deploy-production:
+    name: Deploy to production
+    needs: [build, deploy-staging]
+    # Only main reaches production; the environment's required reviewers
+    # approve it (DEPLOY.md, GitHub setup).
+    if: >-
+      always() && needs.build.result == 'success' && github.ref == 'refs/heads/main' &&
+      ((github.event_name == 'push' && needs.deploy-staging.result == 'success') ||
+       (github.event_name == 'workflow_dispatch' && inputs.environment == 'production'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: production
+      url: ${{ vars.APP_URL }}
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: .github/actions
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: release
+          path: ${{ runner.temp }}
+
+      - name: Deploy
+        uses: ./.github/actions/hostinger-deploy
+        with:
+          release: ${{ needs.build.outputs.release }}
+          archive: ${{ runner.temp }}/release.tar.gz
+          ssh-host: ${{ secrets.SSH_HOST }}
+          ssh-port: ${{ secrets.SSH_PORT }}
+          ssh-user: ${{ secrets.SSH_USER }}
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+          ssh-known-hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
+          deploy-path: ${{ vars.DEPLOY_PATH }}
+          php-bin: ${{ vars.PHP_BIN }}
+          app-url: ${{ vars.APP_URL }}
+          smoke-token: ${{ secrets.SMOKE_TEST_TOKEN }}
+
+  rollback:
+    name: Roll back ${{ inputs.environment }}
+    if: github.event_name == 'workflow_dispatch' && inputs.action == 'rollback'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: ${{ inputs.environment }}
+      url: ${{ vars.APP_URL }}
+    concurrency:
+      group: deploy-${{ inputs.environment }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: .github/actions
+
+      - name: SSH
+        uses: ./.github/actions/hostinger-ssh
+        with:
+          ssh-host: ${{ secrets.SSH_HOST }}
+          ssh-port: ${{ secrets.SSH_PORT }}
+          ssh-user: ${{ secrets.SSH_USER }}
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+          ssh-known-hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
+
+      - name: Switch to the previous release
+        env:
+          DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+          PHP_BIN: ${{ vars.PHP_BIN }}
+        run: |
+          ssh hostinger "PHP_BIN='${PHP_BIN:-php}' bash '$DEPLOY_PATH/current/deploy/rollback.sh' '$DEPLOY_PATH'"
+
+      - name: Smoke test
+        env:
+          APP_URL: ${{ vars.APP_URL }}
+          SMOKE_TEST_TOKEN: ${{ secrets.SMOKE_TEST_TOKEN }}
+        run: bash .github/actions/hostinger-deploy/smoke-test.sh "$APP_URL"

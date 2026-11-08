@@ -223,10 +223,10 @@ it('thanks riders who attended, and asks for a review only when the link is set'
 
     $slot = $attended->bookings()->firstOrFail()->slot;
     $render = fn (): string => (string) (new ThankYou($slot, $attended->bookings()->get()))->toMail($attended->user)->render();
-    expect($render())->not->toContain('Leave a review');
+    expect($render())->not->toContain('Review us on Google')->toContain('Rate your session');
 
     app(UpdateSettings::class)->handle([SettingKey::GoogleReviewUrl->value => 'https://g.page/r/ridepakistan/review']);
-    expect($render())->toContain('Leave a review')->toContain('https://g.page/r/ridepakistan/review');
+    expect($render())->toContain('Review us on Google')->toContain('https://g.page/r/ridepakistan/review');
 });
 
 it('skips anonymised and missing addresses', function (): void {

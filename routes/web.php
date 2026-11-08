@@ -32,6 +32,7 @@ use App\Http\Controllers\Public\PriceController;
 use App\Http\Controllers\Public\ScheduleController;
 use App\Http\Controllers\Public\SeoFileController;
 use App\Http\Controllers\Public\SessionController;
+use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\Team\RiderHistoryController;
 use App\Http\Controllers\Team\RiderProgressController;
@@ -126,6 +127,13 @@ Route::post('/csp-report', CspReportController::class)
 // Served from the generated file, which a queued job rewrites after the
 // page cache has been cleared, so it is never response-cached.
 Route::get('/sitemap.xml', [SeoFileController::class, 'sitemap'])->name('sitemap');
+
+// Reviews of an attended session (milestone 10d): the signed link from the
+// thank-you email is the permission, so no sign-in. Never cached or indexed.
+Route::middleware(['signed', 'cache.headers:private;no_store'])->prefix('reviews/{ticket}')->name('reviews.')->group(function (): void {
+    Route::get('/', [ReviewController::class, 'create'])->name('create');
+    Route::post('/', [ReviewController::class, 'store'])->middleware('throttle:account-actions')->name('store');
+});
 
 // Contact form: CSRF token, flash status and per-visit attribution.
 Route::get('/contact', [ContactController::class, 'show'])->name('contact');

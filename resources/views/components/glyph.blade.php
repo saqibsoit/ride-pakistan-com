@@ -20,6 +20,7 @@
         'arrow-right' => '<path d="M5 12h14M13 6l6 6-6 6"/>',
         'arrow-left' => '<path d="M19 12H5M11 6l-6 6 6 6"/>',
         'circle' => '<circle cx="12" cy="12" r="9"/>',
+        'star' => '<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z"/>',
     ];
 @endphp
 

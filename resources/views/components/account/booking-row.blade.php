@@ -27,6 +27,10 @@
     </div>
     <div class="flex flex-wrap items-center gap-3">
         <x-badge :variant="$confirmed ? 'success' : 'neutral'">{{ $booking->status->label() }}</x-badge>
+        @if ($booking->status === \App\Enums\BookingStatus::Attended)
+            {{-- Review the session (milestone 10d): same signed link as the thank-you email. --}}
+            <x-button :href="\App\Support\ReviewLink::for($booking)" variant="ghost" size="sm">Leave a review<span class="sr-only"> of {{ $slot->label() }}</span></x-button>
+        @endif
         @if ($ticket && $confirmed)
             <x-button :href="route('account.tickets.show', $booking->ticket_code)" variant="ghost" size="sm">
                 View ticket<span class="sr-only"> for {{ $slot->label() }}</span>

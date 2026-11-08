@@ -26,6 +26,8 @@ const ALLOWED_TYPES = [
     'Organization', 'WebSite', 'SportsActivityLocation', 'Person', 'Product', 'Offer',
     'FAQPage', 'Question', 'Answer', 'BreadcrumbList', 'ListItem', 'Article',
     'City', 'PostalAddress', 'OpeningHoursSpecification',
+    // Product pages with at least 5 approved reviews (milestone 10d).
+    'AggregateRating', 'Review', 'Rating',
 ];
 
 dataset('indexable pages', [

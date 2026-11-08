@@ -1,14 +1,14 @@
 {{--
     <x-seats-left :seats="2" />  → "2 spots left" + "Selling fast" badge
     - 0 seats: "Fully booked"
-    - 1..threshold (config booking.selling_fast_threshold): Selling fast
+    - 1..threshold (setting booking.selling_fast_threshold): Selling fast
     - live: announce changes politely (booking widget)
 --}}
 @props(['seats', 'threshold' => null, 'live' => false])
 
 @php
     $seats = max(0, (int) $seats);
-    $threshold ??= (int) config('booking.selling_fast_threshold');
+    $threshold ??= (int) app(\App\Support\Settings::class)->int(\App\Enums\SettingKey::SellingFastThreshold);
     $sellingFast = $seats > 0 && $seats <= $threshold;
 @endphp
 

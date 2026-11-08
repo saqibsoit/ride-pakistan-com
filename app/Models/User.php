@@ -4,20 +4,46 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\UserRole;
+use App\Models\Concerns\LogsPersonalDataChanges;
+use Carbon\CarbonImmutable;
 use Database\Factories\UserFactory;
+use Filament\Auth\MultiFactor\App\Concerns\InteractsWithAppAuthentication;
+use Filament\Auth\MultiFactor\App\Concerns\InteractsWithAppAuthenticationRecovery;
+use Filament\Auth\MultiFactor\App\Contracts\HasAppAuthentication;
+use Filament\Auth\MultiFactor\App\Contracts\HasAppAuthenticationRecovery;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-class User extends Authenticatable implements FilamentUser
+/**
+ * Customers and staff (PLAN §5). Staff and admins must use app-based
+ * multi-factor authentication to enter the admin panel.
+ *
+ * @property int $id
+ * @property string|null $name null until the customer fills in their profile
+ * @property string $email
+ * @property UserRole $role
+ * @property string|null $phone E.164
+ * @property bool $marketing_consent
+ * @property CarbonImmutable|null $marketing_consent_at
+ * @property CarbonImmutable|null $email_verified_at
+ * @property int $session_version bumped by "sign out everywhere"
+ * @property CarbonImmutable|null $deleted_at deletion requested (grace period)
+ * @property CarbonImmutable|null $anonymised_at
+ */
+class User extends Authenticatable implements FilamentUser, HasAppAuthentication, HasAppAuthenticationRecovery
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, InteractsWithAppAuthentication, InteractsWithAppAuthenticationRecovery, LogsPersonalDataChanges, Notifiable, SoftDeletes;
 
     /**
-     * The attributes that are mass assignable.
+     * Role is deliberately not mass assignable: it changes only through
+     * the admin customer form (logged) or the admin:create command.
      *
      * @var list<string>
      */
@@ -25,37 +51,137 @@ class User extends Authenticatable implements FilamentUser
         'name',
         'email',
         'password',
+        'phone',
+        'marketing_consent',
+        'marketing_consent_at',
     ];
 
     /**
-     * The attributes that should be hidden for serialization.
-     *
      * @var list<string>
      */
     protected $hidden = [
         'password',
         'remember_token',
+        'app_authentication_secret',
+        'app_authentication_recovery_codes',
+    ];
+
+    /** @var array<string, mixed> */
+    protected $attributes = [
+        'role' => 'customer',
+        'session_version' => 0,
+        'marketing_consent' => false,
     ];
 
     /**
-     * Deny by default. Staff/admin roles arrive with the data model and
-     * auth milestones; until then nobody can enter the panel.
+     * Role changes are logged by ChangeUserRole; secrets never.
+     *
+     * @return list<string>
      */
-    public function canAccessPanel(Panel $panel): bool
+    protected function loggedActivityAttributes(): array
     {
-        return false;
+        return ['name', 'email', 'phone', 'marketing_consent'];
     }
 
     /**
-     * Get the attributes that should be cast.
-     *
+     * @return list<string>
+     */
+    protected function redactedActivityAttributes(): array
+    {
+        return ['email', 'phone'];
+    }
+
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return $this->role->canAccessPanel();
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->role === UserRole::Admin;
+    }
+
+    public function isStaff(): bool
+    {
+        return $this->role === UserRole::Staff;
+    }
+
+    /** Staff or admin. */
+    public function isTeamMember(): bool
+    {
+        return $this->role->canAccessPanel();
+    }
+
+    /** Name for greetings and lists; customers may not have given one yet. */
+    public function displayName(): string
+    {
+        return $this->name !== null && $this->name !== '' ? $this->name : $this->email;
+    }
+
+    public function isAnonymised(): bool
+    {
+        return $this->anonymised_at !== null;
+    }
+
+    /** When a soft-deleted account stops being restorable by its owner. */
+    public function deletionGraceEndsAt(int $graceDays): ?CarbonImmutable
+    {
+        return $this->deleted_at?->addDays($graceDays);
+    }
+
+    public function withinDeletionGracePeriod(int $graceDays): bool
+    {
+        $endsAt = $this->deletionGraceEndsAt($graceDays);
+
+        return $endsAt !== null && $endsAt->isFuture();
+    }
+
+    /**
+     * @return HasMany<Rider, $this>
+     */
+    public function riders(): HasMany
+    {
+        return $this->hasMany(Rider::class);
+    }
+
+    /**
+     * @return HasMany<Order, $this>
+     */
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class);
+    }
+
+    /**
+     * @return HasMany<Booking, $this>
+     */
+    public function bookings(): HasMany
+    {
+        return $this->hasMany(Booking::class);
+    }
+
+    /**
+     * @return HasMany<CreditPack, $this>
+     */
+    public function creditPacks(): HasMany
+    {
+        return $this->hasMany(CreditPack::class);
+    }
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
+            'role' => UserRole::class,
+            'email_verified_at' => 'immutable_datetime',
+            'marketing_consent' => 'boolean',
+            'marketing_consent_at' => 'immutable_datetime',
             'password' => 'hashed',
+            'session_version' => 'integer',
+            'deleted_at' => 'immutable_datetime',
+            'anonymised_at' => 'immutable_datetime',
         ];
     }
 }

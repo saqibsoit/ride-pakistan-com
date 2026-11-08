@@ -1,12 +1,15 @@
 {{--
     Base layout for public pages.
 
-    <x-layouts.app title="Prices" description="..." overlay-header>
-        <x-slot:head> canonical, Open Graph, JSON-LD </x-slot:head>
-        ...
-    </x-layouts.app>
+    Pages pass SEO data built by App\Support\Seo\Seo (title, description,
+    canonical, robots, Open Graph, Twitter, JSON-LD):
+    <x-layouts.app :seo="$seo" overlay-header> ... </x-layouts.app>
+
+    Without :seo (styleguide, simple pages) title/description/robots props
+    are run through the same builder.
 --}}
 @props([
+    'seo' => null,
     'title' => null,
     'description' => null,
     'overlayHeader' => false,
@@ -14,8 +17,11 @@
 ])
 
 @php
-    $pageTitle = $title ? $title.' | Ride Pakistan' : (string) config('site.default_title');
-    $pageDescription = $description ?? (string) config('site.default_description');
+    $seo ??= app(\App\Support\Seo\Seo::class)->make(
+        title: $title,
+        description: $description,
+        indexable: $robots === null || ! str_contains($robots, 'noindex'),
+    );
 @endphp
 
 <!DOCTYPE html>
@@ -23,15 +29,10 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <title>{{ $pageTitle }}</title>
-    <meta name="description" content="{{ $pageDescription }}">
-    @if ($robots)
-        <meta name="robots" content="{{ $robots }}">
-    @endif
+    <x-seo.head :seo="$seo" />
     <meta name="theme-color" content="{{ config('site.theme_color') }}">
 
     <link rel="preload" href="{{ Vite::asset('resources/fonts/big-shoulders-display.woff2') }}" as="font" type="font/woff2" crossorigin>
-
     <link rel="icon" href="{{ asset('favicon.ico') }}" sizes="48x48">
     <link rel="icon" href="{{ asset('favicon-32.png') }}" type="image/png" sizes="32x32">
     <link rel="apple-touch-icon" href="{{ asset('apple-touch-icon.png') }}">

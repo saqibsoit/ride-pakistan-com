@@ -44,7 +44,7 @@
         lede="Weekend horsemanship and trail riding in Islamabad. Two hours with a horse, from first hello to your first ride, with trainer Omar Saleem."
     >
         <x-button href="#prices">See sessions and prices</x-button>
-        <x-button :href="config('site.instagram_dm_url')" variant="ghost" external>Message us on Instagram</x-button>
+        <x-button :href="app(\App\Support\Settings::class)->string(\App\Enums\SettingKey::InstagramDmUrl)" variant="ghost" external>Message us on Instagram</x-button>
     </x-hero>
 
     <x-fact-strip label="Session facts">

@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Http\Middleware\AddRobotsHeader;
+use App\Http\Middleware\EnsureSessionIsCurrent;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -13,7 +15,13 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        $middleware->web(append: [
+            AddRobotsHeader::class,
+            EnsureSessionIsCurrent::class,
+        ]);
+
+        $middleware->redirectGuestsTo(fn (): string => route('login'));
+        $middleware->redirectUsersTo(fn (): string => route('account.dashboard'));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

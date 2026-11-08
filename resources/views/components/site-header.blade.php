@@ -7,13 +7,13 @@
 
 @php
     $links = [
-        ['label' => 'Experiences', 'url' => url('/experiences'), 'match' => 'experiences*'],
-        ['label' => 'Schedule', 'url' => url('/schedule'), 'match' => 'schedule*'],
-        ['label' => 'Prices', 'url' => url('/prices'), 'match' => 'prices*'],
-        ['label' => 'Your trainer', 'url' => url('/trainer/omar-saleem'), 'match' => 'trainer*'],
-        ['label' => 'FAQ', 'url' => url('/faq'), 'match' => 'faq*'],
+        ['label' => 'Experiences', 'url' => route('experiences'), 'match' => 'experiences*|sessions*'],
+        ['label' => 'Schedule', 'url' => route('schedule'), 'match' => 'schedule*'],
+        ['label' => 'Prices', 'url' => route('prices'), 'match' => 'prices*'],
+        ['label' => 'Your trainer', 'url' => route('trainer'), 'match' => 'trainer*'],
+        ['label' => 'FAQ', 'url' => route('faq'), 'match' => 'faq*'],
     ];
-    $bookUrl = url('/book');
+    $bookUrl = route('book');
 @endphp
 
 <header
@@ -38,10 +38,16 @@
             @foreach ($links as $link)
                 <a
                     href="{{ $link['url'] }}"
-                    @if (request()->is($link['match'])) aria-current="page" @endif
+                    @if (request()->is(...explode('|', $link['match']))) aria-current="page" @endif
                     class="text-sm text-sand-dim no-underline transition-colors hover:text-sand current:text-sand"
                 >{{ $link['label'] }}</a>
             @endforeach
+            {{-- Same link for everyone, so cached pages stay user-neutral; guests land on /login. --}}
+            <a
+                href="{{ route('account.dashboard') }}"
+                @if (request()->is('account*', 'login*')) aria-current="page" @endif
+                class="text-sm text-sand-dim no-underline transition-colors hover:text-sand current:text-sand"
+            >Account</a>
             <x-button :href="$bookUrl" size="sm">Book a session</x-button>
         </nav>
 
@@ -74,11 +80,16 @@
             @foreach ($links as $link)
                 <a
                     href="{{ $link['url'] }}"
-                    @if (request()->is($link['match'])) aria-current="page" @endif
+                    @if (request()->is(...explode('|', $link['match']))) aria-current="page" @endif
                     class="border-b border-line py-4 font-display text-display-sm font-extrabold no-underline current:underline underline-offset-8"
                 >{{ $link['label'] }}</a>
             @endforeach
-            <a href="{{ config('site.instagram_dm_url') }}" target="_blank" rel="noopener" class="mt-6 text-sand-dim underline underline-offset-4">
+            <a
+                href="{{ route('account.dashboard') }}"
+                @if (request()->is('account*', 'login*')) aria-current="page" @endif
+                class="border-b border-line py-4 font-display text-display-sm font-extrabold no-underline current:underline underline-offset-8"
+            >Account</a>
+            <a href="{{ app(\App\Support\Settings::class)->string(\App\Enums\SettingKey::InstagramDmUrl) }}" target="_blank" rel="noopener" class="mt-6 text-sand-dim underline underline-offset-4">
                 Message us on Instagram<span class="sr-only"> (opens in a new tab)</span>
             </a>
         </nav>

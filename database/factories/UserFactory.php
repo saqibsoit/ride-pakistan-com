@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
+use App\Enums\UserRole;
 use App\Models\User;
+use Filament\Auth\MultiFactor\App\AppAuthentication;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -43,5 +45,41 @@ class UserFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
         ]);
+    }
+
+    public function admin(): static
+    {
+        return $this->afterMaking(fn (User $user) => $user->role = UserRole::Admin);
+    }
+
+    public function staff(): static
+    {
+        return $this->afterMaking(fn (User $user) => $user->role = UserRole::Staff);
+    }
+
+    /** A customer who signs in with codes only and hasn't filled in a name. */
+    public function passwordless(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'name' => null,
+            'password' => null,
+        ]);
+    }
+
+    /** Asked to delete their account this many days ago. */
+    public function deletedDaysAgo(int $days): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'deleted_at' => now()->subDays($days),
+        ]);
+    }
+
+    /** App (TOTP) multi-factor authentication already set up. */
+    public function withMfa(): static
+    {
+        return $this->afterMaking(function (User $user): void {
+            $user->app_authentication_secret = AppAuthentication::make()->generateSecret();
+            $user->app_authentication_recovery_codes = [Hash::make('recovery-code')];
+        });
     }
 }

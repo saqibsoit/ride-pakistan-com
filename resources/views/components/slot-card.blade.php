@@ -5,12 +5,14 @@
                  trainer="Omar Saleem" :seats="3" href="/book?slot=..." />
 
     The whole card is one link (stretched); with 0 seats it is not a link.
+    seats=null (before live availability exists) shows `note` instead.
 --}}
 @props([
     'startsAt',
     'endsAt',
     'product',
-    'seats',
+    'seats' => null,
+    'note' => 'Seats shown when online booking opens',
     'trainer' => null,
     'href' => null,
     'level' => 3,
@@ -21,7 +23,7 @@
     $start = \Illuminate\Support\Carbon::instance($startsAt)->setTimezone($tz);
     $end = \Illuminate\Support\Carbon::instance($endsAt)->setTimezone($tz);
     $time = $start->format('g:i a').' – '.$end->format('g:i a');
-    $bookable = $href && (int) $seats > 0;
+    $bookable = $href && ($seats === null || (int) $seats > 0);
     $tag = 'h'.max(2, min(6, (int) $level));
 @endphp
 
@@ -45,5 +47,9 @@
     @if ($trainer)
         <p class="text-sm text-sand-dim">with {{ $trainer }}</p>
     @endif
-    <x-seats-left :seats="$seats" />
+    @if ($seats === null)
+        <p class="text-sm text-sand-dim">{{ $note }}</p>
+    @else
+        <x-seats-left :seats="$seats" />
+    @endif
 </article>

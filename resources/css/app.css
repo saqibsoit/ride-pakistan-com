@@ -110,6 +110,30 @@
         );
     }
 
+    /* Photo band with text over the top of the image (homepage "north"
+       section). Below md the photo stacks under the text instead. */
+    .top-scrim > picture img {
+        height: 56vh;
+    }
+
+    @media (width >= 48rem) {
+        .top-scrim > picture img {
+            height: 100%;
+        }
+
+        .top-scrim::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(
+                to bottom,
+                color-mix(in srgb, var(--color-earth) 92%, transparent) 0%,
+                color-mix(in srgb, var(--color-earth) 55%, transparent) 38%,
+                transparent 62%
+            );
+        }
+    }
+
     .site-header {
         padding-top: env(safe-area-inset-top, 0px);
     }
@@ -240,6 +264,85 @@
             color-mix(in srgb, var(--color-saddle) 22%, transparent),
             transparent
         );
+    }
+
+    /* Long-form text from the CMS (Markdown): guides, legal, trainer. */
+    .prose-content {
+        max-width: var(--container-prose);
+    }
+
+    .prose-content > * + * {
+        margin-top: 1.25em;
+    }
+
+    .prose-content h2 {
+        font-size: var(--text-display-md);
+        line-height: var(--text-display-md--line-height);
+    }
+
+    .prose-content h3 {
+        font-size: var(--text-display-xs);
+        line-height: var(--text-display-xs--line-height);
+        margin-top: 2em;
+    }
+
+    .prose-content > * + h2 {
+        margin-top: 2em;
+    }
+
+    .prose-content ul,
+    .prose-content ol {
+        padding-left: 1.25em;
+    }
+
+    .prose-content ul {
+        list-style: disc;
+    }
+
+    .prose-content ol {
+        list-style: decimal;
+    }
+
+    .prose-content li + li {
+        margin-top: 0.5em;
+    }
+
+    .prose-content li::marker {
+        color: var(--color-saddle);
+    }
+
+    .prose-content a {
+        text-decoration: underline;
+        text-underline-offset: 4px;
+    }
+
+    .prose-content strong {
+        font-weight: 600;
+    }
+
+    /* Plain bullet list for kit lists, inclusions, rules. */
+    .tick-list {
+        list-style: none;
+    }
+
+    .tick-list > li {
+        position: relative;
+        padding: 0.875rem 0 0.875rem 1.75rem;
+        border-top: 1px solid var(--color-line);
+    }
+
+    .tick-list > li:last-child {
+        border-bottom: 1px solid var(--color-line);
+    }
+
+    .tick-list > li::before {
+        content: '';
+        position: absolute;
+        left: 0.25rem;
+        top: 1.45rem;
+        width: 0.5rem;
+        height: 0.5rem;
+        background-color: var(--color-saddle);
     }
 
     /* Reserve room under the page when the mobile booking bar is shown. */

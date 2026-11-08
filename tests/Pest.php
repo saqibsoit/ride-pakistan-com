@@ -45,3 +45,49 @@ function putTestImage(string $disk, string $path, int $width, int $height, strin
 
     return $path;
 }
+
+/**
+ * Decode the page's JSON-LD @graph (one script per page).
+ *
+ * @return list<array<string, mixed>>
+ */
+function jsonLdGraph(string $html): array
+{
+    preg_match_all('#<script type="application/ld\+json">(.*?)</script>#s', $html, $matches);
+
+    expect($matches[1])->toHaveCount(1);
+
+    /** @var array{'@context': string, '@graph': list<array<string, mixed>>} $data */
+    $data = json_decode($matches[1][0], true, flags: JSON_THROW_ON_ERROR);
+
+    expect($data['@context'])->toBe('https://schema.org');
+
+    return $data['@graph'];
+}
+
+/**
+ * Every @type used anywhere in a JSON-LD structure.
+ *
+ * @param  array<mixed>  $node
+ * @return list<string>
+ */
+function jsonLdTypes(array $node): array
+{
+    $types = [];
+
+    array_walk_recursive($node, function (mixed $value, string|int $key) use (&$types): void {
+        if ($key === '@type' && is_string($value)) {
+            $types[] = $value;
+        }
+    });
+
+    return array_values(array_unique($types));
+}
+
+/** The content of <meta name="..."> or <meta property="...">. */
+function metaContent(string $html, string $name): ?string
+{
+    $pattern = '#<meta (?:name|property)="'.preg_quote($name, '#').'" content="([^"]*)">#';
+
+    return preg_match($pattern, $html, $m) === 1 ? html_entity_decode($m[1]) : null;
+}

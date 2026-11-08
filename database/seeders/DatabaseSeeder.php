@@ -4,24 +4,41 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
+use App\Actions\Slots\GenerateSlots;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Spatie\ResponseCache\Facades\ResponseCache;
 
 class DatabaseSeeder extends Seeder
 {
     use WithoutModelEvents;
 
     /**
-     * Seed the application's database.
+     * Content seeders are idempotent (keyed by slug), so they are safe to run
+     * again; they never overwrite content edited in the admin.
      */
     public function run(): void
     {
-        // User::factory(10)->create();
-
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        $this->call([
+            ProductSeeder::class,
+            ScheduleRuleSeeder::class,
+            PageSeeder::class,
+            FaqSeeder::class,
+            PostSeeder::class,
         ]);
+
+        // Model events are off while seeding, so the rule observer did not run.
+        app(GenerateSlots::class)->handle();
+
+        if (app()->environment('local')) {
+            User::query()->firstOrCreate(
+                ['email' => 'test@example.com'],
+                ['name' => 'Test User', 'password' => 'password'],
+            );
+        }
+
+        // Model events are off while seeding, so refresh caches once here.
+        ResponseCache::clear();
     }
 }

@@ -76,6 +76,8 @@
     --spacing-header: 5rem;
     --spacing-section: clamp(5.5rem, 12vw, 10rem);
     --spacing-bottom-bar: 5.5rem;
+    --spacing-photo-band: clamp(20rem, 52vw, 42.5rem);
+    --spacing-north: max(100vh, 40rem);
 
     /* Layout -------------------------------------------------------------- */
     --container-page: 75rem;

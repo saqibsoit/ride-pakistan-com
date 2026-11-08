@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Enums\SettingKey;
+use App\Models\Page;
+use App\Support\Settings;
 use Illuminate\Support\Facades\Storage;
 
 beforeEach(function (): void {
@@ -13,14 +16,15 @@ beforeEach(function (): void {
 it('renders the layout with skip link, landmarks, head slot and font preload', function (): void {
     $this->blade(<<<'BLADE'
         <x-layouts.app title="Prices" description="Prices for riding lessons." robots="noindex">
-            <x-slot:head><link rel="canonical" href="https://ride-pakistan.com/prices"></x-slot:head>
+            <x-slot:head><meta name="test-head" content="from-slot"></x-slot:head>
             <h1>Prices</h1>
         </x-layouts.app>
         BLADE)
         ->assertSee('<title>Prices | Ride Pakistan</title>', false)
         ->assertSee('<meta name="description" content="Prices for riding lessons.">', false)
-        ->assertSee('<meta name="robots" content="noindex">', false)
-        ->assertSee('<link rel="canonical" href="https://ride-pakistan.com/prices">', false)
+        ->assertSee('<meta name="robots" content="noindex, nofollow">', false)
+        ->assertSee('<link rel="canonical"', false)
+        ->assertSee('<meta name="test-head" content="from-slot">', false)
         ->assertSee('rel="preload"', false)
         ->assertSee('as="font" type="font/woff2" crossorigin', false)
         ->assertSee('big-shoulders-display', false)
@@ -29,11 +33,22 @@ it('renders the layout with skip link, landmarks, head slot and font preload', f
         ->assertSeeInOrder(['href="#main"', 'Skip to content', '<header', '<main id="main"', '<footer'], false);
 });
 
-it('uses the default title and description', function (): void {
+it('uses the default title and description from settings', function (): void {
+    $settings = app(Settings::class);
+
     $this->blade('<x-layouts.app><p>Hi</p></x-layouts.app>')
-        ->assertSee('<title>'.e(config('site.default_title')).'</title>', false)
-        ->assertSee(e(config('site.default_description')), false)
-        ->assertDontSee('name="robots"', false);
+        ->assertSee('<title>'.e($settings->string(SettingKey::DefaultTitle)).'</title>', false)
+        ->assertSee(e($settings->string(SettingKey::DefaultDescription)), false);
+});
+
+it('is noindex outside production and indexable in production', function (): void {
+    $this->blade('<x-layouts.app><p>Hi</p></x-layouts.app>')
+        ->assertSee('<meta name="robots" content="noindex, nofollow">', false);
+
+    config(['site.indexable' => true]);
+
+    $this->blade('<x-layouts.app><p>Hi</p></x-layouts.app>')
+        ->assertSee('<meta name="robots" content="index, follow, max-image-preview:large">', false);
 });
 
 it('renders the header with nav, book button and an accessible mobile menu toggle', function (): void {
@@ -55,11 +70,21 @@ it('makes the overlay header fixed and transparent until scrolled', function ():
         ->assertDontSee('sticky', false);
 });
 
-it('renders the footer with contact and legal links', function (): void {
+it('renders the footer with contact links and only published legal pages', function (): void {
+    $settings = app(Settings::class);
+
     $this->blade('<x-site-footer />')
-        ->assertSee(config('site.instagram_url'), false)
+        ->assertSee($settings->string(SettingKey::InstagramUrl), false)
+        ->assertDontSee('aria-label="Legal"', false);
+
+    foreach (['privacy' => 'Privacy policy', 'terms' => 'Terms', 'refund-policy' => 'Refund policy'] as $slug => $title) {
+        Page::factory()->create(['slug' => $slug, 'title' => $title]);
+    }
+
+    $this->blade('<x-site-footer />')
+        ->assertSee($settings->string(SettingKey::InstagramUrl), false)
         ->assertSee('ridepakistan.co')
-        ->assertSee('mailto:'.config('site.email'), false)
+        ->assertSee('mailto:'.$settings->string(SettingKey::Email), false)
         ->assertSee('Privacy')
         ->assertSee('Terms')
         ->assertSee('Refund policy')

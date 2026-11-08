@@ -35,6 +35,7 @@ A fast, secure, bilingual-ready website for Ride Pakistan’s weekend horse ridi
   - Cancellation / reschedule cutoff [48 hours before slot]
   - Refund policy text [TBD with Omar]
   - Minimum rider age [TBD with Omar]
+- Every other business fact the site states but this plan does not confirm (equipment, arrival time, weather, minors, photography, transport, reply times, copy claims) is tracked in `docs/OPEN-QUESTIONS.md` with its placeholder and where it is used. Unconfirmed claims that could be unsafe if wrong are kept off the site until confirmed.
 
 ## 3. Payments
 
@@ -56,13 +57,14 @@ Currency is PKR everywhere. Store money as integers in minor units (paisa) in `a
    - Reject with reason: releases seats, emails customer.
 5. A scheduled job expires unverified holds when the window passes and notifies the customer.
 
-Bank details (settings, not hard-coded): Account name Destination Pakistan; Bank Standard Chartered Bank; IBAN PK91SCBL0000001702859701; SWIFT SCBLPKKX; Country Pakistan; Bank address Main Building, Floor 3, I.I. Chundrigar Road, Karachi 74200.
+Bank details (settings, not hard-coded; defaults come from `BANK_*` in `.env`, never from code): Account name Destination Pakistan; Bank Standard Chartered Bank; IBAN PK91SCBL0000001702859701; SWIFT SCBLPKKX; Country Pakistan; Bank address Main Building, Floor 3, I.I. Chundrigar Road, Karachi 74200.
 
 ### 3.3 Order state machine
 `pending_payment → paid`
 `pending_payment → awaiting_transfer → awaiting_verification → paid | rejected`
 `any unpaid → expired | cancelled`
-`paid → refunded (partial | full)`
+`paid → refunded (partial | full)` (statuses `partially_refunded` and `refunded`; a partially refunded order can be refunded again)
+"Any unpaid" means `pending_payment`, `awaiting_transfer` and `awaiting_verification`. `rejected`, `expired`, `cancelled` and `refunded` are final.
 Every transition is written to an audit log with actor, timestamp and reason.
 
 ## 4. Tech stack
@@ -82,23 +84,29 @@ Every transition is written to an audit log with actor, timestamp and reason.
 
 ## 5. Data model (initial)
 
-- `users` (customers and staff; `role` enum: customer, staff, admin; phone E.164; marketing consent flag + timestamp)
-- `riders` (belongs to user; name, age bracket, experience level, notes, emergency contact)
+Built in milestone 2 (ahead of milestone 3, because public pages need them): `settings`, `products`, `schedule_rules`, `leads`, `pages`, `faqs`, `posts`. Milestone 3 built the rest below. Statuses are PHP backed enums in `app/Enums`; money columns are `*_minor` integers; datetimes are UTC `dateTime` columns.
+
+Roles (milestone 3): `customer` (site and own account only), `staff` (admin panel: read-only slots and bookings; check-in from milestone 8), `admin` (everything). Staff and admins must use app-based (TOTP) MFA with recovery codes; passwords are at least 12 characters with mixed case, numbers and symbols (plus a breached-password check in production). Team accounts are created with `php artisan admin:create`. Role changes go through `ChangeUserRole` (an admin cannot change their own role) and are logged.
+
+
+- `users` (customers and staff; `role` enum: customer, staff, admin; phone E.164; marketing consent flag + timestamp of the last change; encrypted TOTP secret and recovery codes; `name` and `password` nullable for code-only customers; `session_version` for sign-out everywhere; soft deletes (`deleted_at` = deletion requested) and `anonymised_at`)
+- `login_codes` (milestone 4: channel, destination, HMAC-SHA256 `code_hash`, attempts, expires_at, consumed_at, ip_address; pruned daily a day after expiry)
+- `riders` (belongs to user; name, age bracket, experience level, notes, emergency contact; notes and emergency contact encrypted and redacted in the audit log)
 - `products` (type: single, private, package; name; price_minor; sessions_count; validity_days; is_active; sort)
 - `schedule_rules` (day_of_week, start_time, end_time, capacity, valid_from, valid_to, is_active)
-- `slots` (starts_at, ends_at, capacity, status: open, closed, cancelled; generated from rules; unique on starts_at)
-- `orders` (reference unique, user_id, product_id, status, payment_method, amount_minor, currency, stripe_checkout_session_id, stripe_payment_intent_id, expires_at, paid_at, meta json)
+- `slots` (schedule_rule_id nullable, source: rule, manual; starts_at, ends_at, capacity, status: open, closed, cancelled; cancel_reason, cancelled_at, cancelled_by; unique on starts_at). Rule slots are generated from schedule rules. Admins add manual slots from the Slots screen through `CreateManualSlot`: any future date and time, own capacity (1 to 50, default `booking.riders_per_slot`), never at a start time another slot already has; each one is logged. `GenerateSlots` (daily `slots:generate`, after every rule change, and on seed) fills the horizon set by `booking.slot_horizon_weeks` [8]. Only future open slots with no booking, hold or order line follow rule changes or are removed; slots in use, closed or cancelled slots, past slots and manual slots are never touched. If a rule produces a start time a manual slot already holds, the manual slot stays and no rule slot is created. Status changes go through `ChangeSlotStatus` (open ⇄ closed, open/closed → cancelled; cancelling needs a reason, is final and fires `SlotCancelled`).
+- `orders` (reference unique, user_id, product_id, status, payment_method, amount_minor, amount_refunded_minor, currency, stripe_checkout_session_id, stripe_payment_intent_id, expires_at, paid_at, meta json). Status changes only through `OrderStateMachine` (§3.3; reasons required for rejected, cancelled, partially_refunded and refunded).
 - `order_items` (order_id, slot_id nullable, rider_id, unit_price_minor)
 - `booking_holds` (slot_id, order_id, seats, expires_at)
 - `bookings` (slot_id, order_id, rider_id, user_id, status: confirmed, cancelled, attended, no_show, source credit_id nullable, ticket_code unique)
 - `credit_packs` (user_id, order_id, credits_total, credits_used, valid_from, expires_at, status)
-- `credit_ledger` (credit_pack_id, booking_id nullable, delta, reason, actor_id)
+- `credit_ledger` (credit_pack_id, booking_id nullable, delta, reason: granted, used, returned, adjusted, expired; note, actor_id)
 - `bank_transfers` (order_id, screenshot_path private, transaction_ref, submitted_at, verified_by, verified_at, status, rejection_reason)
 - `payments` (order_id, provider, provider_id, amount_minor, status, raw json)
 - `stripe_events` (event_id unique, type, processed_at) for idempotency
 - `leads` (name, phone, email, interest, preferred_date, message, status: new, contacted, qualified, booked, lost; source, utm_* fields, fbclid, landing_url, referrer, assigned_to, user_id nullable)
 - `lead_notes` (lead_id, author_id, body)
-- `settings` (key/value, typed, cached)
+- `settings` (key/value, typed, cached; keys and types in `App\Enums\SettingKey`, defaults in `config/settings.php`)
 - `pages` / `faqs` / `posts` (CMS content for SEO pages, guides and FAQ)
 - `activity_log` (audit trail for all admin actions and order transitions)
 
@@ -123,9 +131,9 @@ Public (server-rendered, cached):
 - `/privacy`, `/terms`, `/refund-policy` (required by Stripe)
 - `/sitemap.xml`, `/robots.txt`, `/llms.txt`
 
-Customer (auth, not cached):
-- `/login` (email one-time code; phone/WhatsApp OTP later)
-- `/account` dashboard, `/account/bookings`, `/account/tickets/{code}`, `/account/credits`, `/account/orders/{reference}`
+Customer (auth, not cached, `Cache-Control: no-store, private`, noindex):
+- `/login` (email → 6-digit one-time code at `/login/code`; phone/WhatsApp later behind the same `LoginCodeChannel` contract), `/login/restore` (keep an account scheduled for deletion), `POST /logout`
+- `/account` dashboard (next session, credits left with expiry), `/account/bookings`, `/account/tickets` and `/account/tickets/{code}`, `/account/credits`, `/account/orders` and `/account/orders/{reference}` (printable receipt), `/account/riders` (Livewire), `/account/profile`, `/account/privacy` (download my data, sign out everywhere, delete my account)
 
 Payment:
 - `/checkout/{reference}` choose method, `/checkout/{reference}/transfer` bank details + upload, `/checkout/{reference}/status`
@@ -148,6 +156,8 @@ Target OWASP ASVS Level 2 and OWASP Top 10 coverage.
 - Stripe webhook signature verification, idempotency on event id, amount and currency re-checked against the order before fulfilment.
 - Secrets only in `.env` outside the web root; `APP_DEBUG=false` in production; no stack traces to users.
 - PII minimisation; encrypted casts for sensitive fields (emergency contact, notes); data export and deletion on request.
+- Customer sign-in (milestone 4): one-time email codes, 6 digits, 10-minute expiry, single use, stored as an HMAC keyed with the app key, dead after 5 wrong guesses; a new code replaces earlier ones. Requests limited to 3 per 10 minutes and 10 a day per email and 10 an hour per IP; submissions to 10 a minute per IP (`config/login.php`). Turnstile on the request form (fails closed in production without keys). Responses never reveal whether an account exists. The account is created on the first verified code. **Staff and admins never get a code** (it would skip the admin panel's MFA); they sign in at the admin path. Sessions are regenerated on sign-in; "sign out everywhere" bumps `users.session_version`, which ends every session (customer and admin panel) carrying the old one.
+- Account deletion (milestone 4): blocked while the customer has upcoming confirmed bookings or unpaid open orders; unused credits are forfeited only with explicit consent; team accounts are removed by an admin. The account is soft-deleted and signed out. Inside the grace period (`privacy.deletion_grace_days` [30]) signing in again offers "Keep my account". After it, `accounts:anonymise` (daily) anonymises the account once its newest paid order (`paid_at`, refunded orders included) is older than the retention period (`privacy.order_retention_years` [6]); until then it stays locked. Anonymising clears the name, phone, consent and email (replaced by `deleted-{id}@anonymised.invalid`), deletes unused riders, strips booked riders to "Former rider", clears linked leads and login codes, and redacts audit-log values for the account and its riders. Orders, bookings and payments are kept.
 - Full audit log for admin actions and all order/payment state changes.
 - Dependencies: `composer audit` and `npm audit` in CI; Dependabot.
 - Daily encrypted off-site backups (database + private files), 30-day retention, restore tested before launch.
@@ -163,7 +173,9 @@ Target OWASP ASVS Level 2 and OWASP Top 10 coverage.
 - Guides that answer real questions people ask (beginner lessons in Islamabad, what to wear, is horse riding safe for beginners, private vs group lessons).
 - Internal linking between guides, prices and booking.
 - Hreflang-ready i18n structure (English first, Urdu later).
-- Allow reputable search and AI crawlers in `robots.txt` (decision recorded in settings).
+- Allow reputable search and AI crawlers in `robots.txt` (decision recorded in settings: `seo.ai_crawlers`).
+- Entity facts (schedule, prices, validity, location, trainer) are generated from data by `App\Support\BusinessFacts`, never typed into copy. FAQ answers use tokens (`{schedule}`, `{price:slug}`, `{per_session:slug}`, `{validity:slug}`, `{cutoff}`, `{location}`, `{trainer}`) so a price or time change updates every page, the JSON-LD and `llms.txt` at once.
+- Indexing is controlled by `SITE_INDEXABLE` (defaults to true only when `APP_ENV=production`): otherwise every response carries `X-Robots-Tag: noindex, nofollow` and robots.txt disallows all.
 
 ## 9. Performance and accessibility targets
 
@@ -180,6 +192,7 @@ Target OWASP ASVS Level 2 and OWASP Top 10 coverage.
   - Status tokens: `error` #E8917A, `success` #A8C49A, `warning` #E2B75E, each ≥ 4.5:1 on earth and earth-2. Status is never shown by colour alone (icon + text).
   - `line-strong` (sand at 45%, 3.9:1) for borders that must meet 3:1 (form fields, chips). `line` is for decorative dividers only.
   - `saddle` is 3.1:1 on earth: only for large display numerals and decoration, never body text. Sand text on a saddle background (4.8:1) is fine ("Selling fast").
+- Lighthouse is measured against built assets (`npm run build`, no Vite dev server, Herd scripts blocked). Milestone 2 baseline (mobile, local Herd over HTTPS via `herd secure`, median of 3): Performance `/` 95, `/prices` 100, `/faq` 100; Accessibility, Best Practices and SEO 100 on all three.
 - Image variants: `php artisan images:responsive` generates AVIF (where GD supports it) and WebP at 480/768/1200/1800 into `_variants/` next to each source; uploads dispatch `ImageUploaded`. Variants are build output (gitignored) and must be generated on deploy.
 
 ## 10. Database decision: MySQL
@@ -206,7 +219,7 @@ Rules: InnoDB, utf8mb4_unicode_ci, strict SQL mode, foreign keys everywhere, ind
 | 0 | Project bootstrap, tooling, CI, agent rules | `prompts/00-bootstrap.md` |
 | 1 | Design system and layout | `prompts/01-design-system.md` |
 | 2 | Public pages, CMS content, SEO/AEO/GEO foundation | `prompts/02-public-pages-seo.md` |
-| 3 | Data model, schedule rules, slots, admin panel base | `prompts/03-data-model-admin.md` |
+| 3 | Data model, schedule rules, slots, admin panel base (products, settings, schedule_rules and leads already exist from milestone 2) | `prompts/03-data-model-admin.md` |
 | 4 | Customer auth and accounts | `prompts/04-auth-accounts.md` |
 | 5 | Booking engine, holds, packages and credits | `prompts/05-booking-engine.md` |
 | 6 | Stripe Checkout and webhooks | `prompts/06-stripe.md` |

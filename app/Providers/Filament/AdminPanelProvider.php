@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Providers\Filament;
 
+use App\Filament\Auth\Login;
+use App\Http\Middleware\EnsureSessionIsCurrent;
+use Filament\Auth\MultiFactor\App\AppAuthentication;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -29,7 +32,19 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path($this->adminPath())
-            ->login()
+            ->login(Login::class)
+            ->profile(isSimple: false)
+            // Every panel user is staff or admin, so MFA is always required.
+            ->multiFactorAuthentication([
+                AppAuthentication::make()->recoverable(),
+            ], isRequired: true)
+            ->navigationGroups([
+                'Bookings',
+                'Schedule',
+                'Customers',
+                'Content',
+                'System',
+            ])
             ->colors([
                 'primary' => Color::Amber,
             ])
@@ -55,6 +70,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
+                EnsureSessionIsCurrent::class,
             ]);
     }
 

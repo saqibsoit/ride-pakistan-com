@@ -75,6 +75,16 @@
         <p>The templates are neutral on purpose until the bad-weather policy is decided. Edit them under Settings → Weather alerts.</p>
     </x-filament::section>
 
+    <x-filament::section heading="Gift vouchers, promo codes and referrals" :collapsible="true">
+        <p>Everything here is under <strong>Sales &amp; promotions</strong> and is for admins only. Customers can't use promo codes, vouchers or credit at checkout yet: that arrives with the next release. Until then you can set everything up.</p>
+        <ol>
+            <li><strong>Gift vouchers</strong>: customers buy them on /gift-vouchers for a session or an amount, by card or bank transfer. A voucher exists only once the payment is confirmed, and the recipient gets an email with the code and a printable voucher (straight away or at 9 am on the chosen day). Bank transfers for vouchers are checked under <strong>Verify voucher transfers</strong>, like order transfers.</li>
+            <li><strong>Issue voucher</strong> (Gift vouchers list) gives one without a purchase, for example after a rain cancellation. Give the reason; it's kept in the history. <strong>Void</strong> cancels what's left (it doesn't refund anyone), <strong>Extend expiry</strong> moves the date (an expired voucher gets its balance back), and you can change the recipient until the email has gone.</li>
+            <li><strong>Promo codes</strong>: percentage or a fixed amount, optional products (none means all), start and end, total and per-customer limits, a minimum order and "first paid booking only". One code per order; it never combines with another code, only with a gift voucher. Once a code has been used its code, discount and products are fixed; archive it and make a new one instead.</li>
+            <li><strong>Referrals</strong>: every customer has a personal link under Account → Refer a friend. When a new customer who signed up with it has paid for and attended a session, the referrer gets account credit (amount in Settings → Referrals). Same email, same phone or a self-referral is rejected automatically with the reason; you can reject or reinstate a referral by hand. Change a customer's credit on their page under <strong>Account credit</strong>.</li>
+        </ol>
+    </x-filament::section>
+
     <x-filament::section heading="Waitlists, rider progress and reviews" :collapsible="true">
         <ol>
             <li><strong>Waitlist</strong>: when a group session is full, customers can join its waitlist from the schedule. When seats free up, the first person in line whose group fits gets an email and the seats are held for them for the time set under Settings → Booking rules (“Waitlist offer”). If they don’t book in time, the offer moves to the next person. See and manage it on the slot page, tab <strong>Waitlist</strong>: “Offer free seats now” runs the same check straight away (it also runs every minute); “Remove” takes someone off with a reason.</li>

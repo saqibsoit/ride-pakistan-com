@@ -109,6 +109,11 @@ final class ChooseBankTransfer
         if ($order->status !== OrderStatus::PendingPayment || $order->expires_at === null || ! $order->expires_at->isAfter($now)) {
             throw CheckoutUnavailable::notPayable();
         }
+
+        // Discounts cover everything: confirm it instead (milestone 10e Part B).
+        if ($order->amount_minor === 0) {
+            throw CheckoutUnavailable::nothingToPay();
+        }
     }
 
     /**

@@ -210,6 +210,7 @@
                             @if ($isPackage && ! $later)
                                 <span class="block text-sm font-normal text-sand-dim">Your first session uses {{ count($riderIds) ?: count($guestRiders) }} of the package’s {{ $product->sessions_count }} credits.</span>
                             @endif
+                            <span class="block text-sm font-normal text-sand-dim">Gift vouchers, promo codes and account credit are applied at checkout.</span>
                         @endif
                     </dd>
                 </div>

@@ -37,6 +37,17 @@ final class CheckoutUnavailable extends RuntimeException
         return new self('This order is not waiting for a bank transfer.');
     }
 
+    /** Discounts left nothing, or too little for a card charge (milestone 10e Part B). */
+    public static function belowCardMinimum(): self
+    {
+        return new self('The amount left to pay is too small for a card payment. Please pay it by bank transfer.');
+    }
+
+    public static function nothingToPay(): self
+    {
+        return new self('Your discounts cover this order: please confirm it on the checkout page.');
+    }
+
     public static function stripeError(): self
     {
         return new self('Card payment is not available right now. Please try again in a minute, or pay by bank transfer.');

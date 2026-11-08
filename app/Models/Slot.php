@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 
 /**
@@ -40,12 +41,16 @@ use Illuminate\Database\Query\Builder as QueryBuilder;
  * @property int|null $trainer_id who runs the session (milestone 10b); trainers see only their own
  * @property-read ScheduleRule|null $scheduleRule
  * @property-read User|null $trainer
+ * @property-read SlotWeather|null $weather
  */
 #[ObservedBy(SeatAvailabilityObserver::class)]
 class Slot extends Model
 {
     /** @use HasFactory<SlotFactory> */
     use HasFactory;
+
+    /** Weather alerts and badges cover sessions starting this many hours ahead (milestone 10f). */
+    public const WEATHER_WINDOW_HOURS = 48;
 
     /**
      * Status and cancellation fields are not fillable: they change only
@@ -97,6 +102,31 @@ class Slot extends Model
     public function cancelledBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'cancelled_by');
+    }
+
+    /**
+     * Latest forecast assessment (milestone 10f), for the next 48 hours.
+     *
+     * @return HasOne<SlotWeather, $this>
+     */
+    public function weather(): HasOne
+    {
+        return $this->hasOne(SlotWeather::class);
+    }
+
+    /**
+     * The forecast badge, if the slot is within the alert window (starts in
+     * the next 48 hours, not yet ended, not cancelled) and has been assessed.
+     */
+    public function currentWeather(): ?SlotWeather
+    {
+        if ($this->status === SlotStatus::Cancelled
+            || $this->ends_at->lessThanOrEqualTo(now())
+            || $this->starts_at->greaterThan(now()->addHours(self::WEATHER_WINDOW_HOURS))) {
+            return null;
+        }
+
+        return $this->weather;
     }
 
     /**

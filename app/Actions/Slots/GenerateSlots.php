@@ -42,7 +42,7 @@ final class GenerateSlots
         $today = $now->setTimezone(Slot::displayTimezone())->startOfDay();
         $until = $today->addWeeks($weeks);
 
-        $desired = $this->desiredSlots($today, $until, $now);
+        $desired = self::desiredSlots(ScheduleRule::query()->active()->orderBy('id')->get(), $today, $until, $now);
 
         return DB::transaction(function () use ($desired, $now, $until): SlotGenerationResult {
             /** @var array<string, Slot> $existing */
@@ -108,11 +108,16 @@ final class GenerateSlots
     }
 
     /**
-     * @return array<string, array{schedule_rule_id: int, starts_at: CarbonImmutable, ends_at: CarbonImmutable, capacity: int}>
+     * The slots a set of rules produces between two local dates (also used
+     * by PreviewScheduleRule, which passes an unsaved rule). Rules are in
+     * id order: with two rules at one start time the older one wins; an
+     * unsaved rule (no id) comes last.
+     *
+     * @param  iterable<ScheduleRule>  $rules
+     * @return array<string, array{schedule_rule_id: int|null, starts_at: CarbonImmutable, ends_at: CarbonImmutable, capacity: int}>
      */
-    private function desiredSlots(CarbonImmutable $from, CarbonImmutable $until, CarbonImmutable $now): array
+    public static function desiredSlots(iterable $rules, CarbonImmutable $from, CarbonImmutable $until, CarbonImmutable $now): array
     {
-        $rules = ScheduleRule::query()->active()->orderBy('id')->get();
         $desired = [];
 
         for ($date = $from; $date->lessThan($until); $date = $date->addDay()) {
@@ -140,7 +145,7 @@ final class GenerateSlots
         return $desired;
     }
 
-    private static function key(CarbonImmutable $startsAt): string
+    public static function key(CarbonImmutable $startsAt): string
     {
         return $startsAt->utc()->format('Y-m-d H:i:s');
     }

@@ -77,7 +77,7 @@ jobs:
           php artisan key:generate --no-interaction || sed -i "s|^APP_KEY=.*|APP_KEY=base64:$(openssl rand -base64 32)|" .env
 
       - name: Install PHP dependencies (production)
-        run: composer install --no-dev --optimize-autoloader --classmap-authoritative --no-interaction --prefer-dist --no-progress
+        run: composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist --no-progress
 
       # filament:upgrade runs in composer's post-autoload-dump; make sure the
       # panel's CSS, JS and fonts are in the release.

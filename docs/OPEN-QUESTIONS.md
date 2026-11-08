@@ -117,6 +117,9 @@ Defaults chosen while building sign-in and the account area. Settings can be cha
 | 10.1 | What should card statements show? | Account descriptor (set in the Stripe dashboard under Settings → Public details) + suffix **`RIDE PAKISTAN`** (`STRIPE_STATEMENT_DESCRIPTOR_SUFFIX`). Stripe allows 22 characters in total, so "Ride Pakistan by Destination Pakistan" can't fit; it appears on the Stripe checkout page, the checkout page and the receipt instead. Please check the dashboard prefix (e.g. `DESTPAK`). | Every card charge. | Confirm |
 | 10.2 | Should Stripe also send its own receipt email? | **Our "Payment received" email only.** Stripe's receipts are an account setting (Settings → Customer emails). | Customer inbox. | Confirm |
 | 10.3 | Refund policy text (1.4) is still empty. Stripe expects a published refund policy before live card payments. | **Empty** | `/refund-policy` (unpublished). Blocks going live with card payments. | Open decision |
+| 10.5 | How long before a session can someone still choose bank transfer? | **2 hours** (setting `booking.transfer_min_notice_hours`); the deadline is never later than the session start. | `/checkout/{reference}`. | Confirm |
+| 10.6 | How long should transfer screenshots be kept? They show the customer's bank details. | **Kept with the order** (no automatic deletion yet). Admin-only, never public. | `storage/app/transfers`. Proposal: delete 90 days after approval or rejection (milestone 10). | Open decision |
+| 10.7 | Should staff (not only admins) see and approve transfers? | **No, admins only.** | Admin → Verify transfers. | Confirm |
 | 10.4 | When a refund is made, what happens to bookings and credits? | **Full refund:** upcoming bookings cancelled, unused credits voided. **Partial:** the admin chooses. Refunds made in the Stripe dashboard change the money only and flag the order for review. | Admin → Orders → Refund. | Decided (milestone 6) |
 
 ## Confirmed in PLAN (no action needed)

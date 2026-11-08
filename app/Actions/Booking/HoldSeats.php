@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Booking;
 
+use App\Actions\Waitlist\ClaimWaitlistPlace;
 use App\Enums\SettingKey;
 use App\Exceptions\BookingRejected;
 use App\Models\BookingHold;
@@ -22,6 +23,7 @@ final class HoldSeats
     public function __construct(
         private readonly SlotLock $lock,
         private readonly Settings $settings,
+        private readonly ClaimWaitlistPlace $waitlist,
     ) {}
 
     /**
@@ -36,18 +38,23 @@ final class HoldSeats
         }
 
         return DB::transaction(function () use ($order, $slotId, $riderIds, $private, $expiresAt): BookingHold {
-            $slot = $this->lock->acquire($slotId);
+            // The customer's own waitlist offer counts as free seats for them (milestone 10d).
+            $slot = $this->lock->acquire($slotId, claimFor: $order->user_id);
 
             $slot->assertBookable($this->settings->int(SettingKey::MinNoticeHours) ?? 0);
             $slot->assertRoomFor($riderIds, $private);
 
-            return BookingHold::query()->create([
+            $hold = BookingHold::query()->create([
                 'slot_id' => $slotId,
                 'order_id' => $order->id,
                 'seats' => $private ? $slot->slot->capacity : count($riderIds),
                 'is_private' => $private,
                 'expires_at' => $expiresAt,
             ]);
+
+            $this->waitlist->handle($slot, $order->user);
+
+            return $hold;
         });
     }
 }

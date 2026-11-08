@@ -34,6 +34,7 @@ enum SettingKey: string
     case CardHoldMinutes = 'booking.card_hold_minutes';
     case MinNoticeHours = 'booking.min_notice_hours';
     case MapPinUrl = 'booking.map_pin_url';
+    case WaitlistOfferHours = 'booking.waitlist_offer_hours';
 
     case RidingRules = 'policies.riding_rules';
     case BookingPolicies = 'policies.booking';
@@ -77,7 +78,7 @@ enum SettingKey: string
             self::InstagramUrl, self::InstagramDmUrl, self::GoogleReviewUrl, self::ExpeditionsUrl, self::MapPinUrl => SettingType::Url,
             self::RidersPerSlot, self::TransferHoldHours, self::TransferMinNoticeHours, self::CancellationCutoffHours,
             self::SellingFastThreshold, self::MinRiderAge, self::CheckinOpensMinutes, self::ArrivalMinutes, self::SlotHorizonWeeks,
-            self::CardHoldMinutes, self::MinNoticeHours,
+            self::CardHoldMinutes, self::MinNoticeHours, self::WaitlistOfferHours,
             self::DeletionGraceDays, self::OrderRetentionYears, self::TransferProofRetentionDays, self::LeadFollowUpDays,
             self::WeatherRainProbability, self::WeatherWindKmh, self::WeatherHeatC, self::WeatherColdC => SettingType::Integer,
             self::WeatherLatitude, self::WeatherLongitude, self::WeatherPrecipitationMm => SettingType::Decimal,
@@ -120,6 +121,7 @@ enum SettingKey: string
             self::SlotHorizonWeeks => 'Create bookable slots this many weeks ahead',
             self::CardHoldMinutes => 'Hold seats for card payment (minutes)',
             self::MinNoticeHours => 'Stop booking a slot this many hours before it starts (0 = until it starts)',
+            self::WaitlistOfferHours => 'Waitlist offer: hold freed seats for the next person this many hours',
             self::MapPinUrl => 'Exact map pin URL (private, sent after confirmation)',
             self::RidingRules => 'Riding rules',
             self::BookingPolicies => 'Booking policies',
@@ -182,6 +184,7 @@ enum SettingKey: string
             self::CardHoldMinutes => 'How long seats stay held while a customer pays by card. Stripe needs at least 31, so shorter values use 31.',
             self::MinNoticeHours => 'Online booking for a slot closes this many hours before it starts. 0 keeps it open until the start.',
             self::MapPinUrl => 'Exact location link (e.g. Google Maps). Never shown on public pages; sent only in confirmation and reminder emails.',
+            self::WaitlistOfferHours => 'When seats free up in a full slot, the first person on its waitlist who fits gets an email and the seats are held for them this long (never past the booking cutoff). If they do not book in time, the offer moves to the next person.',
             self::RidingRules => 'One rule per line (helmet, shoes, ...), shown on the prices page and in reminder emails.',
             self::BookingPolicies => 'One policy per line, shown on the prices and session pages. ":cutoff" becomes the cutoff hours; ":min_age" the minimum age.',
             self::RefundPolicy => 'Short refund summary shown in the booking policies on the prices page. The full text is the Refund policy page.',

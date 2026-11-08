@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Booking;
 
+use App\Actions\Waitlist\ClaimWaitlistPlace;
 use App\Enums\SettingKey;
 use App\Exceptions\BookingRejected;
 use App\Models\Booking;
@@ -32,6 +33,7 @@ final class BookWithCredit
         private readonly CreditPacks $credits,
         private readonly Settings $settings,
         private readonly Notifier $notifier,
+        private readonly ClaimWaitlistPlace $waitlist,
     ) {}
 
     /**
@@ -53,7 +55,8 @@ final class BookWithCredit
         }
 
         $bookings = DB::transaction(function () use ($user, $slotId, $riderIds, $actor, $only): Collection {
-            $slot = $this->slotLock->acquire($slotId);
+            // The customer's own waitlist offer counts as free seats for them (milestone 10d).
+            $slot = $this->slotLock->acquire($slotId, claimFor: $user->id);
 
             // Admins may book inside the notice period; customers may not.
             $slot->assertBookable($actor !== null && $actor->isAdmin() ? 0 : ($this->settings->int(SettingKey::MinNoticeHours) ?? 0));
@@ -86,6 +89,8 @@ final class BookWithCredit
                 $this->credits->spend($pack, $booking, $actor ?? $user);
                 $bookings->push($booking);
             }
+
+            $this->waitlist->handle($slot, $user);
 
             activity('bookings')
                 ->performedOn($slot->slot)

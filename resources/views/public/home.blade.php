@@ -56,6 +56,7 @@
                             :seats="$open ? $slot->seatsFree() : null"
                             note="Closed for booking"
                             :href="$open ? route('book', ['slot' => $slot->id]) : null"
+                            :waitlist="$open && ! $slot->private_only && ! $slot->isPrivatelyBooked() ? route('account.waitlist.create', $slot) : null"
                         />
                     </li>
                 @endforeach

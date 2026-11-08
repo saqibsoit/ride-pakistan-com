@@ -11,6 +11,7 @@
         ['label' => 'Overview', 'route' => 'account.dashboard', 'match' => 'account.dashboard'],
         ['label' => 'Bookings', 'route' => 'account.bookings', 'match' => 'account.bookings*'],
         ['label' => 'Tickets', 'route' => 'account.tickets', 'match' => 'account.tickets*'],
+        ['label' => 'Waitlist', 'route' => 'account.waitlist', 'match' => 'account.waitlist*'],
         ['label' => 'Credits', 'route' => 'account.credits', 'match' => 'account.credits'],
         ['label' => 'Orders', 'route' => 'account.orders', 'match' => 'account.orders*'],
         ['label' => 'Riders', 'route' => 'account.riders', 'match' => 'account.riders'],

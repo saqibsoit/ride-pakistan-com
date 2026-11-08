@@ -19,6 +19,7 @@ final class LockedSlot
 {
     /**
      * @param  list<int>  $riderIds  riders already in a seat-occupying booking or an active hold
+     * @param  list<int>  $waitlistEntryIds  the booking customer's active waitlist entries (SlotLock $claimFor)
      */
     public function __construct(
         public readonly Slot $slot,
@@ -26,6 +27,7 @@ final class LockedSlot
         public readonly int $seatsHeld,
         public readonly bool $privatelyTaken,
         public readonly array $riderIds,
+        public readonly array $waitlistEntryIds = [],
     ) {}
 
     public function free(): int

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Booking;
 
+use App\Actions\Waitlist\OfferWaitlistSeats;
 use App\Enums\BookingStatus;
 use App\Enums\SettingKey;
 use App\Exceptions\BookingRejected;
@@ -31,6 +32,7 @@ final class RescheduleBooking
         private readonly CancellationCutoff $cutoff,
         private readonly Settings $settings,
         private readonly Notifier $notifier,
+        private readonly OfferWaitlistSeats $waitlist,
     ) {}
 
     /**
@@ -142,6 +144,9 @@ final class RescheduleBooking
 
             $notice = new BookingMoved($moved, $fromSlot);
             $this->notifier->send($booking->user, $notice, $notice->dedupeKey());
+
+            // The seats left behind go to that slot's waitlist straight away (milestone 10d).
+            $this->waitlist->handle($fromSlot->id, $actor);
         }
 
         return $moved;

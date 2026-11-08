@@ -8,6 +8,7 @@ use App\Filament\Resources\Slots\Pages\ListSlots;
 use App\Filament\Resources\Slots\Pages\SlotCalendar;
 use App\Filament\Resources\Slots\Pages\ViewSlot;
 use App\Filament\Resources\Slots\RelationManagers\BookingsRelationManager;
+use App\Filament\Resources\Slots\RelationManagers\WaitlistRelationManager;
 use App\Filament\Resources\Slots\Schemas\SlotInfolist;
 use App\Filament\Resources\Slots\Tables\SlotsTable;
 use App\Models\Slot;
@@ -56,6 +57,7 @@ class SlotResource extends Resource
     {
         return [
             BookingsRelationManager::class,
+            WaitlistRelationManager::class,
         ];
     }
 

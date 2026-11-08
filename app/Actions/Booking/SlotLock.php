@@ -9,6 +9,7 @@ use App\Models\Booking;
 use App\Models\BookingHold;
 use App\Models\OrderItem;
 use App\Models\Slot;
+use App\Models\WaitlistEntry;
 use Illuminate\Support\Facades\DB;
 use LogicException;
 
@@ -29,8 +30,10 @@ final class SlotLock
     /**
      * @param  int|null  $ignoreOrderId  leave this order's own hold out of the count (fulfilment)
      * @param  list<int>  $ignoreBookingIds  leave these bookings out (moving them within the transaction)
+     * @param  int|null  $claimFor  user id booking now: their own waitlist offer's seats count as free
+     *                              (milestone 10d); the caller then claims the entries (ClaimWaitlistPlace)
      */
-    public function acquire(int $slotId, ?int $ignoreOrderId = null, array $ignoreBookingIds = []): LockedSlot
+    public function acquire(int $slotId, ?int $ignoreOrderId = null, array $ignoreBookingIds = [], ?int $claimFor = null): LockedSlot
     {
         if (DB::transactionLevel() === 0) {
             throw new LogicException('SlotLock::acquire() must run inside a database transaction.');
@@ -45,16 +48,30 @@ final class SlotLock
             ->lockForUpdate()
             ->get(['id', 'rider_id', 'is_private']);
 
+        $ownEntries = $claimFor === null ? [] : WaitlistEntry::query()
+            ->where('slot_id', $slotId)
+            ->where('user_id', $claimFor)
+            ->active()
+            ->lockForUpdate()
+            ->pluck('id')
+            ->map(fn (mixed $id): int => (int) $id)
+            ->values()
+            ->all();
+
         $holds = BookingHold::query()
             ->where('slot_id', $slotId)
             ->where('expires_at', '>', now())
-            ->when($ignoreOrderId !== null, fn ($q) => $q->where('order_id', '!=', $ignoreOrderId))
+            // Waitlist offers have no order: "order_id != x" alone would drop them.
+            ->when($ignoreOrderId !== null, fn ($q) => $q->where(fn ($w) => $w->whereNull('order_id')->orWhere('order_id', '!=', $ignoreOrderId)))
+            ->when($ownEntries !== [], fn ($q) => $q->where(fn ($w) => $w->whereNull('waitlist_entry_id')->orWhereNotIn('waitlist_entry_id', $ownEntries)))
             ->lockForUpdate()
             ->get(['id', 'order_id', 'seats', 'is_private']);
 
-        $heldRiderIds = $holds->isEmpty() ? [] : OrderItem::query()
+        $holdOrderIds = $holds->pluck('order_id')->filter()->all();
+
+        $heldRiderIds = $holdOrderIds === [] ? [] : OrderItem::query()
             ->where('slot_id', $slotId)
-            ->whereIn('order_id', $holds->pluck('order_id')->all())
+            ->whereIn('order_id', $holdOrderIds)
             ->whereNotNull('rider_id')
             ->sharedLock()
             ->pluck('rider_id')
@@ -70,6 +87,7 @@ final class SlotLock
                 ...$bookings->pluck('rider_id')->map(fn (mixed $id): int => (int) $id)->all(),
                 ...$heldRiderIds,
             ])),
+            waitlistEntryIds: array_values($ownEntries),
         );
     }
 }

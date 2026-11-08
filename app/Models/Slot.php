@@ -146,6 +146,16 @@ class Slot extends Model
     }
 
     /**
+     * Waitlist for this slot (milestone 10d), first in line first.
+     *
+     * @return HasMany<WaitlistEntry, $this>
+     */
+    public function waitlistEntries(): HasMany
+    {
+        return $this->hasMany(WaitlistEntry::class)->orderBy('id');
+    }
+
+    /**
      * @return HasMany<OrderItem, $this>
      */
     public function orderItems(): HasMany

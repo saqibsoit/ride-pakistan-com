@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Booking;
 
+use App\Actions\Waitlist\OfferWaitlistSeats;
 use App\Enums\BookingStatus;
 use App\Enums\CreditPackStatus;
 use App\Exceptions\BookingRejected;
@@ -31,6 +32,7 @@ final class CancelBooking
         private readonly CreditPacks $credits,
         private readonly CancellationCutoff $cutoff,
         private readonly Notifier $notifier,
+        private readonly OfferWaitlistSeats $waitlist,
     ) {}
 
     /**
@@ -92,6 +94,9 @@ final class CancelBooking
 
         // With a cancelling .ics (milestone 10d); queued after commit.
         $this->notifier->send($booking->user, new BookingCancelled($booking, $returned), Notifier::key(BookingCancelled::type(), $booking, $booking->user));
+
+        // The freed seat goes to the waitlist straight away (milestone 10d).
+        $this->waitlist->handle($booking->slot_id, $actor);
 
         return $returned;
     }

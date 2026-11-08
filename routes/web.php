@@ -13,6 +13,7 @@ use App\Http\Controllers\Account\ProfileController;
 use App\Http\Controllers\Account\RiderController;
 use App\Http\Controllers\Account\SignOutEverywhereController;
 use App\Http\Controllers\Account\TicketController;
+use App\Http\Controllers\Account\WaitlistController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RestoreAccountController;
 use App\Http\Controllers\BankTransferController;
@@ -156,6 +157,11 @@ Route::middleware(['auth', 'cache.headers:private;no_store'])->prefix('account')
     Route::post('/bookings/{ticket}/reschedule', [BookingChangeController::class, 'reschedule'])->middleware('throttle:account-actions')->name('bookings.reschedule');
     Route::get('/bookings/{ticket}/cancel', [BookingChangeController::class, 'confirmCancel'])->name('bookings.cancel');
     Route::post('/bookings/{ticket}/cancel', [BookingChangeController::class, 'cancel'])->middleware('throttle:account-actions')->name('bookings.cancel.store');
+    // Waitlists for full slots (milestone 10d).
+    Route::get('/waitlist', [WaitlistController::class, 'index'])->name('waitlist');
+    Route::get('/waitlist/join/{slot}', [WaitlistController::class, 'create'])->name('waitlist.create');
+    Route::post('/waitlist/join/{slot}', [WaitlistController::class, 'store'])->middleware('throttle:account-actions')->name('waitlist.store');
+    Route::delete('/waitlist/{entry}', [WaitlistController::class, 'destroy'])->whereNumber('entry')->middleware('throttle:account-actions')->name('waitlist.destroy');
     Route::get('/tickets', [TicketController::class, 'index'])->name('tickets');
     Route::get('/tickets/{code}', [TicketController::class, 'show'])->name('tickets.show');
     Route::get('/credits', CreditController::class)->name('credits');

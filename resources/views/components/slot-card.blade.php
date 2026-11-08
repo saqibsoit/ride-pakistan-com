@@ -4,7 +4,8 @@
     <x-slot-card :starts-at="$slot->starts_at" :ends-at="$slot->ends_at" product="Single session"
                  trainer="Omar Saleem" :seats="3" href="/book?slot=..." />
 
-    The whole card is one link (stretched); with 0 seats it is not a link.
+    The whole card is one link (stretched); with 0 seats it is not a link,
+    and `waitlist` (a URL) offers "Join the waitlist" instead (milestone 10d).
     seats=null (before live availability exists) shows `note` instead.
 --}}
 @props([
@@ -15,6 +16,7 @@
     'note' => 'Seats shown when online booking opens',
     'trainer' => null,
     'href' => null,
+    'waitlist' => null,
     'level' => 3,
 ])
 
@@ -51,5 +53,8 @@
         <p class="text-sm text-sand-dim">{{ $note }}</p>
     @else
         <x-seats-left :seats="$seats" />
+        @if ($waitlist && (int) $seats === 0)
+            <a href="{{ $waitlist }}" class="relative text-sm font-semibold text-sand underline underline-offset-4">Join the waitlist<span class="sr-only"> for {{ $start->format('l j F') }}, {{ $time }}</span></a>
+        @endif
     @endif
 </article>

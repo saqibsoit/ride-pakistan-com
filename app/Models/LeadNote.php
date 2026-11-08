@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Models\Concerns\AuditsAdminChanges;
 use Database\Factories\LeadNoteFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -19,12 +20,23 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class LeadNote extends Model
 {
     /** @use HasFactory<LeadNoteFactory> */
-    use HasFactory;
+    use AuditsAdminChanges, HasFactory;
 
     /** @var list<string> */
     protected $fillable = [
         'body',
     ];
+
+    /** Notes are written and deleted in the panel (no Action). */
+    public function auditedEvents(): array
+    {
+        return ['created', 'updated', 'deleted'];
+    }
+
+    public function auditLogName(): string
+    {
+        return 'leads';
+    }
 
     /**
      * @return BelongsTo<Lead, $this>

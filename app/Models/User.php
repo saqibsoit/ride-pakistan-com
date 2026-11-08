@@ -74,6 +74,27 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
     ];
 
     /**
+     * Security changes to an account (PLAN §7): MFA set up, removed or new
+     * recovery codes, and password changes are audited, never the values.
+     */
+    protected static function booted(): void
+    {
+        static::updated(function (User $user): void {
+            $events = [
+                'app_authentication_secret' => $user->app_authentication_secret === null ? ['mfa_disabled', 'MFA removed'] : ['mfa_enabled', 'MFA set up'],
+                'app_authentication_recovery_codes' => ['mfa_recovery_codes_changed', 'MFA recovery codes changed'],
+                'password' => ['password_changed', 'Password changed'],
+            ];
+
+            foreach ($events as $attribute => [$event, $description]) {
+                if ($user->wasChanged($attribute)) {
+                    activity('auth')->performedOn($user)->event($event)->log($description);
+                }
+            }
+        });
+    }
+
+    /**
      * Role changes are logged by ChangeUserRole; secrets never.
      *
      * @return list<string>

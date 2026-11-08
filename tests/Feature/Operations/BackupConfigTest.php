@@ -51,3 +51,25 @@ it('emails failures and the weekly health report, not every successful run', fun
         ->and(config('backup.monitor_backups'))->toHaveCount(1)
         ->and(config('backup.monitor_backups.0.disks'))->toBe(['backups']);
 });
+
+it('falls back to defaults when optional keys are left empty, as in .env.example', function (): void {
+    putenv('BACKUP_NOTIFICATION_EMAIL=');
+    putenv('BACKUP_DISK_ROOT=');
+    putenv('TRUSTED_PROXIES=');
+
+    try {
+        $backup = require config_path('backup.php');
+        $filesystems = require config_path('filesystems.php');
+        $security = require config_path('security.php');
+    } finally {
+        putenv('BACKUP_NOTIFICATION_EMAIL');
+        putenv('BACKUP_DISK_ROOT');
+        putenv('TRUSTED_PROXIES');
+    }
+
+    // spatie/laravel-backup refuses to boot with an invalid address.
+    expect(filter_var($backup['notifications']['mail']['to'], FILTER_VALIDATE_EMAIL))->not->toBeFalse()
+        ->and($filesystems['disks']['backups']['root'])->toBe(storage_path('app/backups'))
+        ->and($security['trusted_proxies'])->toContain('173.245.48.0/20')
+        ->and(count($security['trusted_proxies']))->toBeGreaterThan(20);
+});

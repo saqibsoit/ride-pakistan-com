@@ -39,11 +39,11 @@ return [
      * lead attribution, and HTTPS would not be detected. Only Cloudflare's
      * published ranges (https://www.cloudflare.com/ips/) are trusted, so a
      * request that reaches the server directly can't fake its IP.
-     * TRUSTED_PROXIES (comma separated) replaces the list; check the
+     * TRUSTED_PROXIES (comma separated) replaces the list (empty keeps it); check the
      * ranges again before launch (docs/DEPLOY.md). X-Forwarded-Host is never
      * trusted.
      */
-    'trusted_proxies' => array_values(array_filter(array_map('trim', explode(',', (string) env('TRUSTED_PROXIES', implode(',', [
+    'trusted_proxies' => array_values(array_filter(array_map('trim', explode(',', (string) (env('TRUSTED_PROXIES') ?: implode(',', [
         // IPv4
         '173.245.48.0/20', '103.21.244.0/22', '103.22.200.0/22', '103.31.4.0/22',
         '141.101.64.0/18', '108.162.192.0/18', '190.93.240.0/20', '188.114.96.0/20',

@@ -7,6 +7,7 @@ namespace App\Filament\Resources\Leads;
 use App\Actions\Leads\ChangeLeadStatus;
 use App\Actions\Leads\ConvertLeadToCustomer;
 use App\Actions\Leads\CreateManualLead;
+use App\Actions\Leads\SuggestFollowUp;
 use App\Actions\Leads\UpdateLeadPipeline;
 use App\Enums\LeadInterest;
 use App\Enums\LeadSource;
@@ -104,7 +105,7 @@ final class LeadActions
             ->label('Change status')
             ->icon(Heroicon::OutlinedArrowsRightLeft)
             ->visible(fn (Lead $record): bool => self::canUpdate($record) && $record->status !== LeadStatus::Booked)
-            ->fillForm(fn (Lead $record): array => ['status' => null])
+            ->fillForm(fn (Lead $record): array => ['status' => null, 'next_follow_up_at' => app(SuggestFollowUp::class)->date()?->toDateString()])
             ->schema([
                 Select::make('status')
                     ->label('Move to')
@@ -117,12 +118,31 @@ final class LeadActions
                     ->maxLength(500)
                     ->required(fn (Get $get): bool => $get('status') === LeadStatus::Lost->value)
                     ->visible(fn (Get $get): bool => $get('status') === LeadStatus::Lost->value),
+                // Milestone 10c: a suggested follow-up when the lead is contacted.
+                DatePicker::make('next_follow_up_at')
+                    ->label('Next follow-up')
+                    ->native(false)
+                    ->displayFormat('j M Y')
+                    ->minDate(now(self::tz())->startOfDay())
+                    ->default(fn (): ?string => app(SuggestFollowUp::class)->date()?->toDateString())
+                    ->helperText('Suggested from the follow-up setting. Clear it to leave the date as it is.')
+                    ->visible(fn (Get $get): bool => $get('status') === LeadStatus::Contacted->value),
             ])
-            ->action(fn (Lead $record, array $data) => self::move($record, (string) $data['status'], $data['reason'] ?? null));
+            ->action(fn (Lead $record, array $data) => self::move(
+                $record,
+                (string) $data['status'],
+                $data['reason'] ?? null,
+                followUp: filled($data['next_follow_up_at'] ?? null) ? CarbonImmutable::parse((string) $data['next_follow_up_at'], self::tz()) : null,
+                fromForm: true,
+            ));
     }
 
-    /** Board and list: move to one status (lost asks for a reason). */
-    public static function move(Lead $lead, string $status, ?string $reason = null): bool
+    /**
+     * Board and list: move to one status (lost asks for a reason). Moving
+     * to Contacted sets the follow-up date chosen in the form or, from the
+     * board, the suggested one when the lead has none from today on.
+     */
+    public static function move(Lead $lead, string $status, ?string $reason = null, ?CarbonImmutable $followUp = null, bool $fromForm = false): bool
     {
         $user = self::user();
         $to = LeadStatus::tryFrom($status);
@@ -139,7 +159,19 @@ final class LeadActions
             return false;
         }
 
-        Notification::make()->success()->title($lead->name.' → '.$to->label())->send();
+        $note = null;
+
+        if ($to === LeadStatus::Contacted) {
+            if ($fromForm && $followUp !== null) {
+                app(UpdateLeadPipeline::class)->followUp($lead, $followUp, $user);
+                $note = 'Follow up on '.$followUp->format('j M');
+            } elseif (! $fromForm) {
+                $set = app(SuggestFollowUp::class)->applyAfterContact($lead->refresh(), $user);
+                $note = $set === null ? null : 'Follow-up set for '.$set->format('j M').'. Change it on the lead if needed.';
+            }
+        }
+
+        Notification::make()->success()->title($lead->name.' → '.$to->label())->body($note)->send();
 
         return true;
     }

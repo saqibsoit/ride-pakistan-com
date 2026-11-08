@@ -29,5 +29,8 @@ Schedule::command('notifications:send reminders')->everyFifteenMinutes()->withou
 Schedule::command('notifications:send thanks')->hourly()->withoutOverlapping();
 Schedule::command('notifications:send credits')->dailyAt('10:00')->timezone('Asia/Karachi')->withoutOverlapping();
 
+// Leads due for follow-up, to admins and staff (milestone 10c).
+Schedule::command('leads:digest')->dailyAt('09:00')->timezone('Asia/Karachi')->withoutOverlapping();
+
 // Credit packs past their expiry (PLAN §2).
 Schedule::command('credits:expire')->dailyAt('00:15')->withoutOverlapping();

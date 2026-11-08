@@ -46,6 +46,8 @@ enum SettingKey: string
     case BankCountry = 'bank.country';
     case BankAddress = 'bank.address';
 
+    case LeadFollowUpDays = 'leads.follow_up_days';
+
     case DeletionGraceDays = 'privacy.deletion_grace_days';
     case OrderRetentionYears = 'privacy.order_retention_years';
     case TransferProofRetentionDays = 'privacy.transfer_proof_retention_days';
@@ -62,7 +64,7 @@ enum SettingKey: string
             self::RidersPerSlot, self::TransferHoldHours, self::TransferMinNoticeHours, self::CancellationCutoffHours,
             self::SellingFastThreshold, self::MinRiderAge, self::CheckinOpensMinutes, self::ArrivalMinutes, self::SlotHorizonWeeks,
             self::CardHoldMinutes, self::MinNoticeHours,
-            self::DeletionGraceDays, self::OrderRetentionYears, self::TransferProofRetentionDays => SettingType::Integer,
+            self::DeletionGraceDays, self::OrderRetentionYears, self::TransferProofRetentionDays, self::LeadFollowUpDays => SettingType::Integer,
             self::RidingRules, self::BookingPolicies, self::AiCrawlers => SettingType::List,
             self::RefundPolicy, self::DefaultDescription, self::BankAddress => SettingType::LongText,
             default => SettingType::Text,
@@ -109,6 +111,7 @@ enum SettingKey: string
             self::BankSwift => 'SWIFT',
             self::BankCountry => 'Country',
             self::BankAddress => 'Bank address',
+            self::LeadFollowUpDays => 'Suggest a follow-up this many days after a lead is contacted (0 = no suggestion)',
             self::DeletionGraceDays => 'Days a deleted account can still be restored by its owner',
             self::OrderRetentionYears => 'Keep accounts with paid orders for this many years after the last payment',
             self::TransferProofRetentionDays => 'Delete bank transfer screenshots this many days after review (the payment record is kept)',
@@ -156,6 +159,7 @@ enum SettingKey: string
             self::BankSwift => 'SWIFT/BIC code for transfers from abroad, shown on the checkout transfer page.',
             self::BankCountry => 'Country of the bank account, shown on the checkout transfer page.',
             self::BankAddress => 'Branch address, shown on the checkout transfer page for international transfers.',
+            self::LeadFollowUpDays => 'When a lead is moved to "Contacted", its next follow-up date is suggested this many days later (you can change it). Leads due appear on the dashboard and in the 09:00 email digest.',
             self::DeletionGraceDays => 'A customer who deletes their account can sign in and keep it for this many days.',
             self::OrderRetentionYears => 'Deleted accounts with paid orders are anonymised only after this many years since the last payment (accounting records).',
             self::TransferProofRetentionDays => 'Transfer screenshots are deleted this many days after an admin approves or rejects them. The payment record is kept.',

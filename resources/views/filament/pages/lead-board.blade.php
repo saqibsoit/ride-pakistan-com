@@ -78,8 +78,11 @@
                                 @endif
 
                                 @php($targets = \App\Filament\Resources\Leads\LeadActions::targets($lead))
+                                <div class="rp-board__actions">
+                                    <x-filament::button size="xs" color="gray" icon="heroicon-m-chat-bubble-left-right" wire:click="mountAction('quickReplies', { lead: {{ $lead->id }} })">
+                                        Replies<span class="fi-sr-only"> for {{ $lead->name }}</span>
+                                    </x-filament::button>
                                 @if ($targets !== [])
-                                    <div class="rp-board__actions">
                                         <x-filament::dropdown placement="bottom-start">
                                             <x-slot name="trigger">
                                                 <x-filament::button size="xs" color="gray" icon="heroicon-m-arrows-right-left">
@@ -94,8 +97,8 @@
                                                 @endforeach
                                             </x-filament::dropdown.list>
                                         </x-filament::dropdown>
-                                    </div>
                                 @endif
+                                </div>
                             </li>
                         @endforeach
                     </ul>

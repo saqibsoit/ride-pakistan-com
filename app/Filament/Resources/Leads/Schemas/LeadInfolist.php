@@ -7,10 +7,13 @@ namespace App\Filament\Resources\Leads\Schemas;
 use App\Filament\Resources\Customers\CustomerResource;
 use App\Filament\Resources\Orders\OrderResource;
 use App\Models\Lead;
+use App\Models\LeadNote;
 use App\Models\User;
 use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Components\ViewEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Spatie\Activitylog\Models\Activity;
 
 class LeadInfolist
 {
@@ -59,6 +62,42 @@ class LeadInfolist
                     TextEntry::make('landing_url')->label('Landing page')->placeholder('—')->columnSpanFull(),
                     TextEntry::make('referrer')->placeholder('—')->columnSpanFull(),
                 ]),
+            // Everything the team did with this lead, newest first (milestone 10c).
+            Section::make('Timeline')
+                ->collapsible()
+                ->schema([
+                    ViewEntry::make('timeline')->hiddenLabel()->view('filament.leads.timeline')
+                        ->state(fn (Lead $record): array => self::timeline($record)),
+                ]),
         ]);
+    }
+
+    /**
+     * Audit entries for the lead and its notes: status, assignment,
+     * follow-up dates, notes (never their text), quick replies copied.
+     *
+     * @return list<array{at: string, who: string, what: string}>
+     */
+    public static function timeline(Lead $lead): array
+    {
+        $tz = (string) config('app.display_timezone');
+        $noteIds = $lead->notes()->pluck('id');
+
+        $entries = Activity::query()
+            ->where(fn ($query) => $query
+                ->where(fn ($q) => $q->where('subject_type', $lead->getMorphClass())->where('subject_id', $lead->id))
+                ->orWhere(fn ($q) => $q->where('subject_type', (new LeadNote)->getMorphClass())->whereIn('subject_id', $noteIds)))
+            ->with('causer')
+            ->latest('id')
+            ->limit(100)
+            ->get()
+            ->map(fn (Activity $activity): array => [
+                'at' => $activity->created_at?->setTimezone($tz)->format('j M Y, H:i') ?? '',
+                'who' => $activity->causer instanceof User ? $activity->causer->displayName() : 'System',
+                'what' => $activity->subject_type === (new LeadNote)->getMorphClass() ? 'Note '.($activity->event ?? 'changed') : (string) $activity->description,
+            ])
+            ->all();
+
+        return array_values($entries);
     }
 }

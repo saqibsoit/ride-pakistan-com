@@ -127,3 +127,97 @@
         box-shadow: 0 1px 4px var(--gray-300);
     }
 }
+
+/*
+ * Quick replies (milestone 10c): the copy list in the lead slide-over and
+ * on the "Quick replies" page. Same theme variables as the board.
+ */
+
+.rp-replies {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.rp-replies__toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.rp-replies__note {
+    font-size: 0.875rem;
+    color: var(--gray-500);
+}
+
+.rp-replies__group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.rp-replies__heading {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--gray-500);
+}
+
+.rp-replies__item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    border-radius: 0.75rem;
+    border: 1px solid var(--gray-200);
+}
+
+.rp-replies__title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    font-weight: 600;
+}
+
+.rp-replies__text {
+    white-space: pre-line;
+    font-size: 0.875rem;
+    overflow-wrap: anywhere;
+}
+
+.dark .rp-replies__item {
+    border-color: var(--gray-700);
+}
+
+/* Lead timeline (milestone 10c). */
+
+.rp-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding-left: 1rem;
+    border-left: 2px solid var(--gray-200);
+}
+
+.rp-timeline__item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+}
+
+.rp-timeline__what {
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.rp-timeline__meta {
+    font-size: 0.75rem;
+    color: var(--gray-500);
+}
+
+.dark .rp-timeline {
+    border-left-color: var(--gray-700);
+}

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Pages;
 
+use App\Filament\Widgets\FollowUpsDue;
 use App\Filament\Widgets\LeadConversionTable;
 use App\Filament\Widgets\LeadsBySourceChart;
 use App\Filament\Widgets\MySessions;
@@ -26,6 +27,7 @@ class Dashboard extends BaseDashboard
             MySessions::class,
             TodayOverview::class,
             TransfersWaiting::class,
+            FollowUpsDue::class,
             LeadsBySourceChart::class,
             LeadConversionTable::class,
         ];

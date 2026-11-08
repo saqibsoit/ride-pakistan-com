@@ -19,6 +19,7 @@ use Closure;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Events\DiagnosingHealth;
+use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Blade;
@@ -148,6 +149,13 @@ class AppServiceProvider extends ServiceProvider
                 $request->session()->put(EnsureSessionIsCurrent::SESSION_KEY, $event->user->session_version);
             }
         });
+
+        // Behind Cloudflare (milestone 12): the visitor's IP and HTTPS come
+        // from Cloudflare's headers, only when the request comes from one of
+        // its ranges (config/security.php). Set here because config isn't
+        // loaded yet when bootstrap/app.php configures middleware.
+        TrustProxies::at(config('security.trusted_proxies'));
+        TrustProxies::withHeaders(Request::HEADER_X_FORWARDED_FOR | Request::HEADER_X_FORWARDED_PROTO);
 
         // /up (deploy smoke test, uptime checks) fails when the database
         // can't be reached, not only when the app can't boot (milestone 12).

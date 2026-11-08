@@ -79,6 +79,16 @@ class Rider extends Model
     }
 
     /**
+     * Skills the rider has shown (milestone 10d).
+     *
+     * @return HasMany<RiderSkill, $this>
+     */
+    public function riderSkills(): HasMany
+    {
+        return $this->hasMany(RiderSkill::class);
+    }
+
+    /**
      * @return HasMany<OrderItem, $this>
      */
     public function orderItems(): HasMany

@@ -15,6 +15,7 @@
         ['label' => 'Credits', 'route' => 'account.credits', 'match' => 'account.credits'],
         ['label' => 'Orders', 'route' => 'account.orders', 'match' => 'account.orders*'],
         ['label' => 'Riders', 'route' => 'account.riders', 'match' => 'account.riders'],
+        ['label' => 'Progress', 'route' => 'account.progress', 'match' => 'account.progress'],
         ['label' => 'Profile', 'route' => 'account.profile', 'match' => 'account.profile'],
         ['label' => 'Privacy and security', 'route' => 'account.privacy', 'match' => 'account.privacy'],
     ];

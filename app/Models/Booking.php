@@ -32,6 +32,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property-read Slot $slot
  * @property int|null $horse_id set through AssignHorse
  * @property string|null $session_note trainer's note for this rider (encrypted, WriteSessionNote)
+ * @property string|null $progress_note short note the customer sees in their rider's progress (RecordRiderProgress, milestone 10d)
  * @property-read Horse|null $horse
  * @property-read Rider $rider
  * @property-read User $user

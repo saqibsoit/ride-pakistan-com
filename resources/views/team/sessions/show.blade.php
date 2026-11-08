@@ -170,6 +170,8 @@
                             <x-button variant="ghost" type="submit" class="w-full sm:w-auto">Save note</x-button>
                         </form>
 
+                        <x-team.progress-form :session="$slot" :booking="$booking" />
+
                         <p class="text-sm">
                             <a href="{{ route('team.riders.show', $rider) }}" class="underline underline-offset-4 hover:text-sand-dim">History for {{ $rider->name }}</a>
                         </p>

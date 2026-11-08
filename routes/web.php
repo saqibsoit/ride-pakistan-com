@@ -10,6 +10,7 @@ use App\Http\Controllers\Account\DashboardController;
 use App\Http\Controllers\Account\OrderController;
 use App\Http\Controllers\Account\PrivacyController;
 use App\Http\Controllers\Account\ProfileController;
+use App\Http\Controllers\Account\ProgressController;
 use App\Http\Controllers\Account\RiderController;
 use App\Http\Controllers\Account\SignOutEverywhereController;
 use App\Http\Controllers\Account\TicketController;
@@ -33,6 +34,7 @@ use App\Http\Controllers\Public\SeoFileController;
 use App\Http\Controllers\Public\SessionController;
 use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\Team\RiderHistoryController;
+use App\Http\Controllers\Team\RiderProgressController;
 use App\Http\Controllers\Team\RunSheetController;
 use App\Http\Controllers\TransferProofController;
 use App\Http\Middleware\AddStatelessSecurityHeaders;
@@ -97,6 +99,7 @@ Route::middleware([EnsureTeamAreaAccess::class, 'cache.headers:private;no_store'
         Route::post('check-in', [RunSheetController::class, 'checkIn'])->name('check-in');
         Route::post('horse', [RunSheetController::class, 'horse'])->name('horse');
         Route::post('note', [RunSheetController::class, 'note'])->name('note');
+        Route::post('progress', RiderProgressController::class)->name('progress');
     });
     Route::get('riders/{rider}', [RiderHistoryController::class, 'show'])->name('riders.show');
 });
@@ -168,6 +171,7 @@ Route::middleware(['auth', 'cache.headers:private;no_store'])->prefix('account')
     Route::get('/orders', [OrderController::class, 'index'])->name('orders');
     Route::get('/orders/{reference}', [OrderController::class, 'show'])->name('orders.show');
     Route::get('/riders', RiderController::class)->name('riders');
+    Route::get('/progress', ProgressController::class)->name('progress');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile');
     Route::put('/profile', [ProfileController::class, 'update'])->middleware('throttle:account-actions')->name('profile.update');
 

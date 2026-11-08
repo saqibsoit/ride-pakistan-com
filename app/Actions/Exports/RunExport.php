@@ -7,6 +7,7 @@ namespace App\Actions\Exports;
 use App\Enums\DiscountKind;
 use App\Enums\ExportDataset;
 use App\Enums\ExportFormat;
+use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Models\Booking;
 use App\Models\Lead;
@@ -14,6 +15,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Payment;
 use App\Models\User;
+use App\Models\VoucherOrder;
 use App\Support\Money;
 use App\Support\OrderRevenue;
 use Carbon\CarbonImmutable;
@@ -95,7 +97,8 @@ final class RunExport
     {
         return match ($dataset) {
             ExportDataset::Orders => ['Reference', 'Created (Pakistan time)', 'Status', 'Payment method', 'Customer', 'Customer email', 'Product', 'Type', 'Amount (PKR)', 'Refunded (PKR)', 'Net (PKR)', 'Paid at (Pakistan time)', 'Subtotal (PKR)', 'Promo or referral (PKR)', 'Gift voucher (PKR)', 'Account credit (PKR)', 'Revenue (PKR)'],
-            ExportDataset::Payments, ExportDataset::Refunds => ['Order reference', 'Date (Pakistan time)', 'Provider', 'Provider ID', 'Status', 'Amount (PKR)', 'Currency', 'Customer email'],
+            ExportDataset::Payments, ExportDataset::Refunds => ['Order reference', 'Date (Pakistan time)', 'Provider', 'Provider ID', 'Status', 'Amount (PKR)', 'Currency', 'Customer email', 'Bank transfer date (Pakistan)'],
+            ExportDataset::VoucherSales => ['Purchase reference', 'Paid at (Pakistan time)', 'Status', 'Payment method', 'Payment reference', 'Buyer email', 'Voucher for', 'Received (PKR)', 'Refunded (PKR)', 'Net cash (PKR)'],
             ExportDataset::Bookings => ['Ticket', 'Session (Pakistan time)', 'Product', 'Rider', 'Customer email', 'Status', 'Private', 'Paid with', 'Order reference', 'Price (PKR)', 'Horse', 'Price after discounts (PKR)'],
             ExportDataset::Leads => ['Received (Pakistan time)', 'Name', 'Email', 'Phone', 'Instagram', 'Source', 'Status', 'Interest', 'UTM source', 'UTM medium', 'UTM campaign', 'Assigned to', 'Booked order reference'],
         };
@@ -151,7 +154,35 @@ final class RunExport
                     Money::decimal($payment->amount_minor),
                     $payment->currency,
                     $payment->order->user->email,
+                    // Bank refunds (milestone 10e): the date the team's transfer was made.
+                    $payment->transferred_on?->format('Y-m-d') ?? '',
                 ]))),
+
+            // Cash received for gift vouchers (milestone 10e), by payment date, for
+            // reconciling with the bank statement. Revenue elsewhere counts a
+            // voucher when it is spent; this is the money when it came in.
+            // Codes are left out: a code can be spent like cash.
+            ExportDataset::VoucherSales => VoucherOrder::query()
+                ->with('user')
+                ->whereNotNull('paid_at')
+                ->where('paid_at', '>=', $from)->where('paid_at', '<', $until)
+                ->orderBy('paid_at')->orderBy('id')
+                ->chunk(500, fn ($sales) => $sales->each(function (VoucherOrder $sale) use ($add, $date): void {
+                    $refunded = (int) ($sale->meta['amount_refunded_minor'] ?? 0);
+
+                    $add([
+                        $sale->reference,
+                        $date($sale->paid_at),
+                        $sale->status->label(),
+                        $sale->payment_method?->label() ?? '',
+                        $sale->payment_method === PaymentMethod::Card ? (string) $sale->stripe_payment_intent_id : (string) $sale->transaction_ref,
+                        $sale->user->email ?? '',
+                        $sale->product_name ?? 'Amount',
+                        Money::decimal($sale->amount_minor),
+                        Money::decimal($refunded),
+                        Money::decimal(max(0, $sale->amount_minor - $refunded)),
+                    ]);
+                })),
 
             ExportDataset::Bookings => Booking::query()
                 ->with(['slot', 'rider', 'user', 'horse', 'order.items', 'order.discounts', 'creditPack.order'])

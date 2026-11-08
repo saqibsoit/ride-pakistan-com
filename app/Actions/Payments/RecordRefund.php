@@ -11,6 +11,7 @@ use App\Enums\PaymentStatus;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use LogicException;
 
 /**
@@ -29,7 +30,7 @@ final class RecordRefund
      * @param  array<string, mixed>  $raw  trimmed provider payload
      * @param  array<string, scalar|null>  $context  audit details
      */
-    public function handle(Order $order, int $amountMinor, ?string $providerId, string $reason, ?User $actor = null, array $raw = [], array $context = []): Payment
+    public function handle(Order $order, int $amountMinor, ?string $providerId, string $reason, ?User $actor = null, array $raw = [], array $context = [], PaymentProvider $provider = PaymentProvider::Stripe, ?CarbonImmutable $transferredOn = null): Payment
     {
         if ($amountMinor <= 0) {
             throw new LogicException('A refund must be for a positive amount.');
@@ -37,11 +38,12 @@ final class RecordRefund
 
         $payment = Payment::query()->create([
             'order_id' => $order->id,
-            'provider' => PaymentProvider::Stripe,
+            'provider' => $provider,
             'provider_id' => $providerId,
             'amount_minor' => $amountMinor,
             'currency' => $order->currency,
             'status' => PaymentStatus::Refunded,
+            'transferred_on' => $transferredOn?->toDateString(),
             'raw' => $raw,
         ]);
 

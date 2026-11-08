@@ -35,6 +35,13 @@ class SlotsTable
                 TextColumn::make('time')->label('Time')
                     ->state(fn (Slot $record): string => $record->localStartsAt()->format('H:i').'–'.$record->localEndsAt()->format('H:i')),
                 TextColumn::make('status')->badge(),
+                TextColumn::make('weather_badge')->label('Weather')
+                    ->state(fn (Slot $record): ?string => $record->currentWeather() === null ? null : 'Weather: '.$record->currentWeather()->severity->label())
+                    ->badge()
+                    ->color(fn (Slot $record): string => $record->currentWeather()?->severity->filamentColor() ?? 'gray')
+                    ->icon(fn (Slot $record): ?Heroicon => $record->currentWeather()?->severity->filamentIcon())
+                    ->tooltip(fn (Slot $record): ?string => $record->currentWeather()?->summary() ?: null)
+                    ->placeholder('—'),
                 TextColumn::make('source')->badge(),
                 IconColumn::make('private_only')->label('Private only')->boolean()->trueIcon(Heroicon::OutlinedLockClosed)->falseIcon(null),
                 TextColumn::make('trainer.name')->label('Trainer')->placeholder('—'),

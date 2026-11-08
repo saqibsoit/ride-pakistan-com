@@ -29,6 +29,7 @@
                                     {{ $slot->trainer?->displayName() ?? 'No trainer set' }}
                                     @if ($slot->status === \App\Enums\SlotStatus::Closed) · Closed @endif
                                 </span>
+                                <x-weather-badge :session="$slot" class="mt-2" />
                             </span>
                             <span class="text-right">
                                 <span class="block text-lg font-semibold">{{ (int) $slot->seats_booked }}/{{ $slot->capacity }}</span>

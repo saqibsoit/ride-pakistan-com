@@ -5,6 +5,11 @@ All notable changes to this project are documented here. The format follows [Kee
 ## [Unreleased]
 
 ### Added
+- Milestone 13 launch prep (local part; the rest needs staging):
+  - End-to-end browser journeys (Pest browser plugin, phone viewport): single session, private session and 8-class package paid by card, then a session booked with its credits (`CardBookingJourneyTest`); bank transfer approved and rejected in Verify transfers, and hold expiry for transfer and card holds (`BankTransferJourneyTest`); cancellation before and after the cutoff and the waitlist offer booked and paid (`BookingChangesJourneyTest`); lead form and OTP login (`LeadAndLoginJourneyTest`); promo code plus gift voucher, fully covered or the rest paid by card (`CheckoutDiscountsTest`); staff check-in from the run sheet list (`RunSheetTest`).
+  - Card payments in browser tests go through checkout and "Pay by card"; the fake Stripe (`returnToSuccessUrl`) sends the browser back to the status page, and a signed webhook confirms the payment through `FulfilOrder`. Shared helpers in `tests/Pest.php` send each action once and wait for its result, never a fixed delay. The transfer proof upload uses the HTTP test client, because the plugin's in-process server doesn't forward multipart bodies yet.
+  - `docs/STAFF-GUIDE.md` for staff and trainers: transfers, slots and seasonal timings, one-off and private sessions, check-in and the run sheet, horses, leads and quick replies, weather alerts, refunds (card and bank), vouchers and promo codes.
+  - `docs/LAUNCH-CHECKLIST.md`: every prompt 13 item marked done, needs staging, needs production or needs owner; the open questions still to answer (launch blockers first) and the open risks.
 - Milestone 12 deployment, backups and monitoring (`docs/DEPLOY.md`):
   - Deploy workflow (`.github/workflows/deploy.yml`, composite actions in `.github/actions`): tests (ci.yml, now reusable) → build on PHP 8.3 (production Composer install, Filament assets, Vite build, `images:responsive`; fails without AVIF support or without AVIF/WebP output) → staging on every push to `main` → production after a required reviewer approves. Pull requests run the build only. Manual runs deploy one environment or roll back.
   - Releases: rsync to `releases/<UTC timestamp>-<sha>`; `deploy/remote-deploy.sh` links the shared `.env`, `storage` and `public/images/uploads`, migrates, optimizes, switches `current` atomically, clears the page cache, restarts workers and keeps 5 releases. The smoke test (`/`, `/up`) rolls back automatically when it fails; `deploy/rollback.sh` for manual rollbacks.
@@ -204,6 +209,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - README with local setup steps.
 
 ### Fixed
+- The "Transaction ID" field on the order and gift voucher bank transfer pages read "Transaction ID (optional) (optional)": the form field component already adds "(optional)". Found by the milestone 13 browser journeys; regression tests added.
 - Behind Cloudflare, `X-Forwarded-For` and `X-Forwarded-Proto` are trusted from Cloudflare's published ranges only (`config/security.php`, `TRUSTED_PROXIES`), so rate limits, logs and attribution see the visitor's IP and HTTPS is detected. `X-Forwarded-Host` is never trusted.
 - The admin panel now loads Livewire's script and styles. Livewire's automatic asset injection is off (since milestone 2, for the public bundle), so in a real browser the panel's Livewire and Alpine never started and forms such as the login spun forever. Tests render HTML only, so they missed it; a regression test now checks for the script.
 - The private `local` disk no longer registers the framework's `GET`/`PUT /storage/{path}` signed-URL routes (`serve` off; nothing used them).

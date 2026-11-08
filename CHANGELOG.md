@@ -5,6 +5,14 @@ All notable changes to this project are documented here. The format follows [Kee
 ## [Unreleased]
 
 ### Added
+- Milestone 7 bank transfer and manual verification:
+  - "Pay by bank transfer" on `/checkout/{reference}` switches the same order (and reference) to transfer, also after a failed or expired card attempt. An open Stripe session is expired first, and a session Stripe already completed blocks the switch. The deadline is `booking.transfer_hold_hours` [24], never past the session start, and transfer isn't offered within `booking.transfer_min_notice_hours` [12, new setting; lower it only once the queue is watched on weekend mornings] of the session.
+  - `/checkout/{reference}/transfer`: bank details from settings (`BANK_*` defaults) with copy buttons, the amount, the reference to use, the deadline in Pakistan time with a countdown, and the proof upload (JPG, PNG, WebP or PDF, 5 MB, type sniffed, images re-encoded without EXIF, random names on the private `transfers` disk, replaceable until reviewed, 10 uploads an hour).
+  - An upload keeps the seats until an admin decides; orders with no upload expire at the deadline (`holds:release`) with an email. Emails: transfer received (customer), transfer to verify (all admins), rejected with the reason, expired.
+  - Admin "Verify transfers" (admins only): queue by deadline with Overdue marking; proof in a modal through a 5-minute signed URL (sandboxed, never cached, logged); Approve via `FulfilOrder` (verifier and time recorded, exactly once, receipt email), Reject (reason, seats released), Extend (reason, seats re-checked). Dashboard widget with the number waiting and the oldest wait. Admin only by decision; staff never see proofs.
+  - Retention: `transfers:prune-proofs` (daily, 04:15) deletes only the screenshot or PDF 90 days after review (`privacy.transfer_proof_retention_days`, new setting); the transfer and payment records (amount, reference, verifier and time) are kept permanently. Migration: `bank_transfers.screenshot_path` nullable, new `proof_deleted_at`.
+  - Pest tests: choosing transfer (deadline, cap, minimum notice, Stripe session handling, same reference), uploads (valid types, bad MIME, oversize, disguised files, EXIF removal, random names, replace, rate limit, other customers), private storage and signed URLs (guest, customer, staff, unsigned, tampered, expired), approve once, approve with no seats left, reject, extend, staff blocked, expiry, widget.
+
 - Milestone 6 Stripe Checkout and webhooks (PKR):
   - `php artisan stripe:check`: creates and expires a PKR 10,000 test Checkout Session to confirm the account supports PKR (test keys only). Stripe calls go through `StripeGateway`. Tests bind an in-memory fake that still verifies signatures with stripe-php.
   - `/checkout/{reference}`: "Pay by card" and "Pay by bank transfer" (the transfer flow opens in milestone 7), with a note that some Pakistani cards block international online payments. `CreateStripeCheckout` builds a PKR session from the order's own items (client reference, metadata, customer email, status-page return URLs, statement descriptor suffix, "Ride Pakistan by Destination Pakistan" on the Stripe page). It extends the seat hold to match the session (Stripe's 30-minute minimum), reuses an open session, and uses one idempotency key per attempt. Rate limited.
@@ -75,6 +83,9 @@ All notable changes to this project are documented here. The format follows [Kee
 - `app/Actions`, `app/Enums`, `app/Support`; agent rules copied to `CLAUDE.md` and `.github/copilot-instructions.md`.
 - GitHub Actions CI (Pint, Larastan, Pest on MySQL 8.4, composer and npm audits) and Dependabot for composer, npm and Actions.
 - README with local setup steps.
+
+### Fixed
+- The full-page cache now has its own cache store. It used the default store, and `ResponseCache::clear()` (run after every seat change and content edit) emptied that whole store, resetting rate-limit counters, including the sign-in code limits. A regression test covers it.
 
 ### Changed
 - Removed unconfirmed claims that could be wrong or unsafe: helmet provision and requirements, arrival time, weather rescheduling, consent for minors, photography, transport, the "Is horse riding safe for beginners?" FAQ, reply-time promises, "Most popular", "multi-day" expeditions and package outcome claims. Riding rules and booking policies now default to confirmed or neutral wording only.

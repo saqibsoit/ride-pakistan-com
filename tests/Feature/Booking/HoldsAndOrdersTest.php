@@ -290,14 +290,16 @@ it('expires unpaid card orders when the hold runs out and gives the seats back',
         ->and(Activity::query()->where('event', 'status_changed')->latest('id')->first()?->properties?->get('reason'))->toBe('Seat hold expired before payment');
 });
 
-it('leaves paid and transfer orders alone when releasing holds', function (): void {
+// Milestone 7: transfer orders with no proof expire at their deadline
+// (tests/Feature/Payments/BankTransferTest.php); uploaded ones wait for review.
+it('leaves paid and uploaded transfer orders alone when releasing holds', function (): void {
     $paid = Order::factory()->status(OrderStatus::Paid)->create(['expires_at' => now()->subHour()]);
-    $transfer = Order::factory()->status(OrderStatus::AwaitingTransfer)->create(['expires_at' => now()->subHour()]);
+    $transfer = Order::factory()->status(OrderStatus::AwaitingVerification)->create(['expires_at' => now()->subHour()]);
     BookingHold::factory()->expired()->create(['order_id' => $transfer->id]);
 
     app(ReleaseExpiredHolds::class)->handle();
 
     expect($paid->fresh()?->status)->toBe(OrderStatus::Paid)
-        ->and($transfer->fresh()?->status)->toBe(OrderStatus::AwaitingTransfer)
+        ->and($transfer->fresh()?->status)->toBe(OrderStatus::AwaitingVerification)
         ->and(BookingHold::query()->count())->toBe(1);
 });

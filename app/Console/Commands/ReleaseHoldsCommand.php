@@ -11,7 +11,7 @@ final class ReleaseHoldsCommand extends Command
 {
     protected $signature = 'holds:release';
 
-    protected $description = 'Expire unpaid card orders whose seat hold ran out and give the seats back';
+    protected $description = 'Expire unpaid card orders and unproven bank transfer orders whose seat hold ran out, and give the seats back';
 
     public function handle(ReleaseExpiredHolds $release): int
     {

@@ -39,7 +39,7 @@ A fast, secure, bilingual-ready website for Ride Pakistan’s weekend horse ridi
   - Overbooking is prevented by a row lock: every booking or hold write takes `SELECT … FOR UPDATE` on the slot row first, then reads the slot's bookings and holds with locking reads (plain reads could see an older REPEATABLE READ snapshot). Prices are always computed on the server from the product row (`PriceQuote`).
 - Open decisions (store as settings, admin-editable, defaults in brackets):
   - Riders per slot [6]
-  - Bank transfer hold window [24 hours]
+  - Bank transfer hold window [24 hours], never past the session start; transfer not offered within [12 hours] of the session (`booking.transfer_min_notice_hours`; lower it, e.g. to 2, only once someone watches the verification queue at short notice on weekend mornings)
   - Cancellation / reschedule cutoff [48 hours before slot]
   - Refund policy text [TBD with Omar]
   - Minimum rider age [TBD with Omar]
@@ -71,6 +71,17 @@ Card payment rules (milestone 6):
    - Approve: same fulfilment path as Stripe (one shared `FulfilOrder` action).
    - Reject with reason: releases seats, emails customer.
 5. A scheduled job expires unverified holds when the window passes and notifies the customer.
+
+Bank transfer rules (milestone 7):
+- Choosing bank transfer (`ChooseBankTransfer`, `POST /checkout/{reference}/transfer`) keeps the order and its reference, also after a failed or expired card attempt. Any open Stripe session is expired first; if Stripe reports it complete, the switch is refused (the webhook confirms the card payment). The order moves to `awaiting_transfer`, `payment_method = bank_transfer`.
+- Deadline = the earlier of now + `booking.transfer_hold_hours` [24] and the first session's start. Bank transfer isn't offered when the session starts within `booking.transfer_min_notice_hours` [12]. A transfer made at 6 am for an 8 am session needs someone watching the queue; until that is arranged, 12 hours. A package with no first session gets the full window.
+- Proof (`SubmitBankTransfer`): one JPG, PNG, WebP or PDF up to 5 MB. The type is sniffed from the content; images are decoded and re-encoded (EXIF and trailing data dropped, long edge at most 2400 px); PDFs must start with `%PDF-`. Stored on the private `transfers` disk (`storage/app/transfers`, no URL) under a random name. The customer can replace the file until it is reviewed. Uploads are limited to 10 an hour per customer.
+- The first upload moves the order to `awaiting_verification` and holds the seats until the session starts: **an uploaded transfer never expires on its own**, so a slow review can't cancel a booking the customer has paid for. The queue marks orders past their deadline "Overdue". Only `awaiting_transfer` orders (no upload) expire at the deadline (`holds:release`), with an email.
+- Emails: the customer ("we've received your transfer"), every admin user ("transfer to verify"), and the customer again on rejection (with the reason) or expiry. Approval sends the usual receipt (`OrderPaid`).
+- Admin queue (Filament "Verify transfers", admins only; staff can't see proofs or decide): soonest deadline first. **Approve** (`ApproveBankTransfer`) records the verifier and time and a bank-transfer payment, then calls `FulfilOrder`; approving twice changes nothing, and if the seats are gone nothing is written. **Reject** (reason required) makes the order `rejected` and releases the seats. **Extend** (reason required) moves the deadline, never past the session start, and re-checks seats if the hold had lapsed. A dashboard widget shows how many are waiting and the oldest wait.
+- Approving, rejecting and extending transfers, and opening proofs, are **admin only** (decided: it's money; fewer approvers means fewer mistakes and a cleaner audit trail). Staff never see transfer screenshots.
+- Retention: `transfers:prune-proofs` (daily) deletes **only the screenshot or PDF** `privacy.transfer_proof_retention_days` [90] days after review (approved or rejected). The transfer record (reference, transaction ID, who verified it and when, rejection reason), the payment record (amount) and the audit log are kept permanently for accounting. Proofs still waiting for review are never deleted.
+- Proofs are served only by `GET /{admin-path}/transfers/{id}/proof`: a signed URL valid for 5 minutes, a signed-in admin, `nosniff`, `no-store` and a sandbox CSP. PDFs download. Each view is logged.
 
 Bank details (settings, not hard-coded; defaults come from `BANK_*` in `.env`, never from code): Account name Destination Pakistan; Bank Standard Chartered Bank; IBAN PK91SCBL0000001702859701; SWIFT SCBLPKKX; Country Pakistan; Bank address Main Building, Floor 3, I.I. Chundrigar Road, Karachi 74200.
 
@@ -124,6 +135,7 @@ Roles (milestone 3): `customer` (site and own account only), `staff` (admin pane
 - `leads` (name, phone, email, interest, preferred_date, message, status: new, contacted, qualified, booked, lost; source, utm_* fields, fbclid, landing_url, referrer, assigned_to, user_id nullable)
 - `lead_notes` (lead_id, author_id, body)
 - `settings` (key/value, typed, cached; keys and types in `App\Enums\SettingKey`, defaults in `config/settings.php`)
+- Caches: the full-page cache has its own store (`responsecache`, file). `ResponseCache::clear()` empties the whole store it uses, so it must never share one with rate limiters, settings or anything else (fixed in milestone 7).
 - `pages` / `faqs` / `posts` (CMS content for SEO pages, guides and FAQ)
 - `activity_log` (audit trail for all admin actions and order transitions)
 

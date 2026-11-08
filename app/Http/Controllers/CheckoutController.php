@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Actions\Payments\CreateStripeCheckout;
+use App\Actions\Payments\TransferWindow;
 use App\Exceptions\CheckoutUnavailable;
 use App\Models\Order;
 use App\Models\User;
@@ -21,7 +22,7 @@ use Illuminate\Support\Facades\Gate;
  */
 final class CheckoutController extends Controller
 {
-    public function show(Request $request, string $reference): View
+    public function show(Request $request, string $reference, TransferWindow $window): View
     {
         $order = $this->order($request, $reference);
 
@@ -32,6 +33,7 @@ final class CheckoutController extends Controller
         return view('checkout.show', [
             'order' => $order,
             'cardFailed' => $order->status->isUnpaid() && (int) ($order->meta['stripe_attempts'] ?? 0) > 0 && $order->stripe_checkout_session_id === null,
+            'transferOffered' => $window->isOffered($order),
         ]);
     }
 

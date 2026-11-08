@@ -55,6 +55,21 @@ return [
             'lock_path' => storage_path('framework/cache/data'),
         ],
 
+        // Full-page cache (spatie/laravel-responsecache) in its own store:
+        // ResponseCache::clear() empties the whole store it uses, which must
+        // never wipe rate-limit counters, settings or other cached data.
+        'responsecache' => [
+            'driver' => 'file',
+            'path' => storage_path('framework/cache/responsecache'),
+            'lock_path' => storage_path('framework/cache/responsecache'),
+        ],
+
+        // Same separation in tests (array stores are separate per name).
+        'responsecache_array' => [
+            'driver' => 'array',
+            'serialize' => false,
+        ],
+
         'memcached' => [
             'driver' => 'memcached',
             'persistent_id' => env('MEMCACHED_PERSISTENT_ID'),

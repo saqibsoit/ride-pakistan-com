@@ -25,6 +25,7 @@ enum SettingKey: string
 
     case RidersPerSlot = 'booking.riders_per_slot';
     case TransferHoldHours = 'booking.transfer_hold_hours';
+    case TransferMinNoticeHours = 'booking.transfer_min_notice_hours';
     case CancellationCutoffHours = 'booking.cancellation_cutoff_hours';
     case SellingFastThreshold = 'booking.selling_fast_threshold';
     case MinRiderAge = 'booking.min_rider_age';
@@ -46,6 +47,7 @@ enum SettingKey: string
 
     case DeletionGraceDays = 'privacy.deletion_grace_days';
     case OrderRetentionYears = 'privacy.order_retention_years';
+    case TransferProofRetentionDays = 'privacy.transfer_proof_retention_days';
 
     case DefaultTitle = 'seo.default_title';
     case DefaultDescription = 'seo.default_description';
@@ -56,10 +58,10 @@ enum SettingKey: string
         return match ($this) {
             self::Email => SettingType::Email,
             self::InstagramUrl, self::InstagramDmUrl, self::ExpeditionsUrl, self::MapPinUrl => SettingType::Url,
-            self::RidersPerSlot, self::TransferHoldHours, self::CancellationCutoffHours,
+            self::RidersPerSlot, self::TransferHoldHours, self::TransferMinNoticeHours, self::CancellationCutoffHours,
             self::SellingFastThreshold, self::MinRiderAge, self::SlotHorizonWeeks,
             self::CardHoldMinutes, self::MinNoticeHours,
-            self::DeletionGraceDays, self::OrderRetentionYears => SettingType::Integer,
+            self::DeletionGraceDays, self::OrderRetentionYears, self::TransferProofRetentionDays => SettingType::Integer,
             self::RidingRules, self::BookingPolicies, self::AiCrawlers => SettingType::List,
             self::ScheduleSummary, self::RefundPolicy, self::DefaultDescription, self::BankAddress => SettingType::LongText,
             default => SettingType::Text,
@@ -87,6 +89,7 @@ enum SettingKey: string
             self::ScheduleSummary => 'Schedule summary',
             self::RidersPerSlot => 'Riders per slot',
             self::TransferHoldHours => 'Bank transfer hold window (hours)',
+            self::TransferMinNoticeHours => 'Offer bank transfer only if the session starts at least this many hours later',
             self::CancellationCutoffHours => 'Cancellation and reschedule cutoff (hours before slot)',
             self::SellingFastThreshold => 'Show "Selling fast" at or below (seats)',
             self::MinRiderAge => 'Minimum rider age',
@@ -105,6 +108,7 @@ enum SettingKey: string
             self::BankAddress => 'Bank address',
             self::DeletionGraceDays => 'Days a deleted account can still be restored by its owner',
             self::OrderRetentionYears => 'Keep accounts with paid orders for this many years after the last payment',
+            self::TransferProofRetentionDays => 'Delete bank transfer screenshots this many days after review (the payment record is kept)',
             self::DefaultTitle => 'Default page title',
             self::DefaultDescription => 'Default meta description',
             self::AiCrawlers => 'AI crawlers allowed in robots.txt',

@@ -14,6 +14,7 @@ use App\Http\Controllers\Account\SignOutEverywhereController;
 use App\Http\Controllers\Account\TicketController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RestoreAccountController;
+use App\Http\Controllers\BankTransferController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\Public\BookController;
 use App\Http\Controllers\Public\ContactController;
@@ -27,6 +28,7 @@ use App\Http\Controllers\Public\ScheduleController;
 use App\Http\Controllers\Public\SeoFileController;
 use App\Http\Controllers\Public\SessionController;
 use App\Http\Controllers\StripeWebhookController;
+use App\Http\Controllers\TransferProofController;
 use Illuminate\Support\Facades\Route;
 use Spatie\ResponseCache\Middlewares\CacheResponse;
 
@@ -63,7 +65,18 @@ Route::middleware(['auth', 'cache.headers:private;no_store'])->prefix('checkout/
     Route::get('/', [CheckoutController::class, 'show'])->name('show');
     Route::post('/card', [CheckoutController::class, 'card'])->middleware('throttle:checkout')->name('card');
     Route::get('/status', [CheckoutController::class, 'status'])->name('status');
+
+    // Bank transfer (PLAN §3.2): same order and reference as card payment.
+    Route::post('/transfer', [BankTransferController::class, 'choose'])->middleware('throttle:checkout')->name('transfer.choose');
+    Route::get('/transfer', [BankTransferController::class, 'show'])->name('transfer');
+    Route::post('/transfer/proof', [BankTransferController::class, 'upload'])->middleware('throttle:transfer-upload')->name('transfer.upload');
 });
+
+// Transfer proofs for admins: short-lived signed URL, signed-in admin only,
+// under the (unguessable) admin path. Never public (PLAN §7).
+Route::get('/'.trim((string) config('app.admin_path', 'admin'), '/').'/transfers/{transfer}/proof', TransferProofController::class)
+    ->middleware(['auth', 'signed', 'cache.headers:private;no_store'])
+    ->name('admin.transfer-proof');
 
 // Stripe webhooks (PLAN §3.1): signature-verified, CSRF-exempt (bootstrap/app.php),
 // no session or cookies, rate limited.

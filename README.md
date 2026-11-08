@@ -90,6 +90,15 @@ The scheduler (`php artisan schedule:work` locally) runs `holds:release` every m
 6. Refund: in the admin, open the order (Orders → View) → **Refund** (full or partial, reason required). `charge.refunded` arrives and is recognised as already recorded. A refund made in the Stripe dashboard instead is recorded and the order is flagged "Needs review".
 7. Bad signature: `curl -X POST https://ride-pakistan-com.test/webhooks/stripe -d '{}'` returns `400`.
 
+### Bank transfer (manual test)
+
+1. Book, then on `/checkout/{reference}` choose **Pay by bank transfer** (after a declined card too: same reference). The page shows the bank details from Settings (defaults from `BANK_*` in `.env`), the amount, the reference and the deadline.
+2. Upload a screenshot or PDF. The order becomes "Awaiting verification". With `php artisan queue:work` running, the customer and admin emails land in the mail log.
+3. Admin → Bookings → **Verify transfers**: open **Proof** (signed link, valid 5 minutes), then **Approve** (booking confirmed, receipt sent) or **Reject** with a reason (seats released).
+4. Expiry: an order with no upload expires at its deadline when `holds:release` runs (`php artisan schedule:work`, or run `php artisan holds:release` after the deadline).
+
+Proofs live in `storage/app/transfers` (gitignored, never public).
+
 `stripe trigger checkout.session.completed` sends a session that belongs to no order: it is logged and acknowledged, and nothing else happens. Use a real booking for end-to-end tests.
 
 Tests never call Stripe: `tests/TestCase.php` binds `Tests\Support\FakeStripeGateway`, which still verifies webhook signatures with the real stripe-php code.

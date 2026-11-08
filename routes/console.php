@@ -20,5 +20,8 @@ Schedule::command('model:prune', ['--model' => [LoginCode::class]])->dailyAt('04
 // Card seat holds that ran out (PLAN §3.1). Cheap when there is nothing to do.
 Schedule::command('holds:release')->everyMinute()->withoutOverlapping();
 
+// Bank transfer screenshots 90 days after review; records are kept (PLAN §3.2).
+Schedule::command('transfers:prune-proofs')->dailyAt('04:15')->withoutOverlapping();
+
 // Credit packs past their expiry (PLAN §2).
 Schedule::command('credits:expire')->dailyAt('00:15')->withoutOverlapping();

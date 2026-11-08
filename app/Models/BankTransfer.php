@@ -17,7 +17,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  *
  * @property int $id
  * @property int $order_id
- * @property string $screenshot_path
+ * @property string|null $screenshot_path null once deleted after the retention period
+ * @property CarbonImmutable|null $proof_deleted_at
  * @property string|null $transaction_ref
  * @property CarbonImmutable $submitted_at
  * @property BankTransferStatus $status
@@ -72,6 +73,7 @@ class BankTransfer extends Model
     {
         return [
             'submitted_at' => 'immutable_datetime',
+            'proof_deleted_at' => 'immutable_datetime',
             'status' => BankTransferStatus::class,
             'verified_at' => 'immutable_datetime',
         ];

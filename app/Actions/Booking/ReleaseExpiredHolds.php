@@ -6,6 +6,7 @@ namespace App\Actions\Booking;
 
 use App\Actions\Orders\OrderStateMachine;
 use App\Enums\OrderStatus;
+use App\Mail\TransferExpiredMail;
 use App\Models\BookingHold;
 use App\Models\Order;
 use App\Support\PageCache;
@@ -13,11 +14,13 @@ use App\Support\Stripe\StripeGateway;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Stripe\Checkout\Session;
 use Throwable;
 
 /**
- * Every minute (holds:release). Card orders whose hold window passed
+ * Every minute (holds:release). Card orders whose hold window passed,
+ * and bank transfer orders still without proof at their deadline,
  * become expired (logged through OrderStateMachine) and give their seats
  * back. Expired holds already stop counting the moment they expire; this
  * tidies them up and refreshes the cached public pages. Holds on bank
@@ -63,6 +66,37 @@ final class ReleaseExpiredHolds
                     BookingHold::query()->where('order_id', $locked->id)->delete();
                     $expired++;
                 });
+            });
+
+        // Bank transfer orders with no proof uploaded by the deadline (PLAN
+        // §3.2 step 5). Uploaded ones wait for the admin and never expire here.
+        Order::query()
+            ->where('status', OrderStatus::AwaitingTransfer)
+            ->whereNotNull('expires_at')
+            ->where('expires_at', '<=', $now)
+            ->orderBy('id')
+            ->each(function (Order $order) use (&$expired): void {
+                $done = DB::transaction(function () use ($order): bool {
+                    $locked = Order::query()->whereKey($order->id)->lockForUpdate()->first();
+
+                    if ($locked === null || $locked->status !== OrderStatus::AwaitingTransfer) {
+                        return false;
+                    }
+
+                    $this->orders->transition($locked, OrderStatus::Expired, reason: 'No bank transfer received before the deadline');
+                    BookingHold::query()->where('order_id', $locked->id)->delete();
+
+                    return true;
+                });
+
+                if ($done) {
+                    $expired++;
+                    $email = (string) $order->user->email;
+
+                    if ($email !== '' && ! str_ends_with($email, '.invalid')) {
+                        Mail::to($email)->queue(new TransferExpiredMail($order->refresh()));
+                    }
+                }
             });
 
         // Stray expired holds whose order no longer waits for payment.

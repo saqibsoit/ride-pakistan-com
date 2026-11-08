@@ -49,6 +49,18 @@ return [
             'report' => false,
         ],
 
+        // Bank transfer proofs (PLAN §7): private, outside public/, no URL
+        // and never served by the framework. Admins see them only through
+        // a short-lived signed route (TransferProofController).
+        'transfers' => [
+            'driver' => 'local',
+            'root' => storage_path('app/transfers'),
+            'visibility' => 'private',
+            'serve' => false,
+            'throw' => true,
+            'report' => false,
+        ],
+
         // Brand and editorial photos shipped with the site (public/images).
         // Responsive variants are generated into images/_variants.
         'site' => [

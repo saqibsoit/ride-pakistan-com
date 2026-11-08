@@ -41,7 +41,7 @@ final class CreateOrder
      *
      * @throws BookingRejected
      */
-    public function handle(User $user, Product $product, ?int $slotId, array $riderIds): Order
+    public function handle(User $user, Product $product, ?int $slotId, array $riderIds, ?int $leadId = null): Order
     {
         // Re-read: prices and type come from the database, never from a
         // model that a form or component may have filled in.
@@ -71,7 +71,7 @@ final class CreateOrder
 
         $amount = PriceQuote::for($product, count($riderIds))->totalMinor;
 
-        return DB::transaction(function () use ($user, $product, $slotId, $riderIds, $draftKey, $expiresAt, $private, $package, $amount): Order {
+        return DB::transaction(function () use ($user, $product, $slotId, $riderIds, $draftKey, $expiresAt, $private, $package, $amount, $leadId): Order {
             // Slot lock first. Inserting order items checks the slot_id
             // foreign key, which takes a shared lock on the slot row; two
             // orders holding that and then both asking for the exclusive
@@ -87,7 +87,8 @@ final class CreateOrder
                 'amount_minor' => $amount,
                 'currency' => 'PKR',
                 'expires_at' => $expiresAt,
-                'meta' => ['draft' => $draftKey],
+                // The lead a tracked DM link came from (milestone 10c, MarkLeadsBooked).
+                'meta' => $leadId === null ? ['draft' => $draftKey] : ['draft' => $draftKey, 'lead_id' => $leadId],
             ]);
 
             if ($package) {

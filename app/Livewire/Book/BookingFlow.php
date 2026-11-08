@@ -14,6 +14,7 @@ use App\Enums\ExperienceLevel;
 use App\Enums\ProductType;
 use App\Enums\SettingKey;
 use App\Exceptions\BookingRejected;
+use App\Http\Middleware\CaptureLeadReference;
 use App\Models\CreditPack;
 use App\Models\Product;
 use App\Models\Slot;
@@ -273,7 +274,8 @@ final class BookingFlow extends Component
                 return null;
             }
 
-            $order = $createOrder->handle($user, $product, $this->later ? null : $this->slotId, $this->later ? [] : $this->riderIds);
+            $leadRef = session(CaptureLeadReference::SESSION_KEY);
+            $order = $createOrder->handle($user, $product, $this->later ? null : $this->slotId, $this->later ? [] : $this->riderIds, is_int($leadRef) ? $leadRef : null);
         } catch (BookingRejected $e) {
             $this->error = $e->getMessage();
 

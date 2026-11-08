@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Middleware\AddRobotsHeader;
 use App\Http\Middleware\AddSecurityHeaders;
+use App\Http\Middleware\CaptureLeadReference;
 use App\Http\Middleware\EnsureSessionIsCurrent;
 use App\Http\Middleware\SetCspNonce;
 use App\Support\Tracking\Attribution;
@@ -27,6 +28,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ], append: [
             AddRobotsHeader::class,
             EnsureSessionIsCurrent::class,
+            CaptureLeadReference::class,
         ]);
 
         // Written by resources/js/tracking.js (consent answer, first-touch

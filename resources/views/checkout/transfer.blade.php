@@ -61,7 +61,7 @@
                     </div>
                     <div class="sm:col-span-2 border-t border-line pt-4">
                         <p class="text-sm text-sand-dim">For</p>
-                        <p class="font-semibold">{{ $order->product->name }}@if ($slotItems->isNotEmpty()), {{ $slotItems->first()->slot?->label() }} (Pakistan time), {{ $slotItems->map(fn ($i) => $i->rider?->name)->filter()->join(', ') }}@endif</p>
+                        <p class="font-semibold">{{ $order->productName() }}@if ($slotItems->isNotEmpty()), {{ $slotItems->first()->slot?->label() }} (Pakistan time), {{ $slotItems->map(fn ($i) => $i->rider?->name)->filter()->join(', ') }}@endif</p>
                     </div>
                 </section>
 

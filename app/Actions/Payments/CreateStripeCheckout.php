@@ -7,7 +7,6 @@ namespace App\Actions\Payments;
 use App\Actions\Booking\SlotLock;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentMethod;
-use App\Enums\ProductType;
 use App\Enums\SettingKey;
 use App\Exceptions\CheckoutUnavailable;
 use App\Models\BookingHold;
@@ -226,12 +225,12 @@ final class CreateStripeCheckout
      */
     private function lineItems(Order $order): array
     {
-        $product = $order->product;
         $slot = $order->items->firstWhere('slot_id', '!=', null)?->slot;
 
-        $name = $product->name;
-        $description = $product->type === ProductType::Package
-            ? $product->sessions_count.' sessions, valid '.$product->validity_days.' days from payment'
+        // As bought (order snapshot), not the product's current terms.
+        $name = $order->productName();
+        $description = $order->isPackage()
+            ? $order->sessionsCount().' sessions, valid '.$order->validityDays().' days from payment'
             : ($slot === null ? null : $slot->label().' (Pakistan time)');
 
         $lines = [];
@@ -253,7 +252,7 @@ final class CreateStripeCheckout
                     'currency' => 'pkr',
                     'unit_amount' => $unit,
                     'product_data' => array_filter([
-                        'name' => $name.($product->type === ProductType::Package ? '' : ' (per rider)'),
+                        'name' => $name.($order->isPackage() ? '' : ' (per rider)'),
                         'description' => $description,
                     ]),
                 ],

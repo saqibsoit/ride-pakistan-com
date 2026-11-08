@@ -10,7 +10,7 @@ Thank you. We've received your payment for order **{{ $order->reference }}**.
 <x-mail::table>
 | | |
 |:--|--:|
-| {{ $order->product->name }} | {{ \App\Support\Money::format($order->amount_minor, $order->currency) }} |
+| {{ $order->productName() }} | {{ \App\Support\Money::format($order->amount_minor, $order->currency) }} |
 @if ($order->paid_at)
 | Paid (Pakistan time) | {{ $order->paid_at->setTimezone($timezone)->format('j M Y, H:i') }} |
 @endif

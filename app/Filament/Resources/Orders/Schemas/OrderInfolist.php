@@ -27,7 +27,7 @@ class OrderInfolist
                     TextEntry::make('payment_method')->label('Method')->placeholder('Not chosen'),
                     TextEntry::make('user.name')->label('Customer'),
                     TextEntry::make('user.email')->label('Email'),
-                    TextEntry::make('product.name')->label('Product'),
+                    TextEntry::make('product_name')->label('Product (as bought)'),
                     TextEntry::make('amount_minor')->label('Amount')
                         ->formatStateUsing(fn (Order $record): string => Money::format($record->amount_minor, $record->currency)),
                     TextEntry::make('amount_refunded_minor')->label('Refunded')

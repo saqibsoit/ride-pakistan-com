@@ -28,7 +28,7 @@ class OrdersTable
             ->columns([
                 TextColumn::make('reference')->searchable()->copyable(),
                 TextColumn::make('user.name')->label('Customer')->searchable(),
-                TextColumn::make('product.name')->label('Product'),
+                TextColumn::make('product_name')->label('Product'),
                 TextColumn::make('status')->badge(),
                 IconColumn::make('needs_review')->label('Review')
                     ->state(fn (Order $record): bool => isset($record->meta['needs_review']))

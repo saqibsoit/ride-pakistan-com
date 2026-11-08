@@ -13,7 +13,7 @@
 
         <div class="mt-10 flex flex-col gap-6">
             @if ($order->status === \App\Enums\OrderStatus::PendingPayment && $heldUntil && $slotItems->isNotEmpty())
-                <x-alert variant="info" title="Your {{ $order->product->type === \App\Enums\ProductType::Private ? 'slot is' : 'seats are' }} held.">
+                <x-alert variant="info" title="Your {{ $order->isPrivate() ? 'slot is' : 'seats are' }} held.">
                     We keep them for you until <time datetime="{{ $heldUntil->toIso8601String() }}">{{ $heldUntil->setTimezone($tz)->format('g:i a') }}</time> (Pakistan time). After that they go back on sale.
                 </x-alert>
             @elseif ($order->status === \App\Enums\OrderStatus::Expired)
@@ -23,7 +23,7 @@
             <dl class="grid gap-4 rounded-sm border border-line-strong bg-earth-2 p-6 sm:grid-cols-2">
                 <div>
                     <dt class="text-sm text-sand-dim">Session</dt>
-                    <dd class="font-semibold">{{ $order->product->name }}</dd>
+                    <dd class="font-semibold">{{ $order->productName() }}</dd>
                 </div>
                 <div>
                     <dt class="text-sm text-sand-dim">Status</dt>
@@ -54,7 +54,7 @@
                     <h2 id="pay-title" class="text-display-xs">How would you like to pay?</h2>
 
                     @if ($cardFailed)
-                        <x-alert variant="warning" title="Your card payment didn't go through.">Your {{ $order->product->type === \App\Enums\ProductType::Private ? 'slot is' : 'seats are' }} still held. Try a card again, or pay by bank transfer with the same reference.</x-alert>
+                        <x-alert variant="warning" title="Your card payment didn't go through.">Your {{ $order->isPrivate() ? 'slot is' : 'seats are' }} still held. Try a card again, or pay by bank transfer with the same reference.</x-alert>
                     @endif
 
                     <div class="grid gap-4 sm:grid-cols-2">

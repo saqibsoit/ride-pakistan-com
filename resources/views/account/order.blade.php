@@ -56,7 +56,7 @@
                 @forelse ($order->items as $item)
                     <tr class="border-t border-line">
                         <td class="py-3 pr-4">
-                            {{ $order->product->name }}
+                            {{ $order->productName() }}
                             @if ($item->slot)
                                 <span class="block text-sand-dim">{{ $item->slot->label() }}</span>
                             @endif
@@ -66,7 +66,7 @@
                     </tr>
                 @empty
                     <tr class="border-t border-line">
-                        <td class="py-3 pr-4" colspan="2">{{ $order->product->name }}</td>
+                        <td class="py-3 pr-4" colspan="2">{{ $order->productName() }}</td>
                         <td class="py-3 text-right"><x-money :minor="$order->amount_minor" :currency="$order->currency" /></td>
                     </tr>
                 @endforelse

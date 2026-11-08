@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Enums\OrderStatus;
 use App\Enums\PaymentMethod;
+use App\Enums\ProductType;
 use Carbon\CarbonImmutable;
 use Database\Factories\OrderFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -33,6 +34,10 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property CarbonImmutable|null $paid_at
  * @property array<string, mixed>|null $meta
  * @property CarbonImmutable $created_at
+ * @property string|null $product_name snapshot at order time
+ * @property ProductType|null $product_type snapshot at order time
+ * @property int|null $sessions_count snapshot at order time
+ * @property int|null $validity_days snapshot at order time
  * @property-read User $user
  * @property-read Product $product
  */
@@ -61,6 +66,66 @@ class Order extends Model
         'currency' => 'PKR',
         'amount_refunded_minor' => 0,
     ];
+
+    /**
+     * Freeze what was bought when the order is placed (milestone 10a):
+     * name, type, sessions and validity. Later product edits never change
+     * this order or the credit pack it grants. Not mass assignable; only
+     * set here, from the product as it is at this moment.
+     */
+    protected static function booted(): void
+    {
+        static::creating(function (Order $order): void {
+            if ($order->product_name !== null) {
+                return;
+            }
+
+            $product = Product::query()->find($order->product_id);
+
+            if ($product === null) {
+                return;
+            }
+
+            $order->product_name = $product->name;
+            $order->product_type = $product->type;
+            $order->sessions_count = $product->sessions_count;
+            $order->validity_days = $product->validity_days;
+        });
+    }
+
+    /** Product name as bought. */
+    public function productName(): string
+    {
+        return $this->product_name ?? $this->product->name;
+    }
+
+    /** Product type as bought (private vs group vs package). */
+    public function productType(): ProductType
+    {
+        return $this->product_type ?? $this->product->type;
+    }
+
+    /** Credits a package order grants, as bought. */
+    public function sessionsCount(): int
+    {
+        return $this->sessions_count ?? $this->product->sessions_count;
+    }
+
+    /** Package validity in days from confirmation, as bought. */
+    public function validityDays(): ?int
+    {
+        return $this->product_type !== null ? $this->validity_days : $this->product->validity_days;
+    }
+
+    public function isPackage(): bool
+    {
+        return $this->productType() === ProductType::Package;
+    }
+
+    public function isPrivate(): bool
+    {
+        return $this->productType() === ProductType::Private;
+    }
 
     public function getRouteKeyName(): string
     {
@@ -139,6 +204,9 @@ class Order extends Model
         return [
             'status' => OrderStatus::class,
             'payment_method' => PaymentMethod::class,
+            'product_type' => ProductType::class,
+            'sessions_count' => 'integer',
+            'validity_days' => 'integer',
             'amount_minor' => 'integer',
             'amount_refunded_minor' => 'integer',
             'expires_at' => 'immutable_datetime',

@@ -14,7 +14,7 @@
                 <li class="flex flex-col gap-4 rounded-sm border border-line bg-earth-2 p-6">
                     <div class="flex flex-wrap items-start justify-between gap-4">
                         <div class="flex flex-col gap-1">
-                            <h2 class="text-display-xs">{{ $pack->order->product->name }}</h2>
+                            <h2 class="text-display-xs">{{ $pack->order->productName() }}</h2>
                             <p class="text-sm text-sand-dim">
                                 {{ $pack->creditsRemaining() }} of {{ $pack->credits_total }} {{ $pack->credits_total === 1 ? 'credit' : 'credits' }} left ·
                                 {{ $usable ? 'use by' : 'expired' }}
@@ -28,7 +28,7 @@
                         <details class="text-sm">
                             <summary class="cursor-pointer text-sand-dim hover:text-sand">History</summary>
                             <table class="mt-3 w-full text-left">
-                                <caption class="sr-only">Credit history for {{ $pack->order->product->name }}</caption>
+                                <caption class="sr-only">Credit history for {{ $pack->order->productName() }}</caption>
                                 <thead class="text-sand-dim">
                                     <tr>
                                         <th scope="col" class="py-2 pr-4 font-semibold">Date</th>

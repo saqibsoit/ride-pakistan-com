@@ -9,18 +9,18 @@ use App\Enums\BankTransferStatus;
 use App\Enums\OrderStatus;
 use App\Enums\UserRole;
 use App\Exceptions\CheckoutUnavailable;
-use App\Mail\TransferReceivedMail;
-use App\Mail\TransferToVerifyMail;
 use App\Models\BankTransfer;
 use App\Models\BookingHold;
 use App\Models\Order;
 use App\Models\Slot;
 use App\Models\User;
+use App\Notifications\TransferReceived;
+use App\Notifications\TransferToVerify;
+use App\Support\Notifier;
 use App\Support\TransferProofs;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
 use InvalidArgumentException;
 use Throwable;
 
@@ -139,15 +139,13 @@ final class SubmitBankTransfer
     private function notify(Order $order): void
     {
         $order->loadMissing('user');
-        $email = (string) $order->user->email;
+        $notifier = app(Notifier::class);
 
-        if ($email !== '' && ! str_ends_with($email, '.invalid')) {
-            Mail::to($email)->queue(new TransferReceivedMail($order));
-        }
+        $notifier->send($order->user, new TransferReceived($order), Notifier::key(TransferReceived::type(), $order, $order->user));
 
         User::query()
             ->where('role', UserRole::Admin)
             ->whereNotNull('email')
-            ->each(fn (User $admin) => Mail::to((string) $admin->email)->queue(new TransferToVerifyMail($order)));
+            ->each(fn (User $admin) => $notifier->send($admin, new TransferToVerify($order), Notifier::key(TransferToVerify::type(), $order, $admin)));
     }
 }

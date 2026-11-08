@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Orders;
 
+use App\Actions\Notifications\ResendNotification;
 use App\Actions\Payments\FlagOrderForReview;
 use App\Actions\Payments\RefundOrder;
 use App\Enums\OrderStatus;
@@ -15,6 +16,7 @@ use App\Models\User;
 use App\Support\Money;
 use Filament\Actions\Action;
 use Filament\Forms\Components\CheckboxList;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -121,6 +123,34 @@ final class OrderActions
                 activity('payments')->performedOn($record)->causedBy($admin)->event('review_cleared')->log('Payment alert on '.$record->reference.' reviewed');
 
                 Notification::make()->success()->title('Marked as reviewed')->send();
+            });
+    }
+
+    public static function resend(): Action
+    {
+        return Action::make('resend_email')
+            ->label('Resend email')
+            ->icon(Heroicon::OutlinedEnvelope)
+            ->visible(fn (Order $record): bool => self::admin($record) !== null && ResendNotification::optionsForOrder($record) !== [])
+            ->schema(fn (Order $record): array => [
+                Select::make('type')->label('Email')->options(ResendNotification::optionsForOrder($record))->required(),
+            ])
+            ->action(function (Order $record, array $data): void {
+                $admin = self::admin($record);
+
+                if ($admin === null) {
+                    return;
+                }
+
+                try {
+                    app(ResendNotification::class)->forOrder($record, (string) $data['type'], $admin);
+                } catch (BookingRejected $e) {
+                    Notification::make()->danger()->title('Not sent')->body($e->getMessage())->send();
+
+                    return;
+                }
+
+                Notification::make()->success()->title('Email queued for '.$record->user->email)->send();
             });
     }
 

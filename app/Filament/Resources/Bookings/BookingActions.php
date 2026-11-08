@@ -8,6 +8,7 @@ use App\Actions\Booking\CancelBooking;
 use App\Actions\Booking\ChangeBookingStatus;
 use App\Actions\Booking\CreateManualBooking;
 use App\Actions\Booking\RescheduleBooking;
+use App\Actions\Notifications\ResendNotification;
 use App\Enums\BookingStatus;
 use App\Enums\CreditPackStatus;
 use App\Enums\SlotStatus;
@@ -39,7 +40,7 @@ final class BookingActions
      */
     public static function row(): array
     {
-        return [self::attended(), self::noShow(), self::move(), self::cancel()];
+        return [self::attended(), self::noShow(), self::move(), self::cancel(), self::resend()];
     }
 
     public static function attended(): Action
@@ -134,6 +135,34 @@ final class BookingActions
                 }
 
                 Notification::make()->success()->title('Booking cancelled')->body($returned ? 'The credit went back to the pack.' : null)->send();
+            });
+    }
+
+    public static function resend(): Action
+    {
+        return Action::make('resend_email')
+            ->label('Resend')
+            ->icon(Heroicon::OutlinedEnvelope)
+            ->visible(fn (Booking $record): bool => self::admin() !== null && ResendNotification::optionsForBooking($record) !== [])
+            ->schema(fn (Booking $record): array => [
+                Select::make('type')->label('Email')->options(ResendNotification::optionsForBooking($record))->required(),
+            ])
+            ->action(function (Booking $record, array $data): void {
+                $admin = self::admin();
+
+                if ($admin === null) {
+                    return;
+                }
+
+                try {
+                    app(ResendNotification::class)->forBooking($record, (string) $data['type'], $admin);
+                } catch (BookingRejected $e) {
+                    Notification::make()->danger()->title('Not sent')->body($e->getMessage())->send();
+
+                    return;
+                }
+
+                Notification::make()->success()->title('Email queued')->send();
             });
     }
 

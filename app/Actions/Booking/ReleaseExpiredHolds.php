@@ -6,15 +6,15 @@ namespace App\Actions\Booking;
 
 use App\Actions\Orders\OrderStateMachine;
 use App\Enums\OrderStatus;
-use App\Mail\TransferExpiredMail;
 use App\Models\BookingHold;
 use App\Models\Order;
+use App\Notifications\TransferExpired;
+use App\Support\Notifier;
 use App\Support\PageCache;
 use App\Support\Stripe\StripeGateway;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 use Stripe\Checkout\Session;
 use Throwable;
 
@@ -91,11 +91,8 @@ final class ReleaseExpiredHolds
 
                 if ($done) {
                     $expired++;
-                    $email = (string) $order->user->email;
-
-                    if ($email !== '' && ! str_ends_with($email, '.invalid')) {
-                        Mail::to($email)->queue(new TransferExpiredMail($order->refresh()));
-                    }
+                    $order->refresh();
+                    app(Notifier::class)->send($order->user, new TransferExpired($order), Notifier::key(TransferExpired::type(), $order, $order->user));
                 }
             });
 

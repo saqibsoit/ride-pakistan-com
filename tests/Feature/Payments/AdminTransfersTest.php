@@ -19,8 +19,6 @@ use App\Exceptions\BookingRejected;
 use App\Filament\Pages\VerifyTransfers;
 use App\Filament\Widgets\TransfersWaiting;
 use App\Http\Controllers\TransferProofController;
-use App\Mail\OrderPaidMail;
-use App\Mail\TransferRejectedMail;
 use App\Models\BankTransfer;
 use App\Models\Booking;
 use App\Models\BookingHold;
@@ -30,12 +28,14 @@ use App\Models\Product;
 use App\Models\Rider;
 use App\Models\Slot;
 use App\Models\User;
+use App\Notifications\OrderConfirmed;
+use App\Notifications\TransferRejected;
 use App\Support\TransferProofs;
 use Carbon\CarbonImmutable;
 use Filament\Actions\Testing\TestAction;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Livewire\Livewire;
@@ -66,7 +66,7 @@ function transferAdmin(): User
 
 beforeEach(function (): void {
     Storage::fake(TransferProofs::DISK);
-    Mail::fake();
+    Notification::fake();
 });
 
 it('approves through FulfilOrder exactly once and records the verifier', function (): void {
@@ -90,7 +90,7 @@ it('approves through FulfilOrder exactly once and records the verifier', functio
         ->and($transfer->verified_at)->not->toBeNull()
         ->and(Activity::query()->where('event', 'fulfilled')->where('subject_id', $order->id)->sole()->properties['bank_transfer_id'])->toBe($transfer->id);
 
-    Mail::assertQueued(OrderPaidMail::class, 1);
+    Notification::assertSentTimes(OrderConfirmed::class, 1);
 });
 
 it('approves from the Verify transfers page', function (): void {
@@ -139,7 +139,7 @@ it('rejects with a reason, releases the seats and emails the customer', function
         ->and($transfer->order->refresh()->status)->toBe(OrderStatus::Rejected)
         ->and($slot->refresh()->seatsFree())->toBe(6);
 
-    Mail::assertQueued(TransferRejectedMail::class, fn (TransferRejectedMail $m): bool => $m->hasTo($transfer->order->user->email) && $m->reason === 'No payment with this reference arrived');
+    Notification::assertSentTo($transfer->order->user, TransferRejected::class, fn (TransferRejected $n): bool => $n->reason === 'No payment with this reference arrived');
     expect(fn () => app(ApproveBankTransfer::class)->handle($transfer, transferAdmin()))->toThrow(BookingRejected::class);
 });
 

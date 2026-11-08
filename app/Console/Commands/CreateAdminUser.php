@@ -23,7 +23,7 @@ class CreateAdminUser extends Command
 {
     protected $signature = 'admin:create';
 
-    protected $description = 'Create a staff or admin user for the admin panel';
+    protected $description = 'Create a staff, trainer or admin user for the admin panel';
 
     public function handle(): int
     {
@@ -32,6 +32,7 @@ class CreateAdminUser extends Command
         $role = UserRole::from((string) select('Role', [
             UserRole::Admin->value => 'Admin (everything)',
             UserRole::Staff->value => 'Staff (slots and bookings, read only)',
+            UserRole::Trainer->value => 'Trainer (own sessions and run sheets only)',
         ], default: UserRole::Admin->value));
 
         $existing = User::query()->where('email', $email)->first();

@@ -27,6 +27,7 @@ class BookingsRelationManager extends RelationManager
                 TextColumn::make('rider.name')->label('Rider'),
                 TextColumn::make('user.name')->label('Booked by'),
                 TextColumn::make('status')->badge(),
+                TextColumn::make('horse.name')->label('Horse')->placeholder('—'),
                 TextColumn::make('order.reference')->label('Order')->placeholder('Credit or no charge'),
                 TextColumn::make('ticket_code')->label('Ticket'),
             ])

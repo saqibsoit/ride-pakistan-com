@@ -23,7 +23,7 @@ final class LogAuthActivity
 
     public function handleLogin(Login $event): void
     {
-        if (! $event->user instanceof User || ! $event->user->isTeamMember()) {
+        if (! $event->user instanceof User || ! $event->user->isPanelUser()) {
             return;
         }
 
@@ -37,7 +37,7 @@ final class LogAuthActivity
 
     public function handleLogout(Logout $event): void
     {
-        if (! $event->user instanceof User || ! $event->user->isTeamMember()) {
+        if (! $event->user instanceof User || ! $event->user->isPanelUser()) {
             return;
         }
 

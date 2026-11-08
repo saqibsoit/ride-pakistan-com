@@ -26,7 +26,7 @@ final class CreateManualSlot
     /**
      * @throws SlotNotCreated
      */
-    public function handle(CarbonImmutable $startsAt, CarbonImmutable $endsAt, int $capacity, ?User $actor = null, bool $privateOnly = false): Slot
+    public function handle(CarbonImmutable $startsAt, CarbonImmutable $endsAt, int $capacity, ?User $actor = null, bool $privateOnly = false, ?User $trainer = null): Slot
     {
         $startsAt = $startsAt->utc()->startOfMinute();
         $endsAt = $endsAt->utc()->startOfMinute();
@@ -39,12 +39,16 @@ final class CreateManualSlot
             throw SlotNotCreated::endsBeforeStart();
         }
 
+        if ($trainer !== null && ! $trainer->isTrainer()) {
+            throw SlotNotCreated::notATrainer();
+        }
+
         if ($capacity < self::MIN_CAPACITY || $capacity > self::MAX_CAPACITY) {
             throw SlotNotCreated::invalidCapacity(self::MIN_CAPACITY, self::MAX_CAPACITY);
         }
 
         try {
-            return DB::transaction(function () use ($startsAt, $endsAt, $capacity, $actor, $privateOnly): Slot {
+            return DB::transaction(function () use ($startsAt, $endsAt, $capacity, $actor, $privateOnly, $trainer): Slot {
                 $taken = Slot::query()->where('starts_at', $startsAt)->lockForUpdate()->exists();
 
                 if ($taken) {
@@ -57,6 +61,7 @@ final class CreateManualSlot
                     'ends_at' => $endsAt,
                     'capacity' => $capacity,
                     'private_only' => $privateOnly,
+                    'trainer_id' => $trainer?->id,
                 ]);
                 $slot->source = SlotSource::Manual;
                 $slot->save();
@@ -65,7 +70,7 @@ final class CreateManualSlot
                     ->performedOn($slot)
                     ->causedBy($actor)
                     ->event('created_manual')
-                    ->withProperties(['starts_at' => $startsAt->toIso8601String(), 'ends_at' => $endsAt->toIso8601String(), 'capacity' => $capacity, 'private_only' => $privateOnly])
+                    ->withProperties(['starts_at' => $startsAt->toIso8601String(), 'ends_at' => $endsAt->toIso8601String(), 'capacity' => $capacity, 'private_only' => $privateOnly, 'trainer_id' => $trainer?->id])
                     ->log('Manual slot added: '.$slot->label());
 
                 return $slot;

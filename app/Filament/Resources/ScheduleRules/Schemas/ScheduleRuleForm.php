@@ -6,6 +6,7 @@ namespace App\Filament\Resources\ScheduleRules\Schemas;
 
 use App\Actions\Slots\PreviewScheduleRule;
 use App\Enums\SettingKey;
+use App\Filament\Support\TrainerOptions;
 use App\Models\ScheduleRule;
 use App\Support\Settings;
 use Filament\Forms\Components\DatePicker;
@@ -39,6 +40,10 @@ class ScheduleRuleForm
                     ->helperText('Optional. For seasonal times: e.g. summer times from 1 April, with the winter rule ending 31 March.'),
                 DatePicker::make('valid_to')->label('Until date')->afterOrEqual('valid_from')->live(),
                 Toggle::make('is_active')->label('Active')->default(true)->live(),
+                Select::make('trainer_id')->label('Trainer')
+                    ->options(fn (): array => TrainerOptions::all())
+                    ->placeholder('Nobody yet')
+                    ->helperText('Runs the sessions this rule creates and sees them on the run sheet. Changing it updates future sessions that had the previous trainer; sessions given another trainer keep theirs.'),
 
                 Section::make('Preview')
                     ->description('What saving this rule will do to the bookable slots. Nothing changes until you save.')

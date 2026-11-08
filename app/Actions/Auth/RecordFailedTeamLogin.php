@@ -30,7 +30,7 @@ final class RecordFailedTeamLogin
     /** @return bool whether the alert was sent */
     public function handle(User $user, string $kind, ?string $ip, ?string $userAgent, ?CarbonImmutable $now = null): bool
     {
-        if (! $user->isTeamMember()) {
+        if (! $user->isPanelUser()) {
             return false;
         }
 

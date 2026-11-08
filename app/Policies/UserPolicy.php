@@ -63,7 +63,7 @@ final class UserPolicy
     /** "Delete my account": customers only; team accounts are removed by an admin. */
     public function deleteAccount(User $user, User $model): bool
     {
-        return $user->is($model) && ! $user->isTeamMember();
+        return $user->is($model) && ! $user->isPanelUser();
     }
 
     public function deleteAny(User $user): bool

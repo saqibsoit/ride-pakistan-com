@@ -21,7 +21,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 /**
- * Customers and staff (PLAN §5). Staff and admins must use app-based
+ * Customers, trainers and staff (PLAN §5). Staff, trainers and admins must use app-based
  * multi-factor authentication to enter the admin panel.
  *
  * @property int $id
@@ -127,8 +127,22 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
         return $this->role === UserRole::Staff;
     }
 
-    /** Staff or admin. */
+    public function isTrainer(): bool
+    {
+        return $this->role === UserRole::Trainer;
+    }
+
+    /**
+     * Staff or admin: the office team. Trainers are deliberately not team
+     * members; they only work their own sessions (milestone 10b).
+     */
     public function isTeamMember(): bool
+    {
+        return $this->role->isTeamMember();
+    }
+
+    /** Anyone who signs in at the admin panel with MFA: staff, admin or trainer. */
+    public function isPanelUser(): bool
     {
         return $this->role->canAccessPanel();
     }

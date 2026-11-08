@@ -90,7 +90,7 @@ final class VerifyLoginCode
         $user = User::withTrashed()->where('email', $email)->lockForUpdate()->first();
 
         // Defence in depth: RequestLoginCode never sends these a code.
-        if ($user !== null && ($user->isTeamMember() || $user->isAnonymised())) {
+        if ($user !== null && ($user->isPanelUser() || $user->isAnonymised())) {
             return new LoginCodeRejected(LoginCodeFailure::Expired);
         }
 

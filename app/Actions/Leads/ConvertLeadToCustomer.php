@@ -47,7 +47,7 @@ final class ConvertLeadToCustomer
                 $created = true;
             }
 
-            if ($user->isTeamMember() || $user->trashed() || $user->isAnonymised()) {
+            if ($user->isPanelUser() || $user->trashed() || $user->isAnonymised()) {
                 throw ValidationException::withMessages(['user' => 'Leads can only be linked to an active customer account.']);
             }
 

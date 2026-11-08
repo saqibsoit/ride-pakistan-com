@@ -139,15 +139,15 @@ it('replaces earlier codes when a new one is requested', function (): void {
         ->and(LoginCode::query()->whereNull('consumed_at')->count())->toBe(0);
 });
 
-it('never sends a code to staff or admins, whose sign-in needs MFA', function (string $role): void {
-    $user = $role === 'admin' ? User::factory()->admin()->create() : User::factory()->staff()->create();
+it('never sends a code to staff, trainers or admins, whose sign-in needs MFA', function (string $role): void {
+    $user = User::factory()->{$role}()->create();
 
     $sent = app(RequestLoginCode::class)->handle($user->email);
 
     expect($sent)->toBeFalse()
         ->and(LoginCode::query()->count())->toBe(0);
     Mail::assertNothingSent();
-})->with(['admin', 'staff']);
+})->with(['admin', 'staff', 'trainer']);
 
 it('refuses a team account even with a valid code row', function (): void {
     $admin = User::factory()->admin()->create();

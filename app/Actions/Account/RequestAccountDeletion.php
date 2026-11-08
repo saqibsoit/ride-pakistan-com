@@ -64,7 +64,7 @@ final class RequestAccountDeletion
     {
         $blockers = [];
 
-        if ($user->isTeamMember()) {
+        if ($user->isPanelUser()) {
             $blockers[] = 'Team accounts are removed by an admin.';
         }
 

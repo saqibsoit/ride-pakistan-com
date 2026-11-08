@@ -43,7 +43,7 @@ class CustomerForm
                         ->options(UserRole::class)
                         ->required()
                         ->selectablePlaceholder(false)
-                        ->helperText('Staff and admins must set up an authenticator app at their next sign-in.')
+                        ->helperText('Staff, trainers and admins must set up an authenticator app at their next sign-in. Trainers see only the sessions assigned to them.')
                         ->disabled(fn (?User $record): bool => ! self::canChangeRole($record))
                         ->dehydrated(fn (?User $record): bool => self::canChangeRole($record)),
                 ]),

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Slots;
 
+use App\Actions\Slots\AssignSlotTrainer;
 use App\Actions\Slots\ChangeSlotStatus;
 use App\Actions\Slots\CreateManualSlot;
 use App\Actions\Slots\UpdateManualSlot;
@@ -11,11 +12,13 @@ use App\Enums\SlotStatus;
 use App\Exceptions\InvalidStatusTransition;
 use App\Exceptions\SlotNotCreated;
 use App\Exceptions\SlotNotUpdated;
+use App\Filament\Support\TrainerOptions;
 use App\Models\Slot;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\TimePicker;
@@ -35,7 +38,44 @@ final class SlotStatusActions
      */
     public static function all(): array
     {
-        return [self::editManual(), self::close(), self::reopen(), self::cancel()];
+        return [self::runSheet(), self::assignTrainer(), self::editManual(), self::close(), self::reopen(), self::cancel()];
+    }
+
+    /** The mobile run sheet for this session (milestone 10b). */
+    public static function runSheet(): Action
+    {
+        return Action::make('runSheet')
+            ->label('Run sheet')
+            ->icon(Heroicon::OutlinedClipboardDocumentList)
+            ->visible(fn (Slot $record): bool => self::user()?->can('viewRunSheet', $record) === true)
+            ->url(fn (Slot $record): string => route('team.sessions.show', $record))
+            ->openUrlInNewTab();
+    }
+
+    /** Who runs this session (AssignSlotTrainer); overrides the rule's trainer. */
+    public static function assignTrainer(): Action
+    {
+        return Action::make('assignTrainer')
+            ->label('Trainer')
+            ->icon(Heroicon::OutlinedUser)
+            ->visible(fn (Slot $record): bool => self::user()?->can('assignTrainer', $record) === true && $record->status !== SlotStatus::Cancelled)
+            ->modalHeading('Who runs this session?')
+            ->modalDescription('Only this trainer sees the session and its riders on the run sheet. A later change to the rule\'s trainer leaves this choice alone.')
+            ->fillForm(fn (Slot $record): array => ['trainer_id' => $record->trainer_id])
+            ->schema([
+                Select::make('trainer_id')->label('Trainer')
+                    ->options(fn (): array => TrainerOptions::all())
+                    ->placeholder('Nobody'),
+            ])
+            ->action(function (Slot $record, array $data, AssignSlotTrainer $assign): void {
+                $user = self::user();
+                abort_unless($user?->can('assignTrainer', $record) === true, 403);
+
+                $trainer = filled($data['trainer_id'] ?? null) ? User::query()->find((int) $data['trainer_id']) : null;
+                $assign->handle($record, $trainer, $user);
+
+                Notification::make()->success()->title($trainer === null ? 'No trainer set' : 'Trainer: '.$trainer->displayName())->send();
+            });
     }
 
     /** Edit a manual slot (UpdateManualSlot): time while empty, capacity, private-only. */

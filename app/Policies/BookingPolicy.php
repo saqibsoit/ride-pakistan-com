@@ -10,7 +10,8 @@ use App\Models\User;
 
 /**
  * Staff and admins read bookings (check-in arrives in milestone 8);
- * customers see their own. Bookings are created only by fulfilment.
+ * trainers work the bookings of their own slots from the run sheet
+ * (milestone 10b); customers see their own. Bookings are created only by fulfilment.
  */
 final class BookingPolicy
 {
@@ -42,6 +43,26 @@ final class BookingPolicy
             && $booking->slot->starts_at->isFuture();
     }
 
+    /**
+     * Run sheet and gate work (milestone 10b): check in or mark no-show,
+     * assign a horse, write the session note. The office team for every
+     * booking; a trainer only for bookings in their own slots.
+     */
+    public function checkIn(User $user, Booking $booking): bool
+    {
+        return $this->worksSession($user, $booking);
+    }
+
+    public function assignHorse(User $user, Booking $booking): bool
+    {
+        return $this->worksSession($user, $booking) && $booking->status !== BookingStatus::Cancelled;
+    }
+
+    public function writeNote(User $user, Booking $booking): bool
+    {
+        return $this->worksSession($user, $booking) && $booking->status !== BookingStatus::Cancelled;
+    }
+
     /** Admin booking tools: manual bookings, moves, cancellations, attendance. */
     public function manage(User $user): bool
     {
@@ -61,5 +82,10 @@ final class BookingPolicy
     public function deleteAny(User $user): bool
     {
         return false;
+    }
+
+    private function worksSession(User $user, Booking $booking): bool
+    {
+        return $user->isTeamMember() || ($user->isTrainer() && $booking->slot->trainer_id === $user->id);
     }
 }

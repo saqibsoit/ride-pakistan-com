@@ -24,6 +24,11 @@ final class SlotNotCreated extends DomainException
         return new self(sprintf('Capacity must be between %d and %d riders.', $min, $max));
     }
 
+    public static function notATrainer(): self
+    {
+        return new self('Only a trainer account can run a session.');
+    }
+
     public static function startTaken(string $label): self
     {
         return new self(sprintf('A slot already starts at %s.', $label));

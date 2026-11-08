@@ -13,6 +13,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Gate;
 use Spatie\Activitylog\Models\Activity;
 
 /**
@@ -29,6 +30,8 @@ final class CheckInController extends Controller
         if ($booking === null) {
             return response()->view('checkin.not-found', ['code' => $code], 404);
         }
+
+        Gate::authorize('checkIn', $booking);
 
         $lastChange = Activity::query()
             ->where('subject_type', $booking->getMorphClass())
@@ -52,6 +55,7 @@ final class CheckInController extends Controller
     {
         $booking = $this->find($code);
         abort_if($booking === null, 404);
+        Gate::authorize('checkIn', $booking);
 
         $to = BookingStatus::tryFrom((string) $request->input('status'));
 

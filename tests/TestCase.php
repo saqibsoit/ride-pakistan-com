@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Tests;
 
+use App\Support\Stripe\StripeGateway;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use RuntimeException;
+use Tests\Support\FakeStripeGateway;
 
 abstract class TestCase extends BaseTestCase
 {
@@ -31,6 +33,20 @@ abstract class TestCase extends BaseTestCase
             ));
         }
 
+        // Never talk to the real Stripe from tests (even with keys in .env).
+        $app->instance(StripeGateway::class, new FakeStripeGateway);
+
         return $app;
+    }
+
+    protected function stripe(): FakeStripeGateway
+    {
+        $gateway = $this->app?->make(StripeGateway::class);
+
+        if (! $gateway instanceof FakeStripeGateway) {
+            throw new RuntimeException('The fake Stripe gateway is not bound.');
+        }
+
+        return $gateway;
     }
 }

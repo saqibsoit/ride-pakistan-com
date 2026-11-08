@@ -26,6 +26,7 @@ use App\Http\Controllers\Public\PriceController;
 use App\Http\Controllers\Public\ScheduleController;
 use App\Http\Controllers\Public\SeoFileController;
 use App\Http\Controllers\Public\SessionController;
+use App\Http\Controllers\StripeWebhookController;
 use Illuminate\Support\Facades\Route;
 use Spatie\ResponseCache\Middlewares\CacheResponse;
 
@@ -58,9 +59,18 @@ Route::middleware(CacheResponse::class)->group(function (): void {
 // Booking flow (Livewire, per-visitor state): never response-cached.
 Route::get('/book', BookController::class)->middleware('cache.headers:private;no_store')->name('book');
 
-Route::get('/checkout/{reference}', [CheckoutController::class, 'show'])
-    ->middleware(['auth', 'cache.headers:private;no_store'])
-    ->name('checkout.show');
+Route::middleware(['auth', 'cache.headers:private;no_store'])->prefix('checkout/{reference}')->name('checkout.')->group(function (): void {
+    Route::get('/', [CheckoutController::class, 'show'])->name('show');
+    Route::post('/card', [CheckoutController::class, 'card'])->middleware('throttle:checkout')->name('card');
+    Route::get('/status', [CheckoutController::class, 'status'])->name('status');
+});
+
+// Stripe webhooks (PLAN §3.1): signature-verified, CSRF-exempt (bootstrap/app.php),
+// no session or cookies, rate limited.
+Route::post('/webhooks/stripe', StripeWebhookController::class)
+    ->withoutMiddleware(['web'])
+    ->middleware('throttle:stripe-webhook')
+    ->name('webhooks.stripe');
 
 // Served from the generated file, which a queued job rewrites after the
 // page cache has been cleared, so it is never response-cached.

@@ -41,6 +41,10 @@ return [
         'key' => env('STRIPE_KEY'),
         'secret' => env('STRIPE_SECRET'),
         'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
+        // Card statements show "<account prefix>* <suffix>" (22 characters
+        // in total). The full "Ride Pakistan by Destination Pakistan" line
+        // goes on the Checkout page and the receipt email.
+        'statement_descriptor_suffix' => env('STRIPE_STATEMENT_DESCRIPTOR_SUFFIX', 'RIDE PAKISTAN'),
     ],
 
     // Cloudflare Turnstile (bot check on public forms). Empty secret: the

@@ -11,7 +11,7 @@ namespace App\Support;
 final class Money
 {
     /** Minor units per major unit (100 paisa = 1 rupee). */
-    private const MINOR_PER_MAJOR = 100;
+    public const MINOR_PER_MAJOR = 100;
 
     /**
      * "PKR 10,000". Paisa are shown only when the amount isn't a whole rupee

@@ -9,8 +9,12 @@ use App\Enums\OrderStatus;
 use App\Models\BookingHold;
 use App\Models\Order;
 use App\Support\PageCache;
+use App\Support\Stripe\StripeGateway;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Stripe\Checkout\Session;
+use Throwable;
 
 /**
  * Every minute (holds:release). Card orders whose hold window passed
@@ -18,12 +22,17 @@ use Illuminate\Support\Facades\DB;
  * back. Expired holds already stop counting the moment they expire; this
  * tidies them up and refreshes the cached public pages. Holds on bank
  * transfer orders are handled by the transfer flow (milestone 7).
+ *
+ * An order with a Stripe Checkout Session has the session expired first,
+ * so the customer can't pay after the seats are gone. If Stripe says the
+ * session was already paid, the order is left for the webhook.
  */
 final class ReleaseExpiredHolds
 {
     public function __construct(
         private readonly OrderStateMachine $orders,
         private readonly PageCache $pageCache,
+        private readonly StripeGateway $stripe,
     ) {}
 
     /** @return int orders expired */
@@ -37,7 +46,11 @@ final class ReleaseExpiredHolds
             ->whereNotNull('expires_at')
             ->where('expires_at', '<=', $now)
             ->orderBy('id')
-            ->each(function (Order $order) use (&$expired): void {
+            ->each(function (Order $order) use (&$expired, $now): void {
+                if (! $this->closeStripeSession($order, $now)) {
+                    return;
+                }
+
                 DB::transaction(function () use ($order, &$expired): void {
                     $locked = Order::query()->whereKey($order->id)->lockForUpdate()->first();
 
@@ -63,5 +76,36 @@ final class ReleaseExpiredHolds
         }
 
         return $expired;
+    }
+
+    /** @return bool whether the order may be expired now */
+    private function closeStripeSession(Order $order, CarbonImmutable $now): bool
+    {
+        if ($order->stripe_checkout_session_id === null) {
+            return true;
+        }
+
+        try {
+            $session = $this->stripe->retrieveCheckoutSession($order->stripe_checkout_session_id);
+
+            if ($session->status === Session::STATUS_COMPLETE) {
+                return false; // paid: the webhook fulfils (or refunds) it
+            }
+
+            if ($session->status === Session::STATUS_OPEN) {
+                $this->stripe->expireCheckoutSession($session->id);
+            }
+
+            return true;
+        } catch (Throwable $e) {
+            // Sessions never outlive 24 hours, so past that it is safe anyway.
+            if ($order->expires_at !== null && $order->expires_at->addDay()->isBefore($now)) {
+                return true;
+            }
+
+            Log::warning('Could not close the Stripe session for order '.$order->reference.'; retrying next run', ['error' => $e->getMessage()]);
+
+            return false;
+        }
     }
 }

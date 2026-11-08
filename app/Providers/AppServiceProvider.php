@@ -12,6 +12,8 @@ use App\Policies\ActivityPolicy;
 use App\Support\BusinessFacts;
 use App\Support\PageCache;
 use App\Support\Settings;
+use App\Support\Stripe\StripeClientGateway;
+use App\Support\Stripe\StripeGateway;
 use Closure;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -47,6 +49,11 @@ class AppServiceProvider extends ServiceProvider
         // One-time sign-in codes go by email; a phone/WhatsApp channel
         // can replace or sit beside this binding later.
         $this->app->bind(LoginCodeChannel::class, EmailLoginCodeChannel::class);
+
+        $this->app->singleton(StripeGateway::class, fn (): StripeGateway => new StripeClientGateway(
+            secret: (string) config('services.stripe.secret'),
+            webhookSecret: (string) config('services.stripe.webhook_secret'),
+        ));
     }
 
     /**
@@ -78,6 +85,14 @@ class AppServiceProvider extends ServiceProvider
         // "Download my data": a few per hour is plenty.
         RateLimiter::for('account-export', fn (Request $request): Limit => Limit::perHour(5)
             ->by('account-export:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
+
+        // Starting card payment calls Stripe: enough for retries, not a loop.
+        RateLimiter::for('checkout', fn (Request $request): Limit => Limit::perMinute(10)
+            ->by('checkout:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
+
+        // Stripe sends bursts on retries; anything far above this is not Stripe.
+        RateLimiter::for('stripe-webhook', fn (Request $request): Limit => Limit::perMinute(300)
+            ->by('stripe-webhook:'.$request->ip()));
 
         // Every new sign-in (customer code or admin panel) records the
         // account's session version for "sign out everywhere".

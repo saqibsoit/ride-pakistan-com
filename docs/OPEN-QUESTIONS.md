@@ -105,10 +105,19 @@ Defaults chosen while building sign-in and the account area. Settings can be cha
 | # | Question | Current placeholder | Where it is used | Status |
 |---|---|---|---|---|
 | 9.1 | Until when can a slot be booked? | **Until it starts** (setting `booking.min_notice_hours` = 0) | `/book`, `/schedule`, product pages. Raise it on the Settings page to stop last-minute bookings. | Confirm |
-| 9.2 | How long are seats held while a customer pays by card? | **30 minutes** (setting `booking.card_hold_minutes`, from PLAN §3.1) | `/book` review ("We hold your seats for 30 minutes"), `/checkout/{reference}`. | Confirmed in PLAN |
+| 9.2 | How long are seats held while a customer pays by card? | **30 minutes** (setting `booking.card_hold_minutes`, from PLAN §3.1). Starting card payment extends the hold to at least 31 minutes from that moment, because a Stripe session stays open for at least 30. | `/book` review ("We hold your seats for 30 minutes"), `/checkout/{reference}`. | Confirmed in PLAN |
 | 9.3 | Can customers change bookings they paid for directly (single or private)? | **No.** Only credit bookings can be moved or cancelled by the customer; paid bookings show "contact us" and an admin changes them. | `/account/bookings`. Linked to 1.3 (cutoff) and 1.4 (refund policy). | Decided (milestone 5) |
 | 9.4 | Should the schedule have a trainer filter? | **Hidden.** Slots don't record a trainer and there is one trainer, so the filter appears only once there are more. | `/schedule`. | Confirm |
 | 9.5 | Free ("no charge") admin bookings: who may give them, and should they be limited? | **Any admin, with a required reason** (logged). | Admin → Bookings → Manual booking. | Confirm |
+
+## 10. Card payments (milestone 6)
+
+| # | Question | Current placeholder | Where it is used | Status |
+|---|---|---|---|---|
+| 10.1 | What should card statements show? | Account descriptor (set in the Stripe dashboard under Settings → Public details) + suffix **`RIDE PAKISTAN`** (`STRIPE_STATEMENT_DESCRIPTOR_SUFFIX`). Stripe allows 22 characters in total, so "Ride Pakistan by Destination Pakistan" can't fit; it appears on the Stripe checkout page, the checkout page and the receipt instead. Please check the dashboard prefix (e.g. `DESTPAK`). | Every card charge. | Confirm |
+| 10.2 | Should Stripe also send its own receipt email? | **Our "Payment received" email only.** Stripe's receipts are an account setting (Settings → Customer emails). | Customer inbox. | Confirm |
+| 10.3 | Refund policy text (1.4) is still empty. Stripe expects a published refund policy before live card payments. | **Empty** | `/refund-policy` (unpublished). Blocks going live with card payments. | Open decision |
+| 10.4 | When a refund is made, what happens to bookings and credits? | **Full refund:** upcoming bookings cancelled, unused credits voided. **Partial:** the admin chooses. Refunds made in the Stripe dashboard change the money only and flag the order for review. | Admin → Orders → Refund. | Decided (milestone 6) |
 
 ## Confirmed in PLAN (no action needed)
 

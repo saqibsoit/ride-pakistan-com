@@ -1,4 +1,4 @@
-{{-- /checkout/{reference}: order summary and seat hold. Payment methods arrive with Stripe and bank transfer. --}}
+{{-- /checkout/{reference}: order summary, seat hold and payment options (card now; bank transfer in milestone 7). --}}
 @php
     $tz = config('app.display_timezone');
     $isUnpaid = $order->status->isUnpaid();
@@ -45,10 +45,41 @@
                 </div>
             </dl>
 
-            @if ($isUnpaid)
+            @if (session('checkout_error'))
+                <x-alert variant="error" title="Card payment didn't start.">{{ session('checkout_error') }}</x-alert>
+            @endif
+
+            @if ($order->status === \App\Enums\OrderStatus::PendingPayment)
+                <section aria-labelledby="pay-title" class="flex flex-col gap-5">
+                    <h2 id="pay-title" class="text-display-xs">How would you like to pay?</h2>
+
+                    @if ($cardFailed)
+                        <x-alert variant="warning" title="Your card payment didn't go through.">Your {{ $order->product->type === \App\Enums\ProductType::Private ? 'slot is' : 'seats are' }} still held. Try a card again, or pay by bank transfer with the same reference.</x-alert>
+                    @endif
+
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <form method="POST" action="{{ route('checkout.card', $order->reference) }}" class="flex flex-col gap-3 rounded-sm border border-line-strong p-6">
+                            @csrf
+                            <h3 class="font-semibold">Pay by card</h3>
+                            <p class="text-sm text-sand-dim">Secure payment on Stripe's checkout page, in Pakistani rupees. Your booking is confirmed as soon as the payment clears.</p>
+                            <x-button type="submit">{{ $cardFailed ? 'Try card again' : 'Pay by card' }}</x-button>
+                        </form>
+
+                        <div class="flex flex-col gap-3 rounded-sm border border-line-strong p-6">
+                            <h3 class="font-semibold">Pay by bank transfer</h3>
+                            <p class="text-sm text-sand-dim">Transfer to our bank account using your reference <strong class="text-sand">{{ $order->reference }}</strong>, then upload the screenshot. We confirm once we've checked it.</p>
+                            <p class="text-sm text-sand-dim" id="transfer-soon">Bank transfer checkout opens here very soon. Until then, message us with your reference.</p>
+                            <x-button variant="ghost" disabled aria-disabled="true" aria-describedby="transfer-soon">Pay by bank transfer</x-button>
+                        </div>
+                    </div>
+
+                    <p class="text-sm text-sand-dim">Some Pakistani bank cards block international online payments. If your card is declined, ask your bank to allow it, or pay by bank transfer instead.</p>
+                    <p class="text-sm text-sand-dim">Payments go to {{ \App\Actions\Payments\CreateStripeCheckout::BRAND_LINE }}.</p>
+                </section>
+            @elseif ($isUnpaid)
                 <section aria-labelledby="pay-title" class="flex flex-col gap-3">
                     <h2 id="pay-title" class="text-display-xs">Payment</h2>
-                    <p class="text-sand-dim">Card and bank transfer payment will be available on this page shortly. Use your order reference <strong class="text-sand">{{ $order->reference }}</strong> if you contact us.</p>
+                    <p class="text-sand-dim">We're waiting for your bank transfer. Use your order reference <strong class="text-sand">{{ $order->reference }}</strong> if you contact us.</p>
                 </section>
             @endif
 

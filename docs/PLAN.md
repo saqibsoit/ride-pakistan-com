@@ -56,6 +56,13 @@ Currency is PKR everywhere. Store money as integers in minor units (paisa) in `a
 4. On success: order `paid`, holds converted to confirmed bookings, credits granted for packages, ticket issued, emails sent. All in one DB transaction, idempotent on the Stripe event id.
 5. On failure or abandonment: show the bank transfer option for the same order and reference.
 
+Card payment rules (milestone 6):
+- `stripe:check` (test keys only) confirms the account can create PKR Checkout Sessions. Stripe calls go through `App\Support\Stripe\StripeGateway`.
+- "Pay by card" (`CreateStripeCheckout`) builds line items from the order's items, never from the request. Because Stripe keeps a session open for at least 30 minutes, it extends the order's and holds' expiry to now + max(`booking.card_hold_minutes`, 31 min); the session expires at exactly that time. An open session is reused; an expired one is replaced (idempotency key `checkout:{order}:{attempt}`).
+- A failed (`async_payment_failed`) or expired session does **not** end the order: while its hold lasts it stays `pending_payment` with its seats, and the customer can try a card again or pay by bank transfer under the same reference. Only `holds:release` expires it. Before doing so it expires any open Stripe session, and it leaves the order alone if Stripe reports the session as complete (the webhook handles it).
+- The webhook resolves the order from `client_reference_id` and checks `metadata.reference`, amount and currency. A mismatch is never fulfilled: it raises a critical log, an audit entry and a "Needs review" flag on the order. A payment that can no longer be fulfilled (order expired or cancelled, slot full) is refunded automatically and flagged.
+- A paid order queues a "Payment received" receipt ("Ride Pakistan by Destination Pakistan") after commit (`OrderPaid` event). Card statements show the account's dashboard descriptor plus the suffix `STRIPE_STATEMENT_DESCRIPTOR_SUFFIX` [RIDE PAKISTAN].
+
 ### 3.2 Bank transfer (manual verification)
 1. Customer selects bank transfer. Order status `awaiting_transfer`. Seats held for the bank transfer hold window.
 2. Page shows Destination Pakistan bank details and the order reference to use as the payment reference.
@@ -74,6 +81,8 @@ Bank details (settings, not hard-coded; defaults come from `BANK_*` in `.env`, n
 `paid → refunded (partial | full)` (statuses `partially_refunded` and `refunded`; a partially refunded order can be refunded again)
 "Any unpaid" means `pending_payment`, `awaiting_transfer` and `awaiting_verification`. `rejected`, `expired`, `cancelled` and `refunded` are final.
 Every transition is written to an audit log with actor, timestamp and reason.
+
+Refunds (milestone 6, card orders): admins refund from the order page (`RefundOrder`, Stripe API, reason required, never more than is left). A **full** refund cancels every upcoming booking the order paid for, directly or through its credit pack, and voids the pack's unused credits (pack `revoked`, ledger "adjusted"). A **partial** refund cancels only the bookings the admin picks and removes the number of unused credits the admin enters (0 or more); a cancelled booking's credit is not returned. `charge.refunded` records refunds not already recorded (made in the Stripe dashboard). These change the money and status only, and the order is flagged for review.
 
 ## 4. Tech stack
 
@@ -144,7 +153,7 @@ Customer (auth, not cached, `Cache-Control: no-store, private`, noindex):
 - `/account` dashboard (next session, credits left with expiry), `/account/bookings` (credit bookings: `/account/bookings/{ticket}/reschedule` and `/cancel`), `/account/tickets` and `/account/tickets/{code}`, `/account/credits`, `/account/orders` and `/account/orders/{reference}` (printable receipt), `/account/riders` (Livewire), `/account/profile`, `/account/privacy` (download my data, sign out everywhere, delete my account)
 
 Payment:
-- `/checkout/{reference}` order summary and seat hold (milestone 5); choose method (milestones 6–7), `/checkout/{reference}/transfer` bank details + upload, `/checkout/{reference}/status`
+- `/checkout/{reference}` order summary and seat hold (milestone 5); choose method (milestones 6–7): `POST /checkout/{reference}/card` (rate limited) hands over to Stripe Checkout, `/checkout/{reference}/transfer` bank details + upload (milestone 7), `/checkout/{reference}/status` (Livewire, polls every 3 s for up to 2 min; read-only)
 - `POST /webhooks/stripe` (CSRF-exempt, signature-verified, rate limited)
 
 Staff:

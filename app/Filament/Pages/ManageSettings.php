@@ -45,6 +45,7 @@ class ManageSettings extends Page
         'booking' => 'Booking rules',
         'policies' => 'Policies',
         'bank' => 'Bank transfer details',
+        'leads' => 'Leads',
         'privacy' => 'Privacy and data retention',
         'seo' => 'Search engines',
     ];

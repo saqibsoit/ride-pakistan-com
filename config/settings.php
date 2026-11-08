@@ -71,6 +71,8 @@ return [
         // Privacy: account deletion (PLAN §7). Deleted accounts are
         // anonymised after the grace period, unless they have a paid order
         // younger than the retention period (records kept for tax).
+        'leads.follow_up_days' => 2,
+
         'privacy.deletion_grace_days' => 30,
         'privacy.order_retention_years' => 6,
         'privacy.transfer_proof_retention_days' => 90,

@@ -41,12 +41,31 @@ use Illuminate\Support\Facades\URL;
 use Livewire\Livewire;
 use Spatie\Activitylog\Models\Activity;
 
+/**
+ * Minutes added to the next transfer's slot time (4 days ahead).
+ * Counts up from 1 in call order and is reset before every test, so no
+ * two slots in a test share a start time (slots.starts_at is unique).
+ * Replaces a random value that could repeat.
+ */
+function atSlotMinute(bool $reset = false): int
+{
+    static $n = 0;
+
+    if ($reset) {
+        $n = 0;
+
+        return $n;
+    }
+
+    return ++$n;
+}
+
 /** An order with a transfer proof uploaded, waiting for review. */
 function uploadedTransfer(int $riders = 2): BankTransfer
 {
     $user = User::factory()->create();
     $riderIds = array_values(array_map('intval', Rider::factory()->count($riders)->for($user)->create()->modelKeys()));
-    $slot = Slot::factory()->at(CarbonImmutable::now()->addDays(4)->addMinutes(random_int(1, 50_000)))->create(['capacity' => 6]);
+    $slot = Slot::factory()->at(CarbonImmutable::now()->addDays(4)->addMinutes(atSlotMinute()))->create(['capacity' => 6]);
     $order = app(CreateOrder::class)->handle($user, Product::factory()->create(['price_minor' => 1_000_000]), $slot->id, $riderIds);
     app(ChooseBankTransfer::class)->handle($order);
 
@@ -65,6 +84,7 @@ function transferAdmin(): User
 }
 
 beforeEach(function (): void {
+    atSlotMinute(reset: true);
     Storage::fake(TransferProofs::DISK);
     Notification::fake();
 });

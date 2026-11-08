@@ -28,6 +28,25 @@ use App\Models\Voucher;
 use Illuminate\Support\Facades\Notification;
 use Spatie\Activitylog\Models\Activity;
 
+/**
+ * Days ahead for the next order's slot.
+ * Counts up from 3 in call order and is reset before every test, so no
+ * two slots in a test share a start time (slots.starts_at is unique).
+ * Replaces a random value that could repeat.
+ */
+function dcSlotDay(bool $reset = false): int
+{
+    static $n = 2;
+
+    if ($reset) {
+        $n = 2;
+
+        return $n;
+    }
+
+    return ++$n;
+}
+
 /** A pending single-session order for $riders riders at PKR $pricePkr each. */
 function dcOrder(int $pricePkr = 10_000, int $riders = 1, ?User $user = null, ?Product $product = null): Order
 {
@@ -35,7 +54,7 @@ function dcOrder(int $pricePkr = 10_000, int $riders = 1, ?User $user = null, ?P
     $product ??= Product::factory()->create(['price_minor' => $pricePkr * 100]);
     $riderIds = array_map('intval', Rider::factory()->count($riders)->for($user)->create()->modelKeys());
 
-    return app(CreateOrder::class)->handle($user, $product, nearSlot(random_int(3, 40), 8, ['capacity' => 6])->id, $riderIds);
+    return app(CreateOrder::class)->handle($user, $product, nearSlot(dcSlotDay(), 8, ['capacity' => 6])->id, $riderIds);
 }
 
 function dcCredit(User $user, int $pkr): void
@@ -50,6 +69,7 @@ function dcLines(Order $order): array
 }
 
 beforeEach(function (): void {
+    dcSlotDay(reset: true);
     Notification::fake();
 });
 

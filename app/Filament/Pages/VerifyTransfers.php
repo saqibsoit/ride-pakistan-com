@@ -134,8 +134,8 @@ class VerifyTransfers extends Page implements HasTable
                 return view('filament.transfers.proof', [
                     'order' => $record,
                     'transfer' => $transfer,
-                    'url' => $transfer === null ? null : TransferProofController::signedUrl($transfer),
-                    'pdf' => $transfer !== null && TransferProofs::isPdf($transfer->screenshot_path),
+                    'url' => $transfer?->screenshot_path === null ? null : TransferProofController::signedUrl($transfer),
+                    'pdf' => $transfer?->screenshot_path !== null && TransferProofs::isPdf($transfer->screenshot_path),
                 ]);
             })
             ->modalSubmitAction(false)

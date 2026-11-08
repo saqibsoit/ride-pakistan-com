@@ -28,7 +28,8 @@ final class TransferProofController extends Controller
         $path = $transfer->screenshot_path;
         $disk = $proofs->disk();
 
-        abort_unless($disk->exists($path), 404);
+        // Deleted after the retention period (the record itself is kept).
+        abort_if($path === null || ! $disk->exists($path), 404);
 
         $pdf = TransferProofs::isPdf($path);
         $extension = pathinfo($path, PATHINFO_EXTENSION);

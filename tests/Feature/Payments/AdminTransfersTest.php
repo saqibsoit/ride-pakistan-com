@@ -6,12 +6,15 @@ use App\Actions\Booking\CreateOrder;
 use App\Actions\Payments\ApproveBankTransfer;
 use App\Actions\Payments\ChooseBankTransfer;
 use App\Actions\Payments\ExtendTransferHold;
+use App\Actions\Payments\PruneTransferProofs;
 use App\Actions\Payments\RejectBankTransfer;
 use App\Actions\Payments\SubmitBankTransfer;
+use App\Actions\Settings\UpdateSettings;
 use App\Enums\BankTransferStatus;
 use App\Enums\BookingStatus;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentProvider;
+use App\Enums\SettingKey;
 use App\Exceptions\BookingRejected;
 use App\Filament\Pages\VerifyTransfers;
 use App\Filament\Widgets\TransfersWaiting;
@@ -30,6 +33,7 @@ use App\Models\User;
 use App\Support\TransferProofs;
 use Carbon\CarbonImmutable;
 use Filament\Actions\Testing\TestAction;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
@@ -262,4 +266,62 @@ it('never puts the proof path into the account data export', function (): void {
         ->post(route('account.privacy.export'))
         ->assertOk()
         ->assertDontSee($transfer->screenshot_path);
+});
+
+it('deletes only the screenshot 90 days after review and keeps the records', function (): void {
+    $approved = uploadedTransfer();
+    $rejected = uploadedTransfer();
+    $waiting = uploadedTransfer();
+    $admin = transferAdmin();
+
+    app(ApproveBankTransfer::class)->handle($approved, $admin);
+    app(RejectBankTransfer::class)->handle($rejected, $admin, 'No money arrived');
+
+    $files = [$approved->refresh()->screenshot_path, $rejected->refresh()->screenshot_path, $waiting->screenshot_path];
+    $disk = Storage::disk(TransferProofs::DISK);
+
+    $this->travel(89)->days();
+    expect(app(PruneTransferProofs::class)->handle())->toBe(0);
+
+    $this->travel(2)->days();
+    $this->artisan('transfers:prune-proofs')->expectsOutputToContain('Deleted 2 transfer proofs')->assertSuccessful();
+
+    $approved->refresh();
+    $rejected->refresh();
+
+    expect($disk->exists((string) $files[0]))->toBeFalse()
+        ->and($disk->exists((string) $files[1]))->toBeFalse()
+        ->and($disk->exists((string) $files[2]))->toBeTrue() // still waiting for review
+        ->and($approved->screenshot_path)->toBeNull()
+        ->and($approved->proof_deleted_at)->not->toBeNull()
+        // The record stays: who verified it and when, the transaction ID, the payment.
+        ->and($approved->status)->toBe(BankTransferStatus::Approved)
+        ->and($approved->verified_by)->toBe($admin->id)
+        ->and($approved->verified_at)->not->toBeNull()
+        ->and($approved->transaction_ref)->toBe('TXN-42')
+        ->and($rejected->rejection_reason)->toBe('No money arrived')
+        ->and(Payment::query()->where('order_id', $approved->order_id)->sole()->amount_minor)->toBe(2_000_000)
+        ->and($approved->order->reference)->toStartWith('RP-')
+        ->and(Activity::query()->where('event', 'transfer_proof_deleted')->count())->toBe(2);
+
+    // Running again changes nothing; the proof link now answers 404.
+    expect(app(PruneTransferProofs::class)->handle())->toBe(0);
+    $this->actingAs($admin)->get(TransferProofController::signedUrl($approved))->assertNotFound();
+});
+
+it('uses the retention setting', function (): void {
+    $transfer = uploadedTransfer();
+    app(ApproveBankTransfer::class)->handle($transfer, transferAdmin());
+    app(UpdateSettings::class)->handle([SettingKey::TransferProofRetentionDays->value => 30]);
+
+    $this->travel(31)->days();
+
+    expect(app(PruneTransferProofs::class)->handle())->toBe(1);
+});
+
+it('schedules the proof clean-up daily', function (): void {
+    $events = collect(app(Schedule::class)->events())
+        ->filter(fn ($e): bool => str_contains((string) $e->command, 'transfers:prune-proofs'));
+
+    expect($events)->toHaveCount(1);
 });

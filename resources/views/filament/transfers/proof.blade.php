@@ -10,7 +10,7 @@
     </dl>
 
     @if ($url === null)
-        <p>No proof uploaded yet.</p>
+        <p>{{ $transfer?->proof_deleted_at ? 'The file was deleted on '.$transfer->proof_deleted_at->setTimezone(config('app.display_timezone'))->format('j M Y').' (retention period). The transfer record is kept.' : 'No proof uploaded yet.' }}</p>
     @elseif ($pdf)
         <p>The proof is a PDF. <a href="{{ $url }}" class="font-medium underline" rel="noopener noreferrer">Download it</a> (link valid for {{ \App\Http\Controllers\TransferProofController::URL_MINUTES }} minutes).</p>
     @else

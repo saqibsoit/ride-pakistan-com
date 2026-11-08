@@ -28,7 +28,7 @@ class OrderInfolist
                     TextEntry::make('user.name')->label('Customer'),
                     TextEntry::make('user.email')->label('Email'),
                     TextEntry::make('product_name')->label('Product (as bought)'),
-                    TextEntry::make('amount_minor')->label('Amount')
+                    TextEntry::make('amount_minor')->label('Charged (after discounts)')
                         ->formatStateUsing(fn (Order $record): string => Money::format($record->amount_minor, $record->currency)),
                     TextEntry::make('amount_refunded_minor')->label('Refunded')
                         ->formatStateUsing(fn (Order $record): string => Money::format($record->amount_refunded_minor, $record->currency)),
@@ -42,6 +42,20 @@ class OrderInfolist
                         ->icon(Heroicon::OutlinedExclamationTriangle)
                         ->columnSpanFull()
                         ->visible(fn (Order $record): bool => isset($record->meta['needs_review'])),
+                ]),
+            // Milestone 10e Part B: subtotal and discount lines.
+            Section::make('Discounts')
+                ->visible(fn (Order $record): bool => $record->discounts()->exists())
+                ->schema([
+                    TextEntry::make('subtotal_minor')->label('Subtotal')
+                        ->formatStateUsing(fn (Order $record): string => Money::format($record->subtotal_minor, $record->currency)),
+                    TextEntry::make('discount_lines')
+                        ->label('Discounts')
+                        ->state(fn (Order $record): array => $record->discounts()->get()
+                            ->map(fn ($line): string => $line->label.': − '.Money::format($line->amount_minor, $record->currency))
+                            ->all())
+                        ->listWithLineBreaks()
+                        ->bulleted(),
                 ]),
             Section::make('Status history')
                 ->schema([

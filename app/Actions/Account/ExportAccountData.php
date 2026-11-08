@@ -58,13 +58,15 @@ final class ExportAccountData
                 'emergency_contact_phone' => $rider->emergency_contact_phone,
                 'notes' => $rider->notes,
             ])->all(),
-            'orders' => $user->orders()->with(['product', 'items.slot', 'payments', 'bankTransfers'])->orderBy('id')->get()
+            'orders' => $user->orders()->with(['product', 'items.slot', 'payments', 'bankTransfers', 'discounts'])->orderBy('id')->get()
                 ->map(fn (Order $order): array => [
                     'reference' => $order->reference,
                     'product' => $order->productName(),
                     'status' => $order->status->label(),
                     'payment_method' => $order->payment_method?->value,
+                    'subtotal_minor' => $order->subtotal_minor,
                     'amount_minor' => $order->amount_minor,
+                    'discounts' => $order->discounts->map(fn ($line): array => ['kind' => $line->kind->value, 'label' => $line->label, 'amount_minor' => $line->amount_minor])->all(),
                     'amount_refunded_minor' => $order->amount_refunded_minor,
                     'currency' => $order->currency,
                     'created_at' => self::date($order->created_at),

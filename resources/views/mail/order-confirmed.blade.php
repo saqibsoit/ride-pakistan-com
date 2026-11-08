@@ -1,7 +1,9 @@
 <x-mail::message>
 # You're booked
 
-@if ($viaTransfer)
+@if ($order->payment_method === \App\Enums\PaymentMethod::Discounts)
+Your order **{{ $order->reference }}** is confirmed, paid with your gift voucher and/or account credit.
+@elseif ($viaTransfer)
 Your bank transfer for order **{{ $order->reference }}** has been checked and approved. Thank you.
 @else
 Thank you. We've received your payment for order **{{ $order->reference }}**.
@@ -10,7 +12,15 @@ Thank you. We've received your payment for order **{{ $order->reference }}**.
 <x-mail::table>
 | | |
 |:--|--:|
+@if ($order->discounts->isNotEmpty())
+| {{ $order->productName() }} | {{ \App\Support\Money::format($order->subtotal_minor, $order->currency) }} |
+@foreach ($order->discounts as $line)
+| {{ $line->label }} | − {{ \App\Support\Money::format($line->amount_minor, $order->currency) }} |
+@endforeach
+| **{{ $order->amount_minor === 0 ? 'Left to pay' : 'Paid' }}** | **{{ \App\Support\Money::format($order->amount_minor, $order->currency) }}** |
+@else
 | {{ $order->productName() }} | {{ \App\Support\Money::format($order->amount_minor, $order->currency) }} |
+@endif
 @if ($order->paid_at)
 | Paid (Pakistan time) | {{ $order->paid_at->setTimezone($timezone)->format('j M Y, H:i') }} |
 @endif

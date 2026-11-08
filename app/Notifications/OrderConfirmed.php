@@ -51,7 +51,7 @@ final class OrderConfirmed extends CustomerNotification
 
     public function toMail(object $notifiable): MailMessage
     {
-        $order = $this->order->loadMissing(['product', 'bookings.slot', 'bookings.rider', 'creditPack']);
+        $order = $this->order->loadMissing(['product', 'bookings.slot', 'bookings.rider', 'creditPack', 'discounts']);
         $settings = app(Settings::class);
         $bookings = $order->bookings->sortBy(fn (Booking $b): string => $b->slot->starts_at->toIso8601String().'|'.$b->id)->values();
 

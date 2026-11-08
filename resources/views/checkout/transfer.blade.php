@@ -108,7 +108,7 @@
                                 @endif
                             </div>
 
-                            <x-form.field name="transaction_ref" label="Transaction ID (optional)" hint="From your bank's confirmation, if it shows one." :value="$transfer?->transaction_ref" maxlength="100" autocomplete="off" />
+                            <x-form.field name="transaction_ref" label="Transaction ID" hint="From your bank's confirmation, if it shows one." :value="$transfer?->transaction_ref" maxlength="100" autocomplete="off" />
 
                             <div><x-button type="submit">{{ $transfer ? 'Replace proof' : 'Upload proof' }}</x-button></div>
                         </form>

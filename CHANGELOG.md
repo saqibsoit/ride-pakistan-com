@@ -5,6 +5,21 @@ All notable changes to this project are documented here. The format follows [Kee
 ## [Unreleased]
 
 ### Added
+- Milestone 11 performance pass (`docs/PERFORMANCE.md`):
+  - Measured before and after on every public page plus `/book` and checkout with discounts (Lighthouse mobile, built assets, HTTPS, median of 3). Performance is now 99–100 everywhere, LCP ≤ 1.9 s, CLS 0, TBT ≤ 122 ms (was up to 192 ms).
+  - Front end:
+    - shorter Alpine start-up task (no forced layout in the site header; tracking and attribution start later);
+    - hero image preloaded with high priority and no opacity fade;
+    - body font preloaded;
+    - cover images prioritised;
+    - Turnstile on the `/prices` form loaded on demand (nonce kept).
+  - Full-page cache:
+    - seat pages are versioned by a "seats version" instead of emptying the whole cache on every booking or hold (`PageCache`, `PublicPageHasher`);
+    - campaign and click tags are ignored in the cache key;
+    - no cached copies for signed-in visitors or visitors with flash data (`PublicCacheProfile`), which also fixes one-off tracking events being cached;
+    - a fresh nonce on every cached hit (tested).
+  - `Cache-Control: no-cache, private` on public HTML; long-lived headers for hashed build files and images (`public/.htaccess`); Cloudflare rules and staging checks in `docs/DEPLOY.md`.
+  - Query budgets with an N+1 guard for every key page (`assertQueryBudget`), EXPLAIN checks for the booking queries, and a config-cache check. Fixed the booking flow's repeated product lookup (11 → 6 queries); review summaries are one aggregate query.
 - Milestone 12 deployment, backups and monitoring (`docs/DEPLOY.md`):
   - Deploy workflow (`.github/workflows/deploy.yml`, composite actions in `.github/actions`): tests (ci.yml, now reusable) → build on PHP 8.3 (production Composer install, Filament assets, Vite build, `images:responsive`; fails without AVIF support or without AVIF/WebP output) → staging on every push to `main` → production after a required reviewer approves. Pull requests run the build only. Manual runs deploy one environment or roll back.
   - Releases: rsync to `releases/<UTC timestamp>-<sha>`; `deploy/remote-deploy.sh` links the shared `.env`, `storage` and `public/images/uploads`, migrates, optimizes, switches `current` atomically, clears the page cache, restarts workers and keeps 5 releases. The smoke test (`/`, `/up`) rolls back automatically when it fails; `deploy/rollback.sh` for manual rollbacks.

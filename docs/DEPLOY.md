@@ -139,7 +139,7 @@ ln -s <DEPLOY_PATH>/current/public public_html
 
 Staging (`staging.ride-pakistan.com`): hPanel → Domains → Subdomains. Create it with a **custom folder outside `public_html`** (e.g. `staging_html`), because `public_html` is now the production release. Then replace that folder with a symlink to `<staging DEPLOY_PATH>/current/public` in the same way. Check in hPanel where the subdomain's folder ended up before you replace it.
 
-`public/.htaccess` (Laravel's) is used by Hostinger's LiteSpeed server as is. Leave hPanel's "Force HTTPS" off: Cloudflare redirects to HTTPS, and doing it at both ends can cause redirect loops.
+`public/.htaccess` (Laravel's, plus browser cache headers for static files since milestone 11) is used by Hostinger's LiteSpeed server as is. Leave hPanel's "Force HTTPS" off: Cloudflare redirects to HTTPS, and doing it at both ends can cause redirect loops.
 
 ### Cron (hPanel → Advanced → Cron Jobs → Custom)
 
@@ -261,7 +261,7 @@ DNS for `ride-pakistan.com` on Cloudflare, nameservers changed at the registrar.
 | SSL/TLS mode | **Full (strict)**. The origin needs a valid certificate: Hostinger's free SSL (hPanel → Security → SSL) for both host names, or a Cloudflare Origin CA certificate installed in hPanel. |
 | Edge certificates | Always Use HTTPS on, minimum TLS 1.2, TLS 1.3 on. HSTS is sent by the app (PLAN §7), so leave Cloudflare's HSTS off to avoid two sources. |
 | Speed | HTTP/3 (with QUIC) on, Brotli on (Free plans compress automatically), Early Hints optional. Rocket Loader **off** (it rewrites scripts and breaks the nonce CSP). Auto Minify isn't needed (Vite already minifies). |
-| Caching | Cache rule: `/build/*` and `/images/*` "eligible for cache", edge TTL 1 month, respect origin headers. HTML is not cached at the edge (the app's page cache handles it, and account pages must never be cached). |
+| Caching | Two cache rules (milestone 11): (1) `/build/*`: eligible for cache, edge TTL "use cache-control header" (the origin sends `public, max-age=31536000, immutable` for hashed file names); (2) `/images/*`, `/favicon*`, `/apple-touch-icon.png`, `/icon-*`, `/site.webmanifest`: eligible for cache, respect origin (`public, max-age=2592000`, 30 days). Browser TTL: respect existing headers. **HTML is never cached at the edge**: every page carries its own CSP nonce (PLAN §7), and a cached page would hand every visitor the same one, which defeats the nonce. The app sends `Cache-Control: no-cache, private` on public pages (and `no-store` on account, checkout and admin pages), so Cloudflare bypasses them by default; don't add a "cache everything" rule for HTML. Public pages come from the app's full-page cache instead (docs/PERFORMANCE.md). After a deploy, purge `/build/*` only if file names didn't change (they always do with Vite). |
 | WAF managed rules | Cloudflare Managed Ruleset on (Free plans get the free managed ruleset). |
 | Stripe webhook | Custom rule **Skip**: `(http.request.uri.path eq "/webhooks/stripe" and http.request.method eq "POST")`, skipping "All remaining custom rules", "Managed rules", "Rate limiting rules" and "Super Bot Fight Mode". The app checks Stripe's signature, so the skip is safe. Optionally add `and ip.src in {Stripe webhook IPs}` (stripe.com/files/ips/ips_webhooks.txt) and keep that list current. |
 | Deploy smoke test | Custom rule **Skip** with the same products for `any(http.request.headers["x-smoke-test"][*] eq "<SMOKE_TEST_TOKEN>")`. |
@@ -366,3 +366,5 @@ These need the real servers, so they're for you (or the next session once the va
 - [ ] `php artisan mail:test hello@ride-pakistan.com` on staging and production prints a Resend email ID.
 - [ ] Nameserver move to Cloudflare: the Resend and Hostinger mail records copied exactly (section 10) before switching.
 - [ ] Cloudflare ranges in `config/security.php` still match cloudflare.com/ips.
+- [ ] **Cache headers on staging** (milestone 11): `curl -sI https://staging…/build/assets/<any hashed file>` shows `public, max-age=31536000, immutable` and, on the second request, `cf-cache-status: HIT`; an `/images/…` file shows `max-age=2592000`; `curl -sI https://staging…/` shows `no-cache, private` and `cf-cache-status: DYNAMIC` (never HIT). If LiteSpeed ignores the `.htaccess` header rules, set the same two cache rules' edge and browser TTLs in Cloudflare instead.
+- [ ] **TTFB from the page cache on staging** < 200 ms (milestone 11): warm `/`, `/prices`, `/schedule`, then `curl -s -o /dev/null -w '%{time_starttransfer}\n' https://staging…/prices` from Pakistan (or a nearby region) a few times; write the numbers in docs/PERFORMANCE.md.

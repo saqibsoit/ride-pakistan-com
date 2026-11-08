@@ -316,7 +316,16 @@ Target OWASP ASVS Level 2 and OWASP Top 10 coverage.
   - Status tokens: `error` #E8917A, `success` #A8C49A, `warning` #E2B75E, each ≥ 4.5:1 on earth and earth-2. Status is never shown by colour alone (icon + text).
   - `line-strong` (sand at 45%, 3.9:1) for borders that must meet 3:1 (form fields, chips). `line` is for decorative dividers only.
   - `saddle` is 3.1:1 on earth: only for large display numerals and decoration, never body text. Sand text on a saddle background (4.8:1) is fine ("Selling fast").
-- Lighthouse is measured against built assets (`npm run build`, no Vite dev server, Herd scripts blocked). Milestone 2 baseline (mobile, local Herd over HTTPS via `herd secure`, median of 3): Performance `/` 95, `/prices` 100, `/faq` 100; Accessibility, Best Practices and SEO 100 on all three.
+- Lighthouse is measured against built assets (`npm run build`, no Vite dev server, Herd scripts blocked). Milestone 2 baseline (mobile, local Herd over HTTPS via `herd secure`, median of 3): Performance `/` 95, `/prices` 100, `/faq` 100; Accessibility, Best Practices and SEO 100 on all three. Milestone 11 (2026-11-09): Performance 99–100 on all public pages, `/book` and checkout with discounts; LCP ≤ 1.9 s, CLS 0, TBT ≤ 122 ms. Method, before/after and index checks are in `docs/PERFORMANCE.md`.
+- Caching (milestone 11, decided 2026-11-09):
+  - **HTML is not cached at Cloudflare**, because each page carries its own CSP nonce.
+  - Public HTML is sent `Cache-Control: no-cache, private` and comes from the app's full-page cache:
+    - signed-in visitors and visitors with flash data get no copies;
+    - campaign and click tags are left out of the cache key;
+    - seat pages (`/`, `/schedule`, `/sessions/*`) carry a seats version that bookings and holds move on, with a 1-hour lifetime;
+    - other pages are cleared only by content changes.
+  - Static files: hashed Vite files are cached for a year (immutable), images for 30 days (`public/.htaccess`). The Cloudflare rules are in `docs/DEPLOY.md` §9.
+  - Key pages have query budgets with an N+1 guard (`tests/Feature/Performance`).
 - Image variants: `php artisan images:responsive` generates AVIF (where GD supports it) and WebP at 480/768/1200/1800 into `_variants/` next to each source; uploads dispatch `ImageUploaded`. Variants are build output (gitignored): the deploy build generates them in CI (milestone 12) and fails without AVIF; images uploaded on the server get the formats its GD supports.
 
 ## 10. Database decision: MySQL

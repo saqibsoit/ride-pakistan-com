@@ -11,9 +11,11 @@ use App\Http\Controllers\Account\OrderController;
 use App\Http\Controllers\Account\PrivacyController;
 use App\Http\Controllers\Account\ProfileController;
 use App\Http\Controllers\Account\ProgressController;
+use App\Http\Controllers\Account\ReferralController as AccountReferralController;
 use App\Http\Controllers\Account\RiderController;
 use App\Http\Controllers\Account\SignOutEverywhereController;
 use App\Http\Controllers\Account\TicketController;
+use App\Http\Controllers\Account\VoucherController as AccountVoucherController;
 use App\Http\Controllers\Account\WaitlistController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RestoreAccountController;
@@ -21,6 +23,8 @@ use App\Http\Controllers\BankTransferController;
 use App\Http\Controllers\CheckInController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\CspReportController;
+use App\Http\Controllers\GiftVoucherController;
+use App\Http\Controllers\PrintableVoucherController;
 use App\Http\Controllers\Public\BookController;
 use App\Http\Controllers\Public\ContactController;
 use App\Http\Controllers\Public\ContentPageController;
@@ -32,12 +36,15 @@ use App\Http\Controllers\Public\PriceController;
 use App\Http\Controllers\Public\ScheduleController;
 use App\Http\Controllers\Public\SeoFileController;
 use App\Http\Controllers\Public\SessionController;
+use App\Http\Controllers\ReferralLinkController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\Team\RiderHistoryController;
 use App\Http\Controllers\Team\RiderProgressController;
 use App\Http\Controllers\Team\RunSheetController;
 use App\Http\Controllers\TransferProofController;
+use App\Http\Controllers\VoucherCheckoutController;
+use App\Http\Controllers\VoucherTransferProofController;
 use App\Http\Middleware\AddStatelessSecurityHeaders;
 use App\Http\Middleware\EnsureCheckInAccess;
 use App\Http\Middleware\EnsureTeamAreaAccess;
@@ -56,6 +63,7 @@ Route::middleware(CacheResponse::class)->group(function (): void {
     Route::get('/sessions/{product:slug}', SessionController::class)->name('sessions.show');
     Route::get('/schedule', ScheduleController::class)->name('schedule');
     Route::get('/prices', PriceController::class)->name('prices');
+    Route::get('/gift-vouchers', [GiftVoucherController::class, 'index'])->name('gift-vouchers');
     Route::get('/faq', FaqController::class)->name('faq');
     Route::get('/guides', [GuideController::class, 'index'])->name('guides.index');
     Route::get('/guides/{post:slug}', [GuideController::class, 'show'])->name('guides.show');
@@ -84,6 +92,35 @@ Route::middleware(['auth', 'cache.headers:private;no_store'])->prefix('checkout/
     Route::post('/transfer/proof', [BankTransferController::class, 'upload'])->middleware('throttle:transfer-upload')->name('transfer.upload');
 });
 
+// Gift vouchers (milestone 10e): bought by a signed-in customer, paid by
+// card or bank transfer like an order, issued only once payment is confirmed.
+Route::middleware(['auth', 'cache.headers:private;no_store'])->prefix('gift-vouchers')->name('gift-vouchers.')->group(function (): void {
+    Route::get('/buy', [GiftVoucherController::class, 'create'])->name('create');
+    Route::post('/buy', [GiftVoucherController::class, 'store'])->middleware('throttle:checkout')->name('store');
+
+    Route::prefix('{reference}')->where(['reference' => 'GV-[A-Z0-9]{6}'])->group(function (): void {
+        Route::get('/', [VoucherCheckoutController::class, 'show'])->name('show');
+        Route::post('/card', [VoucherCheckoutController::class, 'card'])->middleware('throttle:checkout')->name('card');
+        Route::get('/status', [VoucherCheckoutController::class, 'status'])->name('status');
+        Route::post('/transfer', [VoucherCheckoutController::class, 'chooseTransfer'])->middleware('throttle:checkout')->name('transfer.choose');
+        Route::get('/transfer', [VoucherCheckoutController::class, 'transfer'])->name('transfer');
+        Route::post('/transfer/proof', [VoucherCheckoutController::class, 'upload'])->middleware('throttle:transfer-upload')->name('transfer.upload');
+    });
+});
+
+// Referral links (milestone 10e): remembered for this visit only, never cached.
+Route::get('/r/{code}', ReferralLinkController::class)
+    ->where('code', '[A-Za-z0-9]{8}')
+    ->middleware(['cache.headers:private;no_store', 'throttle:referral-link'])
+    ->name('referral');
+
+// Printable gift voucher from the recipient's email (milestone 10e): signed
+// link, no sign-in (the recipient may have no account), never cached.
+Route::get('/vouchers/{voucher}', PrintableVoucherController::class)
+    ->where('voucher', '[A-Z0-9]{12}')
+    ->middleware(['signed', 'cache.headers:private;no_store'])
+    ->name('vouchers.show');
+
 // Gate check-in from the ticket QR (PLAN §6): staff and admins only
 // (EnsureCheckInAccess: guests go to the admin login with MFA).
 Route::middleware([EnsureCheckInAccess::class, 'cache.headers:private;no_store'])->prefix('checkin/{code}')->name('checkin.')->group(function (): void {
@@ -110,6 +147,11 @@ Route::middleware([EnsureTeamAreaAccess::class, 'cache.headers:private;no_store'
 Route::get('/'.trim((string) config('app.admin_path', 'admin'), '/').'/transfers/{transfer}/proof', TransferProofController::class)
     ->middleware(['auth', 'signed', 'cache.headers:private;no_store'])
     ->name('admin.transfer-proof');
+
+// Gift voucher transfer proofs (milestone 10e): same rules as order proofs.
+Route::get('/'.trim((string) config('app.admin_path', 'admin'), '/').'/voucher-transfers/{voucherOrder}/proof', VoucherTransferProofController::class)
+    ->middleware(['auth', 'signed', 'cache.headers:private;no_store'])
+    ->name('admin.voucher-transfer-proof');
 
 // Stripe webhooks (PLAN §3.1): signature-verified, CSRF-exempt (bootstrap/app.php),
 // no session or cookies, rate limited.
@@ -176,6 +218,9 @@ Route::middleware(['auth', 'cache.headers:private;no_store'])->prefix('account')
     Route::get('/tickets', [TicketController::class, 'index'])->name('tickets');
     Route::get('/tickets/{code}', [TicketController::class, 'show'])->name('tickets.show');
     Route::get('/credits', CreditController::class)->name('credits');
+    Route::get('/vouchers', [AccountVoucherController::class, 'index'])->name('vouchers');
+    Route::get('/referrals', AccountReferralController::class)->name('referrals');
+    Route::put('/vouchers/{reference}/recipient', [AccountVoucherController::class, 'recipient'])->middleware('throttle:account-actions')->name('vouchers.recipient');
     Route::get('/orders', [OrderController::class, 'index'])->name('orders');
     Route::get('/orders/{reference}', [OrderController::class, 'show'])->name('orders.show');
     Route::get('/riders', RiderController::class)->name('riders');

@@ -74,6 +74,13 @@ return [
         // younger than the retention period (records kept for tax).
         'leads.follow_up_days' => 2,
 
+        // Gift vouchers and referrals (milestone 10e). Amounts in whole rupees.
+        'vouchers.validity_months' => 12,
+        'vouchers.min_amount_pkr' => 1000,
+        'vouchers.max_amount_pkr' => 500000,
+        'referrals.friend_discount_pkr' => 1000,
+        'referrals.referrer_credit_pkr' => 1000,
+
         'privacy.deletion_grace_days' => 30,
         'privacy.order_retention_years' => 6,
         'privacy.transfer_proof_retention_days' => 90,

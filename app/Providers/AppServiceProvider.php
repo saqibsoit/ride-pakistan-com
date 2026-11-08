@@ -103,6 +103,9 @@ class AppServiceProvider extends ServiceProvider
             Limit::perDay(20)->by('leads-day:'.$request->ip()),
         ]);
 
+        // Referral links (milestone 10e): enough for real clicks, not for probing codes.
+        RateLimiter::for('referral-link', fn (Request $request): Limit => Limit::perMinute(20)->by('referral:'.$request->ip()));
+
         $this->configureLoginRateLimits();
 
         // "Download my data": a few per hour is plenty.

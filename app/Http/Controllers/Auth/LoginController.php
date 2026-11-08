@@ -7,8 +7,10 @@ namespace App\Http\Controllers\Auth;
 use App\Actions\Auth\LogInCustomer;
 use App\Actions\Auth\RequestLoginCode;
 use App\Actions\Auth\VerifyLoginCode;
+use App\Actions\Referrals\AttachReferral;
 use App\Exceptions\LoginCodeRejected;
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\ReferralLinkController;
 use App\Http\Requests\Auth\RequestLoginCodeRequest;
 use App\Http\Requests\Auth\VerifyLoginCodeRequest;
 use App\Support\Turnstile;
@@ -86,6 +88,13 @@ final class LoginController extends Controller
             ]);
 
             return redirect()->route('account.restore');
+        }
+
+        // Referral link followed in this visit (milestone 10e): only a brand-new account counts.
+        $referralCode = $session->pull(ReferralLinkController::SESSION_KEY);
+
+        if ($user->wasRecentlyCreated && is_string($referralCode)) {
+            app(AttachReferral::class)->handle($referralCode, $user);
         }
 
         $logIn->handle($user, $session);

@@ -49,6 +49,8 @@ class ManageSettings extends Page
         'policies' => 'Policies',
         'bank' => 'Bank transfer details',
         'leads' => 'Leads',
+        'vouchers' => 'Gift vouchers',
+        'referrals' => 'Referrals',
         'privacy' => 'Privacy and data retention',
         'seo' => 'Search engines',
         'weather' => 'Weather alerts',

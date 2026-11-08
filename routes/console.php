@@ -39,5 +39,11 @@ Schedule::command('leads:digest')->dailyAt('09:00')->timezone('Asia/Karachi')->w
 // Pakistan time (hourly retries after a failure) and emails level changes.
 Schedule::command('weather:check')->hourly()->withoutOverlapping();
 
+// Gift vouchers (milestone 10e): unpaid purchases past their deadline.
+Schedule::command('vouchers:release')->hourly()->withoutOverlapping();
+// Scheduled vouchers go out at 09:00 Pakistan time on their day.
+Schedule::command('vouchers:deliver')->everyFifteenMinutes()->withoutOverlapping();
+Schedule::command('vouchers:expire')->dailyAt('00:30')->withoutOverlapping();
+
 // Credit packs past their expiry (PLAN §2).
 Schedule::command('credits:expire')->dailyAt('00:15')->withoutOverlapping();

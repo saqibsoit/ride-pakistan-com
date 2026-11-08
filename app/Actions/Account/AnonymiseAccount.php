@@ -8,9 +8,11 @@ use App\Events\PublicContentChanged;
 use App\Models\Lead;
 use App\Models\LeadNote;
 use App\Models\LoginCode;
+use App\Models\Referral;
 use App\Models\Review;
 use App\Models\Rider;
 use App\Models\User;
+use App\Models\VoucherOrder;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
@@ -82,6 +84,18 @@ final class AnonymiseAccount
                     'gclid' => null,
                     'tracking_event_id' => null,
                 ]);
+
+                // Gift vouchers they bought (milestone 10e): the recipient's
+                // details and the message go; amounts, status and any issued
+                // voucher (which the recipient may still use) stay.
+                VoucherOrder::query()->where('user_id', $user->id)->update([
+                    'recipient_name' => null,
+                    'recipient_email' => null,
+                    'message' => null,
+                ]);
+
+                // The email and phone kept for referral abuse checks.
+                Referral::query()->where('referred_id', $user->id)->update(['signup_email' => null, 'signup_phone' => null]);
 
                 LoginCode::query()->where('destination', $email)->delete();
 

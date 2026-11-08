@@ -7,6 +7,7 @@ namespace App\Actions\Payments;
 use App\Enums\BankTransferStatus;
 use App\Enums\SettingKey;
 use App\Models\BankTransfer;
+use App\Models\VoucherOrder;
 use App\Support\Settings;
 use App\Support\TransferProofs;
 use Carbon\CarbonImmutable;
@@ -51,6 +52,28 @@ final class PruneTransferProofs
                     ->event('transfer_proof_deleted')
                     ->withProperties(['order_id' => $transfer->order_id, 'retention_days' => $days])
                     ->log('Transfer proof deleted after the retention period');
+
+                $deleted++;
+            });
+
+        // Gift voucher transfers (milestone 10e): same retention once reviewed.
+        VoucherOrder::query()
+            ->whereNotNull('verified_at')
+            ->where('verified_at', '<=', $now->subDays($days))
+            ->whereNotNull('screenshot_path')
+            ->orderBy('id')
+            ->each(function (VoucherOrder $order) use ($now, $days, &$deleted): void {
+                $this->proofs->delete($order->screenshot_path);
+
+                $order->screenshot_path = null;
+                $order->proof_deleted_at = $now;
+                $order->save();
+
+                activity('vouchers')
+                    ->performedOn($order)
+                    ->event('transfer_proof_deleted')
+                    ->withProperties(['retention_days' => $days])
+                    ->log('Voucher transfer proof deleted after the retention period');
 
                 $deleted++;
             });

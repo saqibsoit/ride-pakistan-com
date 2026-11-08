@@ -28,6 +28,7 @@ final class GenerateSitemap
         'experiences' => 'experiences',
         'schedule' => 'schedule',
         'prices' => 'prices',
+        'gift-vouchers' => 'gift-vouchers',
         'faq' => 'faq',
         'guides' => 'guides.index',
         'contact' => 'contact',

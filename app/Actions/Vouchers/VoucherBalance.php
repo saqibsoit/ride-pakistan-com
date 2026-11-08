@@ -8,6 +8,7 @@ use App\Actions\Orders\OrderStateMachine;
 use App\Enums\VoucherLedgerReason;
 use App\Enums\VoucherStatus;
 use App\Exceptions\VoucherRejected;
+use App\Models\Order;
 use App\Models\User;
 use App\Models\Voucher;
 use App\Models\VoucherLedgerEntry;
@@ -136,6 +137,87 @@ final class VoucherBalance
         });
     }
 
+    /**
+     * Takes up to $maxMinor from the balance for an order at checkout
+     * (milestone 10e Part B) and returns what was taken. Only an active,
+     * unexpired voucher with a balance can be used. The voucher row is
+     * locked, so two orders can never spend the same balance.
+     *
+     * @throws VoucherRejected
+     */
+    public function redeem(Voucher $voucher, Order $order, int $maxMinor, ?User $actor): int
+    {
+        return DB::transaction(function () use ($voucher, $order, $maxMinor, $actor): int {
+            $locked = Voucher::query()->whereKey($voucher->id)->lockForUpdate()->firstOrFail();
+
+            if (! $locked->isUsable()) {
+                throw VoucherRejected::notUsable(match (true) {
+                    $locked->status === VoucherStatus::Void => 'This gift voucher has been cancelled.',
+                    $locked->status === VoucherStatus::Expired || ! $locked->expires_at->isFuture() => 'This gift voucher expired on '.$locked->expires_at->setTimezone((string) config('app.display_timezone'))->format('j M Y').'.',
+                    default => 'This gift voucher has no balance left.',
+                });
+            }
+
+            $taken = min(max(0, $maxMinor), $locked->balance_minor);
+
+            if ($taken === 0) {
+                return 0;
+            }
+
+            $locked->balance_minor -= $taken;
+
+            if ($locked->balance_minor === 0) {
+                $locked->status = VoucherStatus::Redeemed;
+            }
+
+            $locked->save();
+            $this->ledger($locked, -$taken, VoucherLedgerReason::Redeemed, $actor, 'Order '.$order->reference, $order);
+            $this->sync($voucher, $locked);
+
+            return $taken;
+        });
+    }
+
+    /**
+     * Puts $amountMinor back for an order: an unpaid order ended, the
+     * customer removed the voucher, or a refund (milestone 10e Part B).
+     * Returns false when the voucher can't take it back (cancelled, or
+     * expired by now); the caller then moves the amount to account credit.
+     */
+    public function restore(Voucher $voucher, Order $order, int $amountMinor, ?User $actor, string $note): bool
+    {
+        if ($amountMinor <= 0) {
+            return true;
+        }
+
+        return DB::transaction(function () use ($voucher, $order, $amountMinor, $actor, $note): bool {
+            $locked = Voucher::query()->whereKey($voucher->id)->lockForUpdate()->firstOrFail();
+
+            if (! in_array($locked->status, [VoucherStatus::Active, VoucherStatus::Redeemed], true) || ! $locked->expires_at->isFuture()) {
+                return false;
+            }
+
+            $locked->balance_minor += $amountMinor;
+            $locked->status = VoucherStatus::Active;
+            $locked->save();
+
+            $this->ledger($locked, $amountMinor, VoucherLedgerReason::Restored, $actor, mb_substr($note.' (order '.$order->reference.')', 0, 500), $order);
+            $this->sync($voucher, $locked);
+
+            return true;
+        });
+    }
+
+    /** Net amount of this voucher an order holds now (redeemed minus restored). */
+    public static function heldBy(Order $order, ?int $voucherId = null): int
+    {
+        return -1 * (int) VoucherLedgerEntry::query()
+            ->where('order_id', $order->id)
+            ->when($voucherId !== null, fn ($q) => $q->where('voucher_id', $voucherId))
+            ->whereIn('reason', [VoucherLedgerReason::Redeemed, VoucherLedgerReason::Restored])
+            ->sum('delta_minor');
+    }
+
     /** @throws VoucherRejected */
     private static function requireReason(string $reason): string
     {
@@ -148,10 +230,11 @@ final class VoucherBalance
         return $reason;
     }
 
-    private function ledger(Voucher $voucher, int $delta, VoucherLedgerReason $reason, ?User $actor, ?string $note): void
+    private function ledger(Voucher $voucher, int $delta, VoucherLedgerReason $reason, ?User $actor, ?string $note, ?Order $order = null): void
     {
         VoucherLedgerEntry::query()->create([
             'voucher_id' => $voucher->id,
+            'order_id' => $order?->id,
             'delta_minor' => $delta,
             'reason' => $reason,
             'note' => $note === null ? null : mb_substr($note, 0, 500),

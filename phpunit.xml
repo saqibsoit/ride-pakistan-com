@@ -34,7 +34,7 @@
         <env name="APP_DISPLAY_TIMEZONE" value="Asia/Karachi"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
-        <env name="RESPONSE_CACHE_DRIVER" value="array"/>
+        <env name="RESPONSE_CACHE_DRIVER" value="responsecache_array"/>
         <env name="SITE_INDEXABLE" value="false"/>
         <env name="SITEMAP_PATH" value="storage/framework/testing/sitemap.xml"/>
         <env name="SESSION_DRIVER" value="array"/>

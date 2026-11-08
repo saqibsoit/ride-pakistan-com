@@ -28,6 +28,25 @@ use Illuminate\Testing\TestResponse;
 use Tests\Support\FakeStripeGateway;
 use Tests\TestCase;
 
+/**
+ * Days ahead for the next order's slot: 3, 4, 5, ... in call order, reset
+ * before every test. Each order gets its own slot, so two orders in one
+ * test never share a start time (slots.starts_at is unique). Was
+ * random_int(3, 40), which picked the same day about 1 run in 38.
+ */
+function coSlotDay(bool $reset = false): int
+{
+    static $day = 2;
+
+    if ($reset) {
+        $day = 2;
+
+        return $day;
+    }
+
+    return ++$day;
+}
+
 /** A pending order for one rider at PKR $pricePkr. */
 function coOrder(int $pricePkr = 10_000, int $riders = 1): Order
 {
@@ -35,7 +54,7 @@ function coOrder(int $pricePkr = 10_000, int $riders = 1): Order
     $product = Product::factory()->create(['price_minor' => $pricePkr * 100]);
     $riderIds = array_map('intval', Rider::factory()->count($riders)->for($user)->create()->modelKeys());
 
-    return app(CreateOrder::class)->handle($user, $product, nearSlot(random_int(3, 40), 8, ['capacity' => 6])->id, $riderIds);
+    return app(CreateOrder::class)->handle($user, $product, nearSlot(coSlotDay(), 8, ['capacity' => 6])->id, $riderIds);
 }
 
 /** @param  array<string, mixed>  $session */
@@ -48,6 +67,7 @@ function coWebhook(TestCase $test, array $session): TestResponse
 
 beforeEach(function (): void {
     Notification::fake();
+    coSlotDay(reset: true);
 });
 
 it('applies a code on the checkout page and shows the breakdown', function (): void {

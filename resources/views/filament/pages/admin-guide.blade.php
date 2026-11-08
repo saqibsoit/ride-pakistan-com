@@ -44,4 +44,14 @@
         </ul>
         <p>Every change here is recorded in the audit log with who made it, and the public pages refresh straight away.@if ($productsUrl) Manage them under {!! $link($productsUrl, 'Products') !!}.@endif</p>
     </x-filament::section>
+
+    <x-filament::section heading="Horses, trainers and run sheets" :collapsible="true">
+        <ol>
+            <li><strong>Horses</strong> (admins, Schedule → Horses): set the levels each horse suits, the most sessions a day, and rest or vet days under “Unavailable days”. Retire a horse that won’t work again; it stays in the history of the sessions it carried.</li>
+            <li><strong>Trainers</strong>: create the account with <code>php artisan admin:create</code> (role Trainer). They set up an authenticator app at first sign-in, like staff. Pick the trainer on each schedule rule; new sessions take it, and you can change it per session from the slot’s actions (“Trainer”). A trainer sees only their own sessions and riders, never payments, leads or settings.</li>
+            <li><strong>Run sheet</strong> (slot actions → Run sheet, or {{ url('/team/sessions') }} on a phone): every rider with level, notes, emergency contact (tap to call), horse, payment status and check-in buttons. There is a printable version.</li>
+            <li><strong>Assigning horses</strong>: a horse on a rest or vet day, retired, already riding at that time, or at its daily limit can’t be chosen. A horse not listed for the rider’s level only shows a warning.</li>
+        </ol>
+        <p>Trainers write a short session note for each rider; it appears in the rider’s history. Notes are stored encrypted.</p>
+    </x-filament::section>
 </x-filament-panels::page>

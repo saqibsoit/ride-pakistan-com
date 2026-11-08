@@ -42,7 +42,6 @@ class ManageSettings extends Page
     private const GROUPS = [
         'business' => 'Business',
         'contact' => 'Contact and links',
-        'schedule' => 'Schedule',
         'booking' => 'Booking rules',
         'policies' => 'Policies',
         'bank' => 'Bank transfer details',

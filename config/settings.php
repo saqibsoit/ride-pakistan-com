@@ -32,9 +32,6 @@ return [
         'contact.google_review_url' => '',
         'contact.expeditions_url' => env('SITE_EXPEDITIONS_URL', 'https://ridepakistan.co'),
 
-        // Schedule (plain-language summary; slots come from schedule rules)
-        'schedule.summary' => 'Every Saturday and Sunday, 8–10 am and 3–5 pm. Times shift slightly with the seasons; we confirm your slot when you book.',
-
         // Booking rules (PLAN §2 open decisions)
         'booking.riders_per_slot' => 6,
         'booking.transfer_hold_hours' => 24,

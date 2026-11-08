@@ -22,8 +22,6 @@ enum SettingKey: string
     case GoogleReviewUrl = 'contact.google_review_url';
     case ExpeditionsUrl = 'contact.expeditions_url';
 
-    case ScheduleSummary = 'schedule.summary';
-
     case RidersPerSlot = 'booking.riders_per_slot';
     case TransferHoldHours = 'booking.transfer_hold_hours';
     case TransferMinNoticeHours = 'booking.transfer_min_notice_hours';
@@ -66,7 +64,7 @@ enum SettingKey: string
             self::CardHoldMinutes, self::MinNoticeHours,
             self::DeletionGraceDays, self::OrderRetentionYears, self::TransferProofRetentionDays => SettingType::Integer,
             self::RidingRules, self::BookingPolicies, self::AiCrawlers => SettingType::List,
-            self::ScheduleSummary, self::RefundPolicy, self::DefaultDescription, self::BankAddress => SettingType::LongText,
+            self::RefundPolicy, self::DefaultDescription, self::BankAddress => SettingType::LongText,
             default => SettingType::Text,
         };
     }
@@ -90,7 +88,6 @@ enum SettingKey: string
             self::InstagramDmUrl => 'Instagram DM link',
             self::GoogleReviewUrl => 'Google review link (sent in the thank-you email; hidden while empty)',
             self::ExpeditionsUrl => 'Expeditions site URL',
-            self::ScheduleSummary => 'Schedule summary',
             self::RidersPerSlot => 'Riders per slot',
             self::TransferHoldHours => 'Bank transfer hold window (hours)',
             self::TransferMinNoticeHours => 'Offer bank transfer only if the session starts at least this many hours later',
@@ -138,7 +135,6 @@ enum SettingKey: string
             self::InstagramDmUrl => 'Opens an Instagram message to us ("Send us a DM" buttons).',
             self::GoogleReviewUrl => 'Review link in the thank-you email after a session. Leave empty to leave the button out.',
             self::ExpeditionsUrl => 'Where the "Expeditions" page and chips link to (the separate expeditions site).',
-            self::ScheduleSummary => 'Free-text note about when sessions run. Not shown on the site: schedule wording is generated from the schedule rules so it is always right.',
             self::RidersPerSlot => 'Default number of riders for new schedule rules and manual slots. Existing slots keep their own capacity.',
             self::TransferHoldHours => 'How long seats stay held after a customer chooses bank transfer and before they upload proof. Never past the session start.',
             self::TransferMinNoticeHours => 'Bank transfer is only offered when the first session is at least this many hours away, so there is time to verify it.',

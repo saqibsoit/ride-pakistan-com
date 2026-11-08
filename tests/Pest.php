@@ -222,16 +222,3 @@ function payByCardInBrowser(TestCase $test, Page $page, Order $order): void
 
     waitForText($page, 'Payment received. You\'re booked.');
 }
-
-/** A small real PNG (a bank app screenshot stand-in) in the testing folder. */
-function transferScreenshot(): string
-{
-    $path = storage_path('framework/testing/transfer-proof.png');
-    @mkdir(dirname($path), 0777, true);
-
-    $image = imagecreatetruecolor(320, 640);
-    imagefill($image, 0, 0, (int) imagecolorallocate($image, 240, 240, 240));
-    imagepng($image, $path);
-
-    return $path;
-}

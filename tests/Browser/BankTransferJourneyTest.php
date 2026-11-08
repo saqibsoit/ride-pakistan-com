@@ -34,7 +34,7 @@ beforeEach(function (): void {
 });
 
 /** A held single-session order for a fresh customer, with the slot it holds. */
-function heldOrder(int $daysAhead, int $hour): Order
+function journeyHeldOrder(int $daysAhead, int $hour): Order
 {
     $user = User::factory()->create();
     $rider = Rider::factory()->for($user)->create(['name' => 'Fatima Noor']);
@@ -93,7 +93,7 @@ function openTransferQueue(Order $order): Page
 }
 
 it('takes a bank transfer from upload to admin approval', function (): void {
-    $order = heldOrder(9, 8);
+    $order = journeyHeldOrder(9, 8);
     uploadTransferProof($order);
 
     $admin = openTransferQueue($order);
@@ -119,7 +119,7 @@ it('takes a bank transfer from upload to admin approval', function (): void {
 });
 
 it('rejects a bank transfer with a reason and releases the seats', function (): void {
-    $order = heldOrder(9, 15);
+    $order = journeyHeldOrder(9, 15);
     $slot = Slot::query()->findOrFail($order->items()->value('slot_id'));
     uploadTransferProof($order);
     expect($slot->refresh()->seatsFree())->toBe(5);
@@ -146,7 +146,7 @@ it('rejects a bank transfer with a reason and releases the seats', function (): 
 });
 
 it('expires a bank transfer hold with no proof at the deadline', function (): void {
-    $order = heldOrder(10, 8);
+    $order = journeyHeldOrder(10, 8);
     $slot = Slot::query()->findOrFail($order->items()->value('slot_id'));
     $this->actingAs($order->user);
 
@@ -176,7 +176,7 @@ it('expires a bank transfer hold with no proof at the deadline', function (): vo
 });
 
 it('expires an unpaid card hold and shows it on the checkout page', function (): void {
-    $order = heldOrder(10, 15);
+    $order = journeyHeldOrder(10, 15);
     $slot = Slot::query()->findOrFail($order->items()->value('slot_id'));
     $this->actingAs($order->user);
 

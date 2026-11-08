@@ -163,7 +163,8 @@ it('buys an 8-class package by card, then books a session with its credits', fun
     $page->assertSee('Group session with credits')->assertSee('1 credit');
 
     pressOnce($browser, 'Book with my credits');
-    waitForText($browser, 'Hamza Qureshi');
+    // The bookings page's own message: the rider's name is already on the review step.
+    waitForText($browser, 'Booked with your credits. Your tickets are below.');
 
     $booking = Booking::query()->where('user_id', $user->id)->sole();
     expect($booking->credit_pack_id)->toBe($pack->id)

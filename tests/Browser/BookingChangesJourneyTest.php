@@ -30,7 +30,7 @@ beforeEach(function (): void {
 });
 
 /** A customer with an active 8-credit pack, booked with one credit on $slot. */
-function creditBooking(Slot $slot, string $riderName): Booking
+function journeyCreditBooking(Slot $slot, string $riderName): Booking
 {
     $user = User::factory()->create();
     $rider = Rider::factory()->for($user)->create(['name' => $riderName]);
@@ -61,7 +61,7 @@ function openCancelPage(Booking $booking, string $notice): Page
 }
 
 it('cancels a credit booking before the cutoff and returns the credit', function (): void {
-    $booking = creditBooking(nearSlot(11, 8), 'Zainab Raza'); // 48 h cutoff long ahead
+    $booking = journeyCreditBooking(nearSlot(11, 8), 'Zainab Raza'); // 48 h cutoff long ahead
     $pack = $booking->creditPack;
     expect($pack?->creditsRemaining())->toBe(7);
 
@@ -75,7 +75,7 @@ it('cancels a credit booking before the cutoff and returns the credit', function
 });
 
 it('cancels a credit booking after the cutoff and keeps the credit used', function (): void {
-    $booking = creditBooking(nearSlot(1, 15), 'Omar Farooq'); // about a day ahead: past the 48 h cutoff
+    $booking = journeyCreditBooking(nearSlot(1, 15), 'Omar Farooq'); // about a day ahead: past the 48 h cutoff
     $pack = $booking->creditPack;
 
     $browser = openCancelPage($booking, 'Your credit won’t come back.');
@@ -90,7 +90,7 @@ it('cancels a credit booking after the cutoff and keeps the credit used', functi
 it('offers a freed seat to the waitlist, and the customer books and pays for it', function (): void {
     Product::factory()->create(['slug' => 'single-session', 'name' => 'Single session', 'price_minor' => 1_000_000]);
     $slot = nearSlot(12, 8, ['capacity' => 1]);
-    $booking = creditBooking($slot, 'Ali Hassan'); // the only seat
+    $booking = journeyCreditBooking($slot, 'Ali Hassan'); // the only seat
 
     $waiting = User::factory()->create();
     Rider::factory()->for($waiting)->create(['name' => 'Nida Shah']);

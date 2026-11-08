@@ -280,8 +280,16 @@ Rules: InnoDB, utf8mb4_unicode_ci, strict SQL mode, foreign keys everywhere, ind
 | 8 | Tickets, check-in and notifications | `prompts/08-tickets-notifications.md` |
 | 9 | Leads CRM and tracking | `prompts/09-leads-tracking.md` |
 | 10 | Security hardening | `prompts/10-security.md` |
+| 10a | Admin catalogue and schedule control: audit and close gaps, price snapshots, archive instead of delete, rule preview, admin guide | `prompts/10a-admin-catalog-audit.md` |
+| 10b | Daily operations: run sheet, horses, trainer role, dashboard and exports | `prompts/10b-operations.md` |
+| 10c | Instagram DM quick replies and lead follow-up | `prompts/10c-lead-quick-replies.md` |
+| 10d | Customer experience: add to calendar, waitlist, progress and reviews | `prompts/10d-customer-experience.md` |
+| 10e | Gift vouchers, promo codes and referrals | `prompts/10e-vouchers-promos.md` |
+| 10f | Weather alerts by email | `prompts/10f-weather-alerts.md` |
 | 11 | Performance pass | `prompts/11-performance.md` |
 | 12 | Deployment, backups and monitoring | `prompts/12-deploy.md` |
 | 13 | QA and launch checklist | `prompts/13-launch.md` |
+
+**Deferred (post-launch, no milestone yet):** WhatsApp notifications (the channel exists behind `WHATSAPP_ENABLED` and only logs until GT360 is connected), the digital waiver, and the Urdu version of the site (the i18n structure is hreflang-ready, §8).
 
 Each milestone ends with: all tests green, Larastan clean, Pint clean, a short CHANGELOG entry and a summary of anything left open.

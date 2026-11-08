@@ -47,6 +47,7 @@ enum SettingKey: string
 
     case DeletionGraceDays = 'privacy.deletion_grace_days';
     case OrderRetentionYears = 'privacy.order_retention_years';
+    case TransferProofRetentionDays = 'privacy.transfer_proof_retention_days';
 
     case DefaultTitle = 'seo.default_title';
     case DefaultDescription = 'seo.default_description';
@@ -60,7 +61,7 @@ enum SettingKey: string
             self::RidersPerSlot, self::TransferHoldHours, self::TransferMinNoticeHours, self::CancellationCutoffHours,
             self::SellingFastThreshold, self::MinRiderAge, self::SlotHorizonWeeks,
             self::CardHoldMinutes, self::MinNoticeHours,
-            self::DeletionGraceDays, self::OrderRetentionYears => SettingType::Integer,
+            self::DeletionGraceDays, self::OrderRetentionYears, self::TransferProofRetentionDays => SettingType::Integer,
             self::RidingRules, self::BookingPolicies, self::AiCrawlers => SettingType::List,
             self::ScheduleSummary, self::RefundPolicy, self::DefaultDescription, self::BankAddress => SettingType::LongText,
             default => SettingType::Text,
@@ -107,6 +108,7 @@ enum SettingKey: string
             self::BankAddress => 'Bank address',
             self::DeletionGraceDays => 'Days a deleted account can still be restored by its owner',
             self::OrderRetentionYears => 'Keep accounts with paid orders for this many years after the last payment',
+            self::TransferProofRetentionDays => 'Delete bank transfer screenshots this many days after review (the payment record is kept)',
             self::DefaultTitle => 'Default page title',
             self::DefaultDescription => 'Default meta description',
             self::AiCrawlers => 'AI crawlers allowed in robots.txt',

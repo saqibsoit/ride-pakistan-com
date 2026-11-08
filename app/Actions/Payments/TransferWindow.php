@@ -39,7 +39,7 @@ final class TransferWindow
 
     public function minNoticeHours(): int
     {
-        return $this->settings->int(SettingKey::TransferMinNoticeHours) ?? 2;
+        return $this->settings->int(SettingKey::TransferMinNoticeHours) ?? 12;
     }
 
     public function firstSessionStart(Order $order): ?CarbonImmutable

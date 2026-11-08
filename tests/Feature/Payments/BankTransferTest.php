@@ -103,7 +103,7 @@ it('switches the same order to bank transfer and holds seats until the deadline'
 it('caps the deadline at the session start', function (): void {
     $order = transferOrder();
     $slot = Slot::query()->findOrFail((int) $order->items()->value('slot_id'));
-    $slot->update(['starts_at' => now()->addHours(6), 'ends_at' => now()->addHours(8)]);
+    $slot->update(['starts_at' => now()->addHours(14), 'ends_at' => now()->addHours(16)]);
 
     $order = app(ChooseBankTransfer::class)->handle($order);
 
@@ -112,14 +112,16 @@ it('caps the deadline at the session start', function (): void {
 
 it('does not offer bank transfer when the session starts too soon', function (): void {
     $order = transferOrder();
-    Slot::query()->whereKey((int) $order->items()->value('slot_id'))->update(['starts_at' => now()->addMinutes(90), 'ends_at' => now()->addHours(3)]);
+    // Default notice is 12 hours (nobody may be watching the queue at 6 am on a weekend).
+    Slot::query()->whereKey((int) $order->items()->value('slot_id'))->update(['starts_at' => now()->addHours(10), 'ends_at' => now()->addHours(12)]);
 
     $this->actingAs($order->user)->get(route('checkout.show', $order->reference))
         ->assertSee('starts too soon for a bank transfer');
 
-    expect(fn () => app(ChooseBankTransfer::class)->handle($order))->toThrow(CheckoutUnavailable::class, 'at least 2 hours');
+    expect(fn () => app(ChooseBankTransfer::class)->handle($order))->toThrow(CheckoutUnavailable::class, 'at least 12 hours');
 
-    app(UpdateSettings::class)->handle([SettingKey::TransferMinNoticeHours->value => 1]);
+    // An admin can lower it once someone watches the queue at short notice.
+    app(UpdateSettings::class)->handle([SettingKey::TransferMinNoticeHours->value => 2]);
     expect(app(ChooseBankTransfer::class)->handle($order->refresh())->status)->toBe(OrderStatus::AwaitingTransfer);
 });
 

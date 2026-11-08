@@ -56,6 +56,20 @@ enum SettingKey: string
     case DefaultDescription = 'seo.default_description';
     case AiCrawlers = 'seo.ai_crawlers';
 
+    case WeatherEnabled = 'weather.enabled';
+    case WeatherLatitude = 'weather.latitude';
+    case WeatherLongitude = 'weather.longitude';
+    case WeatherRainProbability = 'weather.rain_probability';
+    case WeatherPrecipitationMm = 'weather.precipitation_mm';
+    case WeatherWindKmh = 'weather.wind_kmh';
+    case WeatherHeatC = 'weather.heat_c';
+    case WeatherColdC = 'weather.cold_c';
+    case WeatherThunderCodes = 'weather.thunder_codes';
+    case WeatherRecipients = 'weather.recipients';
+    case WeatherTemplateUpdate = 'weather.template_update';
+    case WeatherTemplateMoved = 'weather.template_moved';
+    case WeatherTemplateCancelled = 'weather.template_cancelled';
+
     public function type(): SettingType
     {
         return match ($this) {
@@ -64,9 +78,14 @@ enum SettingKey: string
             self::RidersPerSlot, self::TransferHoldHours, self::TransferMinNoticeHours, self::CancellationCutoffHours,
             self::SellingFastThreshold, self::MinRiderAge, self::CheckinOpensMinutes, self::ArrivalMinutes, self::SlotHorizonWeeks,
             self::CardHoldMinutes, self::MinNoticeHours,
-            self::DeletionGraceDays, self::OrderRetentionYears, self::TransferProofRetentionDays, self::LeadFollowUpDays => SettingType::Integer,
-            self::RidingRules, self::BookingPolicies, self::AiCrawlers => SettingType::List,
-            self::RefundPolicy, self::DefaultDescription, self::BankAddress => SettingType::LongText,
+            self::DeletionGraceDays, self::OrderRetentionYears, self::TransferProofRetentionDays, self::LeadFollowUpDays,
+            self::WeatherRainProbability, self::WeatherWindKmh, self::WeatherHeatC, self::WeatherColdC => SettingType::Integer,
+            self::WeatherLatitude, self::WeatherLongitude, self::WeatherPrecipitationMm => SettingType::Decimal,
+            self::WeatherEnabled => SettingType::Boolean,
+            self::WeatherRecipients => SettingType::Roles,
+            self::RidingRules, self::BookingPolicies, self::AiCrawlers, self::WeatherThunderCodes => SettingType::List,
+            self::RefundPolicy, self::DefaultDescription, self::BankAddress,
+            self::WeatherTemplateUpdate, self::WeatherTemplateMoved, self::WeatherTemplateCancelled => SettingType::LongText,
             default => SettingType::Text,
         };
     }
@@ -118,6 +137,19 @@ enum SettingKey: string
             self::DefaultTitle => 'Default page title',
             self::DefaultDescription => 'Default meta description',
             self::AiCrawlers => 'AI crawlers allowed in robots.txt',
+            self::WeatherEnabled => 'Check the weather forecast for upcoming sessions',
+            self::WeatherLatitude => 'Venue latitude (private)',
+            self::WeatherLongitude => 'Venue longitude (private)',
+            self::WeatherRainProbability => 'Alert when the chance of rain reaches (%)',
+            self::WeatherPrecipitationMm => 'Alert when rain in an hour reaches (mm)',
+            self::WeatherWindKmh => 'Alert when wind gusts reach (km/h)',
+            self::WeatherHeatC => 'Alert when the temperature reaches (°C)',
+            self::WeatherColdC => 'Alert when the temperature drops to (°C)',
+            self::WeatherThunderCodes => 'Thunderstorm weather codes',
+            self::WeatherRecipients => 'Who gets weather alerts',
+            self::WeatherTemplateUpdate => 'Customer notice template: weather update',
+            self::WeatherTemplateMoved => 'Customer notice template: session moved',
+            self::WeatherTemplateCancelled => 'Customer notice template: session cancelled',
         };
     }
 
@@ -166,13 +198,26 @@ enum SettingKey: string
             self::DefaultTitle => 'Page title used when a page has none of its own.',
             self::DefaultDescription => 'Search-result description used when a page has none of its own (up to about 160 characters).',
             self::AiCrawlers => 'One crawler name per line (e.g. GPTBot) allowed in robots.txt to read the site for AI answers.',
+            self::WeatherEnabled => 'Fetches the Open-Meteo forecast at 06:00 and 18:00 Pakistan time and emails the team when a session in the next 48 hours crosses a threshold. Needs the venue coordinates.',
+            self::WeatherLatitude => 'Venue latitude in decimal degrees, e.g. 33.6844. Used only to fetch the forecast; never shown on the site or in emails.',
+            self::WeatherLongitude => 'Venue longitude in decimal degrees, e.g. 73.0479. Used only to fetch the forecast; never shown on the site or in emails.',
+            self::WeatherRainProbability => 'A session hour with this chance of rain or more counts as crossed (0 to 100).',
+            self::WeatherPrecipitationMm => 'A session hour with this much rain or more counts as crossed, e.g. 2 or 0.5.',
+            self::WeatherWindKmh => 'A session hour with gusts this strong or stronger counts as crossed.',
+            self::WeatherHeatC => 'A session hour this hot or hotter counts as crossed.',
+            self::WeatherColdC => 'A session hour this cold or colder counts as crossed. Can be below zero.',
+            self::WeatherThunderCodes => 'One WMO weather code per line that means a thunderstorm (Open-Meteo uses 95, 96 and 99). A thunderstorm always makes it a warning.',
+            self::WeatherRecipients => 'Admins and staff get every alert; a trainer only for the sessions they run.',
+            self::WeatherTemplateUpdate => 'Starting text of a "weather update" email to booked customers, sent from a slot page. ":session" becomes the session date and time. You can edit it before sending.',
+            self::WeatherTemplateMoved => 'Starting text of a "session moved" email. It only sends the message; move the bookings themselves from the booking pages.',
+            self::WeatherTemplateCancelled => 'Starting reason when cancelling a session for weather. The slot is cancelled as usual (credits back, paid bookings flagged) and the cancellation email shows this text. Up to 500 characters.',
         };
     }
 
     /** Private settings are never rendered on public pages or in llms.txt. */
     public function isPrivate(): bool
     {
-        return $this === self::MapPinUrl;
+        return in_array($this, [self::MapPinUrl, self::WeatherLatitude, self::WeatherLongitude], true);
     }
 
     public function default(): mixed

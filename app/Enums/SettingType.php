@@ -11,6 +11,8 @@ enum SettingType: string
     case Url = 'url';
     case Email = 'email';
     case Integer = 'integer';
+    case Decimal = 'decimal';
     case Boolean = 'boolean';
     case List = 'list';
+    case Roles = 'roles';
 }

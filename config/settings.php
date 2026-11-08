@@ -93,6 +93,24 @@ return [
             'Google-Extended',
             'Applebot-Extended',
         ],
+
+        // Weather alerts (milestone 10f). The coordinates are private and
+        // come from .env until an admin saves them. Thresholds apply to each
+        // forecast hour of a session.
+        'weather.enabled' => false,
+        'weather.latitude' => env('WEATHER_LAT'),
+        'weather.longitude' => env('WEATHER_LNG'),
+        'weather.rain_probability' => 70,
+        'weather.precipitation_mm' => 2.0,
+        'weather.wind_kmh' => 40,
+        'weather.heat_c' => 38,
+        'weather.cold_c' => 5,
+        'weather.thunder_codes' => ['95', '96', '99'],
+        'weather.recipients' => ['admin'],
+        // Neutral on purpose: the bad-weather policy is still open (OPEN-QUESTIONS 3.2).
+        'weather.template_update' => "Here's a weather update for your session on :session (Pakistan time).\n\nThe forecast for the session isn't good. We're keeping an eye on it and will email you again if anything changes.",
+        'weather.template_moved' => "Because of the weather forecast, your session on :session (Pakistan time) is moving.\n\nWe'll email you to confirm your new session.",
+        'weather.template_cancelled' => 'The weather forecast for this session makes riding unsafe.',
     ],
 
 ];

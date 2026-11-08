@@ -124,25 +124,7 @@
                 </section>
             @endif
 
-            {{-- Booking widget placeholder: live dates, seats and checkout arrive in milestone 5. --}}
-            <section id="book" aria-labelledby="widget-title" class="rounded-sm border border-line-strong bg-earth-2 p-7 md:p-10">
-                <h2 id="widget-title" class="text-display-md">Book this session.</h2>
-                <p class="mt-3 max-w-prose text-sand-dim">Online booking with live seats is opening soon. Until then, pick a time and we’ll confirm it with you.</p>
-                @if ($weekend !== [])
-                    <p class="mt-6 text-sm font-semibold">This weekend</p>
-                    <ul class="mt-3 flex flex-wrap gap-2">
-                        @foreach ($weekend as $session)
-                            <li class="rounded-sm border border-line-strong px-3 py-2 text-sm">
-                                <time datetime="{{ $session['starts_at']->toIso8601String() }}">{{ $session['starts_at']->setTimezone($tz)->format('D j M') }}, {{ \App\Support\BusinessFacts::timeRange($session['starts_at']->format('H:i'), $session['ends_at']->format('H:i')) }}</time>
-                            </li>
-                        @endforeach
-                    </ul>
-                @endif
-                <div class="mt-8 flex flex-wrap gap-3.5">
-                    <x-button :href="$bookUrl">Book now</x-button>
-                    <x-button :href="$settings->string(\App\Enums\SettingKey::InstagramDmUrl)" variant="ghost" external>Ask on Instagram</x-button>
-                </div>
-            </section>
+            <x-booking.widget :product="$product" :slots="$slots" />
 
             @if ($faqs->isNotEmpty())
                 <section aria-labelledby="faq-title">
@@ -160,6 +142,14 @@
                 <p class="flex items-center gap-2 text-sm text-sand-dim"><x-glyph name="pin" class="size-4" />{{ $facts->location() }}</p>
                 @if ($facts->groupSize($product))
                     <p class="flex items-center gap-2 text-sm text-sand-dim"><x-glyph name="users" class="size-4" />{{ $facts->groupSize($product) }}</p>
+                @endif
+                @if ($next = $slots->first())
+                    <div class="flex flex-col gap-1 border-t border-line pt-3">
+                        <p class="text-sm">Next: <time datetime="{{ $next->starts_at->toIso8601String() }}">{{ $next->localStartsAt()->format('D j M, g:i a') }}</time></p>
+                        @if ($product->type !== \App\Enums\ProductType::Private)
+                            <x-seats-left :seats="$next->seatsFree()" />
+                        @endif
+                    </div>
                 @endif
             </x-booking.price-box>
         </div>

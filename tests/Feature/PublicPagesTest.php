@@ -194,11 +194,12 @@ it('filters the catalog with chips that work without JavaScript', function (): v
     $this->get('/experiences')->assertSee('aria-current="true"', false);
 });
 
-it('shows this weekend and the week calendar from schedule rules', function (): void {
+it('shows this weekend and the week calendar from live slots', function (): void {
     $this->get('/')
         ->assertSee('This weekend.')
         ->assertSee('Saturday 14 Nov')
-        ->assertSee('Seats shown when online booking opens');
+        ->assertSee('6 spots left')
+        ->assertDontSee('Seats shown when online booking opens');
 
     $this->get('/schedule')
         ->assertOk()
@@ -216,11 +217,11 @@ it('pages through a bounded range of schedule weeks', function (): void {
     $this->get('/schedule?week[]=x')->assertRedirect('/schedule');
 });
 
-it('serves the booking holding page without indexing it', function (): void {
+it('serves the booking flow without indexing it, starting at the chosen product', function (): void {
     $html = $this->get('/book?product=private-session')->assertOk()->getContent();
 
     expect(metaContent($html, 'robots'))->toBe('noindex, follow')
-        ->and($html)->toContain('You chose: Private session');
+        ->and($html)->toContain('Showing slots nobody has booked yet');
 });
 
 it('never shows bank details or the map pin on public pages', function (): void {

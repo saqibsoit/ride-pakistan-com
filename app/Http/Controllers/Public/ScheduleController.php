@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Public;
 
 use App\Http\Controllers\Controller;
 use App\Models\Page;
+use App\Support\Availability;
 use App\Support\BusinessFacts;
 use App\Support\Seo\Seo;
 use App\Support\SessionTimes;
@@ -22,11 +23,23 @@ use Illuminate\Http\Request;
  */
 final class ScheduleController extends Controller
 {
-    public function __invoke(Request $request, BusinessFacts $facts, SessionTimes $times, Seo $seo): View|RedirectResponse
+    public function __invoke(Request $request, BusinessFacts $facts, Availability $availability, Seo $seo): View|RedirectResponse
     {
         $current = SessionTimes::weekStart(SessionTimes::now());
         $last = $current->addWeeks((int) config('site.schedule_weeks_ahead'));
         $monday = $current;
+
+        // ?type=group|private filters the slots; anything else redirects so the
+        // set of cacheable URLs stays small.
+        $type = null;
+
+        if ($request->query->has('type')) {
+            $type = $request->query('type');
+
+            if (! in_array($type, [Availability::TYPE_GROUP, Availability::TYPE_PRIVATE], true)) {
+                return redirect()->route('schedule', array_filter(['week' => $request->query('week')], 'is_string'));
+            }
+        }
 
         if ($request->query->has('week')) {
             $requested = $request->query('week');
@@ -48,7 +61,8 @@ final class ScheduleController extends Controller
 
         return view('public.schedule', [
             'facts' => $facts,
-            'days' => $times->week($monday),
+            'days' => $availability->week($monday, $type),
+            'type' => $type,
             'monday' => $monday,
             'previous' => $monday->greaterThan($current) ? $monday->subWeek() : null,
             'next' => $monday->lessThan($last) ? $monday->addWeek() : null,

@@ -22,7 +22,17 @@
         'center' => 'object-center',
         'top' => 'object-top',
     ];
+    $preload = \App\Support\ResponsiveImage::for($image);
 @endphp
+
+{{-- The hero photo is the LCP element: start fetching it with the CSS (milestone 11). --}}
+@push('head')
+    @foreach ($preload->sources as $type => $srcset)
+        @if ($loop->first)
+            <link rel="preload" as="image" type="{{ $type }}" imagesrcset="{{ $srcset }}" imagesizes="100vw" fetchpriority="high">
+        @endif
+    @endforeach
+@endpush
 
 <section {{ $attributes->class('hero-scrim relative flex min-h-svh items-end overflow-hidden') }}>
     <x-img

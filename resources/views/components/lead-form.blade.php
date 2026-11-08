@@ -55,8 +55,8 @@
     @endforeach
 
     @if ($turnstileSiteKey)
-        <script src="{{ \App\Support\Turnstile::SCRIPT_URL }}" async defer @nonce></script>
-        <div class="cf-turnstile" data-sitekey="{{ $turnstileSiteKey }}" data-theme="dark" data-size="flexible"></div>
+        {{-- Loaded when the form is near or focused (resources/js/components/turnstile.js, milestone 11). --}}
+        <div class="cf-turnstile" x-data="turnstile" data-src="{{ \App\Support\Turnstile::SCRIPT_URL }}" data-sitekey="{{ $turnstileSiteKey }}" data-theme="dark" data-size="flexible"></div>
         @error(\App\Support\Turnstile::RESPONSE_FIELD)
             <p class="text-sm text-error" role="alert">{{ $message }}</p>
         @enderror

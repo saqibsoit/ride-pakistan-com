@@ -64,7 +64,7 @@
                         <dd class="mt-1 text-sand-dim">No experience needed</dd>
                     </div>
                 </dl>
-                <x-img :src="$product->cover_image ?? 'ride.jpg'" :alt="(string) $product->cover_image_alt" sizes="(min-width: 64rem) 25rem, (min-width: 48rem) 50vw, 100vw" eager class="aspect-4/3 w-full object-cover" />
+                <x-img :src="$product->cover_image ?? 'ride.jpg'" :alt="(string) $product->cover_image_alt" sizes="(min-width: 64rem) 25rem, (min-width: 48rem) 50vw, 100vw" priority class="aspect-4/3 w-full object-cover" />
             </section>
 
             @if ($product->long_description || $product->who_for)

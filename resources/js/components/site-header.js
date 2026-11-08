@@ -17,7 +17,10 @@ export default function siteHeader() {
             const onScroll = () => {
                 this.scrolled = window.scrollY > 40;
             };
-            onScroll();
+            // Read the scroll position on the next frame, not while Alpine is
+            // still applying bindings: reading it then forces a synchronous
+            // layout inside Alpine's start-up task (milestone 11, TBT).
+            requestAnimationFrame(onScroll);
             window.addEventListener('scroll', onScroll, { passive: true });
 
             this.desktopQuery = window.matchMedia('(min-width: 64rem)');

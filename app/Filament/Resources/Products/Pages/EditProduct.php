@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources\Products\Pages;
 
 use App\Filament\Resources\Products\ProductResource;
-use Filament\Actions\DeleteAction;
+use App\Filament\Resources\Products\Tables\ProductsTable;
 use Filament\Resources\Pages\EditRecord;
 
 class EditProduct extends EditRecord
@@ -15,7 +15,8 @@ class EditProduct extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            DeleteAction::make(),
+            ProductsTable::archiveAction()->after(fn () => $this->redirect(ProductResource::getUrl('index'))),
+            ProductsTable::deleteAction()->after(fn () => $this->redirect(ProductResource::getUrl('index'))),
         ];
     }
 }

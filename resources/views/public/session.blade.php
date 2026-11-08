@@ -124,6 +124,21 @@
                 </section>
             @endif
 
+            @if (! empty($product->gallery))
+                <section aria-labelledby="gallery-title">
+                    <h2 id="gallery-title" class="mb-6 text-display-lg">Photos.</h2>
+                    <ul class="grid grid-cols-2 gap-3 md:grid-cols-3" role="list">
+                        @foreach ($product->gallery as $photo)
+                            @if (! empty($photo['image']))
+                                <li>
+                                    <x-img :src="$photo['image']" :alt="(string) ($photo['alt'] ?? '')" sizes="(min-width: 48rem) 20vw, 50vw" class="aspect-4/3 w-full object-cover" />
+                                </li>
+                            @endif
+                        @endforeach
+                    </ul>
+                </section>
+            @endif
+
             <x-booking.widget :product="$product" :slots="$slots" />
 
             @if ($faqs->isNotEmpty())

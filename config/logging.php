@@ -75,6 +75,15 @@ return [
             'replace_placeholders' => true,
         ],
 
+        // CSP violation reports (App\Http\Controllers\CspReportController).
+        'csp' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/csp.log'),
+            'level' => 'warning',
+            'days' => 14,
+            'replace_placeholders' => true,
+        ],
+
         'slack' => [
             'driver' => 'slack',
             'url' => env('LOG_SLACK_WEBHOOK_URL'),

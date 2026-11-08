@@ -1,4 +1,6 @@
-import { Livewire, Alpine } from '../../vendor/livewire/livewire/dist/livewire.esm';
+// Livewire's CSP-safe build (Alpine CSP inside): no eval on public pages
+// (PLAN §7). The admin panel keeps Filament's own Livewire script.
+import { Livewire, Alpine } from '../../vendor/livewire/livewire/dist/livewire.csp.esm';
 import registerComponents from './components/register';
 import fillLeadAttribution from './lead-attribution';
 import { initTracking } from './tracking';

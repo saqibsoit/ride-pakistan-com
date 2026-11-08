@@ -22,5 +22,5 @@
 <meta name="twitter:image:alt" content="{{ $seo->imageAlt }}">
 
 @if ($seo->schema !== [])
-    <script type="application/ld+json">{!! $seo->jsonLd() !!}</script>
+    <script type="application/ld+json" @nonce>{!! $seo->jsonLd() !!}</script>
 @endif

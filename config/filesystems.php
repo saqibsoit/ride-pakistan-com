@@ -64,6 +64,18 @@ return [
             'report' => false,
         ],
 
+        // Encrypted backups (milestone 12, config/backup.php). Outside the
+        // web root; on the server it is in the shared storage, so it
+        // survives deploys. BACKUP_DISK_ROOT can move it elsewhere.
+        'backups' => [
+            'driver' => 'local',
+            'root' => env('BACKUP_DISK_ROOT') ?: storage_path('app/backups'),
+            'visibility' => 'private',
+            'serve' => false,
+            'throw' => true,
+            'report' => false,
+        ],
+
         // Brand and editorial photos shipped with the site (public/images).
         // Responsive variants are generated into images/_variants.
         'site' => [

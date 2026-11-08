@@ -12,6 +12,8 @@ use App\Policies\ActivityPolicy;
 use App\Support\BusinessFacts;
 use App\Support\PageCache;
 use App\Support\Settings;
+use App\Support\Stripe\StripeClientGateway;
+use App\Support\Stripe\StripeGateway;
 use Closure;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -47,6 +49,11 @@ class AppServiceProvider extends ServiceProvider
         // One-time sign-in codes go by email; a phone/WhatsApp channel
         // can replace or sit beside this binding later.
         $this->app->bind(LoginCodeChannel::class, EmailLoginCodeChannel::class);
+
+        $this->app->singleton(StripeGateway::class, fn (): StripeGateway => new StripeClientGateway(
+            secret: (string) config('services.stripe.secret'),
+            webhookSecret: (string) config('services.stripe.webhook_secret'),
+        ));
     }
 
     /**

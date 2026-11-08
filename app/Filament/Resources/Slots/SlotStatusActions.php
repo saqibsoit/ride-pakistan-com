@@ -5,12 +5,21 @@ declare(strict_types=1);
 namespace App\Filament\Resources\Slots;
 
 use App\Actions\Slots\ChangeSlotStatus;
+use App\Actions\Slots\CreateManualSlot;
+use App\Actions\Slots\UpdateManualSlot;
 use App\Enums\SlotStatus;
 use App\Exceptions\InvalidStatusTransition;
+use App\Exceptions\SlotNotCreated;
+use App\Exceptions\SlotNotUpdated;
 use App\Models\Slot;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Filament\Actions\Action;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\TimePicker;
+use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Support\Icons\Heroicon;
 
@@ -26,7 +35,58 @@ final class SlotStatusActions
      */
     public static function all(): array
     {
-        return [self::close(), self::reopen(), self::cancel()];
+        return [self::editManual(), self::close(), self::reopen(), self::cancel()];
+    }
+
+    /** Edit a manual slot (UpdateManualSlot): time while empty, capacity, private-only. */
+    public static function editManual(): Action
+    {
+        return Action::make('editManual')
+            ->label('Edit slot')
+            ->icon(Heroicon::OutlinedPencilSquare)
+            ->visible(fn (Slot $record): bool => self::user()?->can('update', $record) === true && $record->status === SlotStatus::Open)
+            ->modalHeading('Edit manual slot')
+            ->modalDescription('The time can change only while nobody has booked or is paying. Capacity can’t go below the seats taken.')
+            ->fillForm(fn (Slot $record): array => [
+                'date' => $record->localStartsAt()->toDateString(),
+                'start_time' => $record->localStartsAt()->format('H:i'),
+                'end_time' => $record->localEndsAt()->format('H:i'),
+                'capacity' => $record->capacity,
+                'private_only' => $record->private_only,
+            ])
+            ->schema([
+                DatePicker::make('date')->label('Date (Pakistan time)')->required(),
+                TimePicker::make('start_time')->label('Starts (Pakistan time)')->required()->seconds(false),
+                TimePicker::make('end_time')->label('Ends (Pakistan time)')->required()->seconds(false)->after('start_time'),
+                TextInput::make('capacity')->label('Riders')->required()->integer()
+                    ->minValue(CreateManualSlot::MIN_CAPACITY)->maxValue(CreateManualSlot::MAX_CAPACITY),
+                Toggle::make('private_only')->label('Private sessions only'),
+            ])
+            ->action(function (Slot $record, array $data, Action $action, UpdateManualSlot $update): void {
+                $user = self::user();
+                abort_unless($user?->can('update', $record) === true, 403);
+
+                $tz = Slot::displayTimezone();
+                $date = (string) $data['date'];
+
+                try {
+                    $update->handle(
+                        $record,
+                        CarbonImmutable::parse($date.' '.$data['start_time'], $tz),
+                        CarbonImmutable::parse($date.' '.$data['end_time'], $tz),
+                        (int) $data['capacity'],
+                        (bool) ($data['private_only'] ?? false),
+                        $user,
+                    );
+                } catch (SlotNotUpdated|SlotNotCreated $exception) {
+                    Notification::make()->danger()->title('Slot not changed')->body($exception->getMessage())->send();
+                    $action->halt();
+
+                    return;
+                }
+
+                Notification::make()->success()->title('Slot updated')->body($record->refresh()->label())->send();
+            });
     }
 
     public static function close(): Action
@@ -88,6 +148,13 @@ final class SlotStatusActions
         return $user instanceof User
             && $user->can('changeStatus', $slot)
             && $slot->status->canTransitionTo($to);
+    }
+
+    private static function user(): ?User
+    {
+        $user = auth()->user();
+
+        return $user instanceof User ? $user : null;
     }
 
     private static function change(Slot $slot, SlotStatus $to, ?string $reason = null): void

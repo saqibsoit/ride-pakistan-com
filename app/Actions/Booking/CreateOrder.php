@@ -125,7 +125,7 @@ final class CreateOrder
      */
     private function validate(User $user, Product $product, ?int $slotId, array $riderIds): void
     {
-        if (! $product->is_active) {
+        if (! $product->isOnSale()) {
             throw BookingRejected::invalidProduct();
         }
 

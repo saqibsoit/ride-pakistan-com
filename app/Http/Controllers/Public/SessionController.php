@@ -30,7 +30,7 @@ final class SessionController extends Controller
         SchemaFactory $schema,
         Seo $seo,
     ): View {
-        abort_unless($product->is_active, 404);
+        abort_unless($product->isOnSale(), 404);
 
         $faqs = $facts->withAnswers(Faq::query()->published()->where('product_id', $product->id)->ordered()->get());
 

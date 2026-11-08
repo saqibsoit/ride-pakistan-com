@@ -6,6 +6,7 @@ namespace App\Filament\Resources\Slots\Schemas;
 
 use App\Filament\Resources\ScheduleRules\Schemas\ScheduleRuleForm;
 use App\Models\Slot;
+use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -22,6 +23,7 @@ class SlotInfolist
                         ->state(fn (Slot $record): string => $record->label()),
                     TextEntry::make('status')->badge(),
                     TextEntry::make('source')->badge(),
+                    IconEntry::make('private_only')->label('Private sessions only')->boolean(),
                     TextEntry::make('rule')->label('From schedule rule')
                         ->visible(fn (Slot $record): bool => ! $record->isManual())
                         ->state(fn (Slot $record): ?string => $record->scheduleRule === null ? null : sprintf(

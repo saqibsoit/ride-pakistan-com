@@ -1,6 +1,7 @@
 {{-- /account/tickets/{code}: printable ticket. The QR code opens the staff check-in page for this ticket. --}}
 @php
-    $product = $booking->order?->product ?? $booking->creditPack?->order?->product;
+    // Product name as bought (order snapshot).
+    $productName = ($booking->order ?? $booking->creditPack?->order)?->productName();
     $active = $booking->status === \App\Enums\BookingStatus::Confirmed;
 @endphp
 
@@ -29,10 +30,10 @@
                 <dt class="text-sm text-sand-dim">Rider</dt>
                 <dd class="font-semibold text-sand">{{ $booking->rider->name }}</dd>
             </div>
-            @if ($product)
+            @if ($productName)
                 <div>
                     <dt class="text-sm text-sand-dim">Session</dt>
-                    <dd class="font-semibold text-sand">{{ $product->name }}{{ $booking->is_private ? ' (private)' : '' }}</dd>
+                    <dd class="font-semibold text-sand">{{ $productName }}{{ $booking->is_private ? ' (private)' : '' }}</dd>
                 </div>
             @endif
             <div>

@@ -92,6 +92,9 @@ Bank transfer rules (milestone 7):
 
 Bank details (settings, not hard-coded; defaults come from `BANK_*` in `.env`, never from code): Account name Destination Pakistan; Bank Standard Chartered Bank; IBAN PK91SCBL0000001702859701; SWIFT SCBLPKKX; Country Pakistan; Bank address Main Building, Floor 3, I.I. Chundrigar Road, Karachi 74200.
 
+### 3.2a What an order keeps (milestone 10a)
+An order freezes what was bought when it is placed: product name, type, sessions count and validity days (`orders.product_*`, filled in `Order::creating`), next to the amount (`amount_minor`, `order_items.unit_price_minor`). **Price, sessions or validity changes to a product never affect orders already placed or credit packs already granted**: `FulfilOrder` grants credits and expiry from the order (also for a bank transfer approved after an edit), Stripe line items, receipts, emails and the account pages show the name as bought, and credit packs store their own `credits_total` and `expires_at`. Orders placed before the snapshot existed were backfilled from their product.
+
 ### 3.3 Order state machine
 `pending_payment → paid`
 `pending_payment → awaiting_transfer → awaiting_verification → paid | rejected`
@@ -127,10 +130,10 @@ Roles (milestone 3): `customer` (site and own account only), `staff` (admin pane
 - `users` (customers and staff; `role` enum: customer, staff, admin; phone E.164; marketing consent flag + timestamp of the last change; encrypted TOTP secret and recovery codes; `name` and `password` nullable for code-only customers; `session_version` for sign-out everywhere; soft deletes (`deleted_at` = deletion requested) and `anonymised_at`)
 - `login_codes` (milestone 4: channel, destination, HMAC-SHA256 `code_hash`, attempts, expires_at, consumed_at, ip_address; pruned daily a day after expiry)
 - `riders` (belongs to user; name, age bracket, experience level, notes, emergency contact; notes and emergency contact encrypted and redacted in the audit log)
-- `products` (type: single, private, package; name; price_minor; sessions_count; validity_days; is_active; sort)
+- `products` (type: single, private, package; name; price_minor; sessions_count; validity_days; is_active; is_featured; archived_at; sort; public content incl. gallery `[{image, alt}]`). Milestone 10a: the type is fixed once the product has orders. A product with orders is **archived, never deleted** (`ArchiveProduct`: off sale, unfeatured, hidden from the site, the booking flow and the admin list's default view; `RestoreProduct` brings it back off sale). Only a product nobody ordered can be deleted (`DeleteProduct`). Reordering is audited and clears the page cache.
 - `schedule_rules` (day_of_week, start_time, end_time, capacity, valid_from, valid_to, is_active)
-- `slots` (schedule_rule_id nullable, source: rule, manual; starts_at, ends_at, capacity, status: open, closed, cancelled; cancel_reason, cancelled_at, cancelled_by; unique on starts_at). Rule slots are generated from schedule rules. Admins add manual slots from the Slots screen through `CreateManualSlot`: any future date and time, own capacity (1 to 50, default `booking.riders_per_slot`), never at a start time another slot already has; each one is logged. `GenerateSlots` (daily `slots:generate`, after every rule change, and on seed) fills the horizon set by `booking.slot_horizon_weeks` [8]. Only future open slots with no booking, hold or order line follow rule changes or are removed; slots in use, closed or cancelled slots, past slots and manual slots are never touched. If a rule produces a start time a manual slot already holds, the manual slot stays and no rule slot is created. Status changes go through `ChangeSlotStatus` (open ⇄ closed, open/closed → cancelled; cancelling needs a reason, is final and fires `SlotCancelled`).
-- `orders` (reference unique, user_id, product_id, status, payment_method, amount_minor, amount_refunded_minor, currency, stripe_checkout_session_id, stripe_payment_intent_id, expires_at, paid_at, meta json). Status changes only through `OrderStateMachine` (§3.3; reasons required for rejected, cancelled, partially_refunded and refunded).
+- `slots` (schedule_rule_id nullable, source: rule, manual; starts_at, ends_at, capacity, private_only, status: open, closed, cancelled; cancel_reason, cancelled_at, cancelled_by; unique on starts_at). Rule slots are generated from schedule rules. Admins add manual slots from the Slots screen through `CreateManualSlot`: any future date and time, own capacity (1 to 50, default `booking.riders_per_slot`), never at a start time another slot already has; each one is logged. `GenerateSlots` (daily `slots:generate`, after every rule change, and on seed) fills the horizon set by `booking.slot_horizon_weeks` [8]. Only future open slots with no booking, hold or order line follow rule changes or are removed; slots in use, closed or cancelled slots, past slots and manual slots are never touched. If a rule produces a start time a manual slot already holds, the manual slot stays and no rule slot is created. Status changes go through `ChangeSlotStatus` (open ⇄ closed, open/closed → cancelled; cancelling needs a reason, is final and fires `SlotCancelled`). Milestone 10a: a manual slot can be **private-only** (only private sessions can book it; group sessions, credit bookings and reschedules can't, and it shows "Private only" on `/schedule`). Admins edit open future manual slots through `UpdateManualSlot`: capacity up freely or down to the seats taken; time only while nothing is booked, held or ordered; private-only only while empty. The schedule rule form shows a live preview (`PreviewScheduleRule`, read-only) of the slots saving would create, change, remove or keep over the horizon.
+- `orders` (reference unique, user_id, product_id, product snapshot: product_name, product_type, sessions_count, validity_days; status, payment_method, amount_minor, amount_refunded_minor, currency, stripe_checkout_session_id, stripe_payment_intent_id, expires_at, paid_at, meta json). Status changes only through `OrderStateMachine` (§3.3; reasons required for rejected, cancelled, partially_refunded and refunded).
 - `order_items` (order_id, slot_id nullable, rider_id, unit_price_minor; a package has one item for the pack plus a 0-priced item per first-session rider)
 - `booking_holds` (slot_id, order_id, seats, is_private, expires_at)
 - `bookings` (slot_id, order_id nullable, rider_id, user_id, credit_pack_id nullable, is_private, status: confirmed, cancelled, attended, no_show (changes through `ChangeBookingStatus`), ticket_code unique, 12 unambiguous characters; created only by `FulfilOrder`, `BookWithCredit` or an admin manual booking)
@@ -187,7 +190,7 @@ Payment:
 - `POST /webhooks/stripe` (CSRF-exempt, signature-verified, rate limited)
 
 Staff:
-- `/{admin-path}` Filament: Dashboard, Slots & schedule rules, Orders, Bank transfer verification queue, Bookings & check-in, Customers & riders, Credit packs, Leads (kanban + list), Content, Settings, Audit log
+- `/{admin-path}` Filament: Dashboard, Slots & schedule rules, Orders, Bank transfer verification queue, Bookings & check-in, Customers & riders, Credit packs, Leads (kanban + list), Content, Settings (every setting has help text, `SettingKey::help()`), Audit log, Admin guide (read-only how-to: new package, seasonal timings, one-off sessions, hide vs archive vs delete; milestone 10a)
 - `/checkin/{ticket_code}` staff-only QR check-in page (mobile-first). Milestone 8 rules:
   - Who: staff and admins (gate `check-in`). Guests go to the admin panel login (MFA), never to customer codes; customers get 403; team accounts without MFA set up finish that first. Staff may only record attended / no-show here, nothing else beyond their read access.
   - When: attended from `booking.checkin_opens_minutes` [120] before the start until the session ends; no-show only between the start and the end; dates are Pakistan dates. Another day, a cancelled ticket, before opening or after the end: a clear warning and no button. A repeat tap says "already checked in" and changes nothing. Corrections afterwards are admin-only in the panel.
@@ -280,8 +283,16 @@ Rules: InnoDB, utf8mb4_unicode_ci, strict SQL mode, foreign keys everywhere, ind
 | 8 | Tickets, check-in and notifications | `prompts/08-tickets-notifications.md` |
 | 9 | Leads CRM and tracking | `prompts/09-leads-tracking.md` |
 | 10 | Security hardening | `prompts/10-security.md` |
+| 10a | Admin catalogue and schedule control: audit and close gaps, price snapshots, archive instead of delete, rule preview, admin guide | `prompts/10a-admin-catalog-audit.md` |
+| 10b | Daily operations: run sheet, horses, trainer role, dashboard and exports | `prompts/10b-operations.md` |
+| 10c | Instagram DM quick replies and lead follow-up | `prompts/10c-lead-quick-replies.md` |
+| 10d | Customer experience: add to calendar, waitlist, progress and reviews | `prompts/10d-customer-experience.md` |
+| 10e | Gift vouchers, promo codes and referrals | `prompts/10e-vouchers-promos.md` |
+| 10f | Weather alerts by email | `prompts/10f-weather-alerts.md` |
 | 11 | Performance pass | `prompts/11-performance.md` |
 | 12 | Deployment, backups and monitoring | `prompts/12-deploy.md` |
 | 13 | QA and launch checklist | `prompts/13-launch.md` |
+
+**Deferred (post-launch, no milestone yet):** WhatsApp notifications (the channel exists behind `WHATSAPP_ENABLED` and only logs until GT360 is connected), the digital waiver, and the Urdu version of the site (the i18n structure is hreflang-ready, §8).
 
 Each milestone ends with: all tests green, Larastan clean, Pint clean, a short CHANGELOG entry and a summary of anything left open.

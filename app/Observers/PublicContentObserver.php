@@ -54,6 +54,17 @@ final class PublicContentObserver
             }
         }
 
+        // Product gallery: [{image, alt}, ...].
+        if ($model->wasChanged('gallery') || $model->wasRecentlyCreated) {
+            $gallery = $model->getAttribute('gallery');
+
+            foreach (is_array($gallery) ? $gallery : [] as $item) {
+                if (is_array($item)) {
+                    $paths[] = $item['image'] ?? null;
+                }
+            }
+        }
+
         // Only admin uploads; shipped photos already have variants from the build.
         return array_values(array_unique(array_filter(
             $paths,

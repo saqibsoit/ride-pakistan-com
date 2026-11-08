@@ -7,7 +7,6 @@ namespace App\Actions\Payments;
 use App\Actions\Booking\SlotLock;
 use App\Actions\Orders\OrderStateMachine;
 use App\Enums\OrderStatus;
-use App\Enums\ProductType;
 use App\Exceptions\BookingRejected;
 use App\Models\BookingHold;
 use App\Models\Order;
@@ -51,7 +50,7 @@ final class ExtendTransferHold
             }
 
             $locked->load(['product', 'items']);
-            $private = $locked->product->type === ProductType::Private;
+            $private = $locked->isPrivate();
 
             /** @var array<int, list<int>> $ridersBySlot */
             $ridersBySlot = [];

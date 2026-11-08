@@ -72,6 +72,11 @@ final class LockedSlot
             throw BookingRejected::riderAlreadyBooked(Rider::query()->find($taken[0])->name ?? 'A rider');
         }
 
+        // Private-only slots (milestone 10a) take private sessions only.
+        if (! $private && $this->slot->private_only) {
+            throw BookingRejected::privateOnly();
+        }
+
         if ($private) {
             if (! $this->isEmpty()) {
                 throw BookingRejected::slotNotEmpty();

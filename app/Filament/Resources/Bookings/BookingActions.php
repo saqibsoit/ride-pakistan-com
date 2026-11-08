@@ -265,7 +265,7 @@ final class BookingActions
             ->where('expires_at', '>', now())
             ->with('order.product')
             ->get()
-            ->mapWithKeys(fn (CreditPack $pack): array => [$pack->id => $pack->order->product->name.' · '.$pack->creditsRemaining().' left, until '.$pack->expires_at->setTimezone((string) config('app.display_timezone'))->format('j M')])
+            ->mapWithKeys(fn (CreditPack $pack): array => [$pack->id => $pack->order->productName().' · '.$pack->creditsRemaining().' left, until '.$pack->expires_at->setTimezone((string) config('app.display_timezone'))->format('j M')])
             ->all();
     }
 

@@ -43,7 +43,7 @@ final class Availability
 
         return match ($type) {
             self::TYPE_PRIVATE => $slots->filter(fn (Slot $slot): bool => $slot->status === SlotStatus::Open && $slot->isEmpty())->values(),
-            self::TYPE_GROUP => $slots->reject(fn (Slot $slot): bool => $slot->isPrivatelyBooked())->values(),
+            self::TYPE_GROUP => $slots->reject(fn (Slot $slot): bool => $slot->private_only || $slot->isPrivatelyBooked())->values(),
             default => $slots,
         };
     }

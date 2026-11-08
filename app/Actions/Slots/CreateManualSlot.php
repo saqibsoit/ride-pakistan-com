@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Adds a one-off slot outside the schedule rules (any date and time, its
- * own capacity). Manual slots are never changed or removed by
+ * own capacity), on any day, optionally private-only. Manual slots are never changed or removed by
  * GenerateSlots; they change status through ChangeSlotStatus like any slot.
  */
 final class CreateManualSlot
@@ -26,7 +26,7 @@ final class CreateManualSlot
     /**
      * @throws SlotNotCreated
      */
-    public function handle(CarbonImmutable $startsAt, CarbonImmutable $endsAt, int $capacity, ?User $actor = null): Slot
+    public function handle(CarbonImmutable $startsAt, CarbonImmutable $endsAt, int $capacity, ?User $actor = null, bool $privateOnly = false): Slot
     {
         $startsAt = $startsAt->utc()->startOfMinute();
         $endsAt = $endsAt->utc()->startOfMinute();
@@ -44,7 +44,7 @@ final class CreateManualSlot
         }
 
         try {
-            return DB::transaction(function () use ($startsAt, $endsAt, $capacity, $actor): Slot {
+            return DB::transaction(function () use ($startsAt, $endsAt, $capacity, $actor, $privateOnly): Slot {
                 $taken = Slot::query()->where('starts_at', $startsAt)->lockForUpdate()->exists();
 
                 if ($taken) {
@@ -56,6 +56,7 @@ final class CreateManualSlot
                     'starts_at' => $startsAt,
                     'ends_at' => $endsAt,
                     'capacity' => $capacity,
+                    'private_only' => $privateOnly,
                 ]);
                 $slot->source = SlotSource::Manual;
                 $slot->save();
@@ -64,7 +65,7 @@ final class CreateManualSlot
                     ->performedOn($slot)
                     ->causedBy($actor)
                     ->event('created_manual')
-                    ->withProperties(['starts_at' => $startsAt->toIso8601String(), 'ends_at' => $endsAt->toIso8601String(), 'capacity' => $capacity])
+                    ->withProperties(['starts_at' => $startsAt->toIso8601String(), 'ends_at' => $endsAt->toIso8601String(), 'capacity' => $capacity, 'private_only' => $privateOnly])
                     ->log('Manual slot added: '.$slot->label());
 
                 return $slot;

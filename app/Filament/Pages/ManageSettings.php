@@ -42,7 +42,6 @@ class ManageSettings extends Page
     private const GROUPS = [
         'business' => 'Business',
         'contact' => 'Contact and links',
-        'schedule' => 'Schedule',
         'booking' => 'Booking rules',
         'policies' => 'Policies',
         'bank' => 'Bank transfer details',
@@ -129,13 +128,7 @@ class ManageSettings extends Page
             default => TextInput::make($name)->maxLength(255),
         };
 
-        $field->label($key->label());
-
-        return match ($key) {
-            SettingKey::BookingPolicies => $field->helperText('":cutoff" becomes the cutoff hours; ":min_age" the minimum age.'),
-            SettingKey::MapPinUrl => $field->helperText('Never shown on public pages. Sent to customers after confirmation.'),
-            SettingKey::MinRiderAge => $field->helperText('Leave empty until decided; it is then hidden on the site.'),
-            default => $field,
-        };
+        // Every setting explains itself (SettingKey::help(), milestone 10a).
+        return $field->label($key->label())->helperText($key->help());
     }
 }

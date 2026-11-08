@@ -7,7 +7,6 @@ namespace App\Actions\Booking;
 use App\Actions\Orders\OrderStateMachine;
 use App\Enums\CreditReason;
 use App\Enums\OrderStatus;
-use App\Enums\ProductType;
 use App\Exceptions\BookingRejected;
 use App\Models\Booking;
 use App\Models\BookingHold;
@@ -74,7 +73,7 @@ final class FulfilOrder
             }
 
             ksort($seatsBySlot);
-            $private = $locked->product->type === ProductType::Private;
+            $private = $locked->isPrivate();
 
             // Every slot locked (in id order) and checked before anything is written.
             foreach ($seatsBySlot as $slotId => $items) {
@@ -94,7 +93,7 @@ final class FulfilOrder
 
             $this->orders->transition($locked, OrderStatus::Paid, $actor, context: $context);
 
-            $pack = $locked->product->type === ProductType::Package
+            $pack = $locked->isPackage()
                 ? $this->grantPack($locked, $now, $actor)
                 : null;
 
@@ -133,19 +132,20 @@ final class FulfilOrder
 
     private function grantPack(Order $order, CarbonImmutable $now, ?User $actor): CreditPack
     {
-        $product = $order->product;
+        // Terms as bought (order snapshot), never the product's current ones.
+        $credits = $order->sessionsCount();
 
         $pack = CreditPack::query()->create([
             'user_id' => $order->user_id,
             'order_id' => $order->id,
-            'credits_total' => $product->sessions_count,
+            'credits_total' => $credits,
             'valid_from' => $now,
-            'expires_at' => $now->addDays((int) $product->validity_days),
+            'expires_at' => $now->addDays((int) $order->validityDays()),
         ]);
 
         CreditLedgerEntry::query()->create([
             'credit_pack_id' => $pack->id,
-            'delta' => $product->sessions_count,
+            'delta' => $credits,
             'reason' => CreditReason::Granted,
             'note' => 'Order '.$order->reference,
             'actor_id' => $actor?->id,

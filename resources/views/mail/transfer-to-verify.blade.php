@@ -8,7 +8,7 @@ A customer has uploaded proof of a bank transfer.
 |:--|:--|
 | Order | {{ $order->reference }} |
 | Expected | {{ \App\Support\Money::format($order->amount_minor, $order->currency) }} |
-| Product | {{ $order->product->name }} |
+| Product | {{ $order->productName() }} |
 | Customer | {{ $order->user->name ?? 'Customer' }} |
 </x-mail::table>
 

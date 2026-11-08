@@ -59,7 +59,7 @@ final class ExportAccountData
             'orders' => $user->orders()->with(['product', 'items.slot', 'payments', 'bankTransfers'])->orderBy('id')->get()
                 ->map(fn (Order $order): array => [
                     'reference' => $order->reference,
-                    'product' => $order->product->name,
+                    'product' => $order->productName(),
                     'status' => $order->status->label(),
                     'payment_method' => $order->payment_method?->value,
                     'amount_minor' => $order->amount_minor,

@@ -17,6 +17,7 @@ use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\TimePicker;
+use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Support\Icons\Heroicon;
@@ -72,6 +73,8 @@ class ListSlots extends ListRecords
                 TextInput::make('capacity')->label('Riders')->required()->integer()
                     ->minValue(CreateManualSlot::MIN_CAPACITY)->maxValue(CreateManualSlot::MAX_CAPACITY)
                     ->default(fn (): ?int => app(Settings::class)->int(SettingKey::RidersPerSlot)),
+                Toggle::make('private_only')->label('Private sessions only')
+                    ->helperText('Group sessions and package credits can’t book it; it shows as “Private only” on the schedule.'),
             ])
             ->action(function (array $data, Action $action, CreateManualSlot $create): void {
                 $user = self::user();
@@ -86,6 +89,7 @@ class ListSlots extends ListRecords
                         CarbonImmutable::parse($date.' '.$data['end_time'], $tz),
                         (int) $data['capacity'],
                         $user,
+                        (bool) ($data['private_only'] ?? false),
                     );
                 } catch (SlotNotCreated $exception) {
                     Notification::make()->danger()->title('Slot not added')->body($exception->getMessage())->send();

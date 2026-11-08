@@ -60,15 +60,17 @@
                     </h3>
                     @forelse ($slots as $slot)
                         @php($open = $slot->status === \App\Enums\SlotStatus::Open)
+                        {{-- Private-only slots (milestone 10a) book as a private session. --}}
+                        @php($asPrivate = $type === 'private' || $slot->private_only)
                         <x-slot-card
                             :starts-at="$slot->starts_at"
                             :ends-at="$slot->ends_at"
-                            :product="$type === 'private' ? 'Private session' : ($slot->isPrivatelyBooked() ? 'Private session' : 'Riding session')"
+                            :product="$slot->private_only ? 'Private only' : ($asPrivate || $slot->isPrivatelyBooked() ? 'Private session' : 'Riding session')"
                             :trainer="$facts->trainer()"
                             :level="4"
-                            :seats="$open ? $slot->seatsFree() : null"
+                            :seats="$open ? ($slot->private_only && ! $slot->isEmpty() ? 0 : $slot->seatsFree()) : null"
                             note="Closed for booking"
-                            :href="$open ? route('book', array_filter(['slot' => $slot->id, 'product' => $type === 'private' ? $privateProduct?->slug : null])) : null"
+                            :href="$open ? route('book', array_filter(['slot' => $slot->id, 'product' => $asPrivate ? $privateProduct?->slug : null])) : null"
                         />
                     @empty
                         <p class="text-sm text-sand-dim">{{ $isWeekend ? 'No more sessions' : 'No sessions' }}</p>

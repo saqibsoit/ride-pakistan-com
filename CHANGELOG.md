@@ -5,6 +5,18 @@ All notable changes to this project are documented here. The format follows [Kee
 ## [Unreleased]
 
 ### Added
+- Milestone 10a admin catalogue and schedule control:
+  - Order snapshot: orders keep the product name, type, sessions and validity they were bought with (new `orders.product_*` columns, backfilled). `FulfilOrder` grants credits and expiry from the order, so a package edited while its bank transfer waits keeps the terms bought. Stripe line items, receipts, emails, tickets, the data export and admin order screens show the name as bought. A product's type is fixed once it has orders.
+  - Archive instead of delete: `ArchiveProduct` / `RestoreProduct` (`products.archived_at`); archived products leave the site, the booking flow and the admin list's default view, and are read-only until restored (off sale). Only products nobody ordered can be deleted (`DeleteProduct`); the Delete button appears only then. Bulk delete is off.
+  - Product form: live per-session price for packages (also a table column), help text on price and validity ("new orders only"), and a gallery (up to 8 photos with alt text) shown on the product page with the responsive image component.
+  - Product reordering is audited and clears the page cache (Filament reorders with a bulk query that skips model events).
+  - Schedule rule preview: the rule form shows, before saving, the slots that would be created, changed, removed or kept (booked, closed, cancelled or manual) over the slot horizon, in Pakistan time (`PreviewScheduleRule`, read-only; `GenerateSlots::desiredSlots()` now shared).
+  - Manual slots: private-only option (only private sessions can book; hidden from group availability, labelled "Private only" on `/schedule`; enforced in `LockedSlot::assertRoomFor`), and "Edit slot" for admins (`UpdateManualSlot`: capacity down to the seats taken, time only while unused, private-only only while empty; audited).
+  - Help text for every setting (`SettingKey::help()`), shown on the settings page.
+  - Removed the unused "Schedule summary" setting (`schedule.summary`): schedule wording is generated from the schedule rules. Migration `remove_schedule_summary_setting` drops the stored value.
+  - Admin guide page (System → Admin guide, admins and staff): adding a package, seasonal timings, one-off sessions, hide vs archive vs delete.
+  - Migrations: `add_product_snapshot_to_orders_table`, `add_archived_at_to_products_table`, `add_private_only_to_slots_table`.
+  - Pest tests: price and validity snapshots through transfer approval and Stripe, untouched credit packs, receipt names, type lock; archive vs delete (policy, actions, public pages, booking, filter, restore, audit, cache); rule preview (new, seasonal dates, changed, moved, kept, manual conflicts, switched off, incomplete form, form rendering); manual slots (weekday one-offs, private-only booking rules and availability, edit limits, admin-only, cache); settings help; admin guide access; product gallery.
 - Milestone 10 security hardening:
   - Security headers on every web and admin response, cached pages included (`AddSecurityHeaders`): CSP, HSTS (two years, `includeSubDomains; preload`, HTTPS only), `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy` and `Cross-Origin-Opener-Policy`.
   - Enforced CSP built from `config/csp.php` (`PolicyBuilder`): nonce plus `strict-dynamic`, no `unsafe-eval` or inline styles on public pages; the admin panel adds only `'unsafe-eval'` and inline styles. Meta Pixel and GA4 are allowed only for visitors who accepted the cookie banner (accepting reloads the page; queued events carry over). Turnstile and the Stripe Checkout redirect allowed. `CSP_REPORT_ONLY` for a staging trial.

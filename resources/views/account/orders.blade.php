@@ -8,7 +8,7 @@
             @foreach ($orders as $order)
                 <li class="flex flex-wrap items-center justify-between gap-4 rounded-sm border border-line bg-earth-2 p-5">
                     <div class="flex flex-col gap-1">
-                        <p class="font-semibold text-sand">{{ $order->product->name }}</p>
+                        <p class="font-semibold text-sand">{{ $order->productName() }}</p>
                         <p class="text-sm text-sand-dim">
                             {{ $order->reference }} ·
                             <time datetime="{{ $order->created_at->toIso8601String() }}">{{ $order->created_at->setTimezone($tz)->format('j M Y') }}</time> ·

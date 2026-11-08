@@ -333,7 +333,7 @@ final class BookingFlow extends Component
 
     private function findProduct(string $slug): ?Product
     {
-        return Product::query()->where('slug', $slug)->where('is_active', true)->first();
+        return Product::query()->where('slug', $slug)->active()->first();
     }
 
     private function user(): ?User

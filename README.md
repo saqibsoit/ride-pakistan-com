@@ -71,9 +71,11 @@ Card payment uses Stripe Checkout in PKR on Destination Pakistan's Stripe accoun
 3. Install the [Stripe CLI](https://docs.stripe.com/stripe-cli) (`scoop install stripe` on Windows, `brew install stripe/stripe-cli/stripe` on macOS) and sign in with `stripe login`.
 4. Forward webhooks to the local site, and keep this running while you test:
    ```bash
-   stripe listen --forward-to https://ride-pakistan-com.test/webhooks/stripe
+   stripe listen \
+     --events checkout.session.completed,checkout.session.async_payment_succeeded,checkout.session.async_payment_failed,checkout.session.expired,charge.refunded \
+     --forward-to https://ride-pakistan-com.test/webhooks/stripe
    ```
-   It prints a signing secret (`whsec_…`). Put it in `.env` as `STRIPE_WEBHOOK_SECRET`, then run `php artisan config:clear`. The secret stays the same across `stripe listen` runs for the same CLI login.
+   Recent CLI versions (1.55+) refuse to start without `--events`. If the CLI doesn't trust Herd's local certificate, add `--skip-verify` (local only). It prints a signing secret (`whsec_…`). Put it in `.env` as `STRIPE_WEBHOOK_SECRET`, then run `php artisan config:clear`. The secret stays the same across `stripe listen` runs for the same CLI login.
 5. Run a queue worker so receipt emails go out (`php artisan queue:work`). With `MAIL_MAILER=log` they land in `storage/logs/laravel.log`.
 
 The scheduler (`php artisan schedule:work` locally) runs `holds:release` every minute. When a card order's hold runs out, it expires the open Stripe session first, then the order.

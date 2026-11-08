@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Middleware\AddRobotsHeader;
+use App\Http\Middleware\AddSecurityHeaders;
 use App\Http\Middleware\EnsureSessionIsCurrent;
 use App\Http\Middleware\SetCspNonce;
 use App\Support\Tracking\Attribution;
@@ -18,8 +19,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Nonce first, then the security headers (CSP built from that nonce)
+        // around everything else, including the full-page cache.
         $middleware->web(prepend: [
             SetCspNonce::class,
+            AddSecurityHeaders::class,
         ], append: [
             AddRobotsHeader::class,
             EnsureSessionIsCurrent::class,

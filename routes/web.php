@@ -17,6 +17,7 @@ use App\Http\Controllers\Auth\RestoreAccountController;
 use App\Http\Controllers\BankTransferController;
 use App\Http\Controllers\CheckInController;
 use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\CspReportController;
 use App\Http\Controllers\Public\BookController;
 use App\Http\Controllers\Public\ContactController;
 use App\Http\Controllers\Public\ContentPageController;
@@ -30,6 +31,7 @@ use App\Http\Controllers\Public\SeoFileController;
 use App\Http\Controllers\Public\SessionController;
 use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\TransferProofController;
+use App\Http\Middleware\AddStatelessSecurityHeaders;
 use App\Http\Middleware\EnsureCheckInAccess;
 use Illuminate\Support\Facades\Route;
 use Spatie\ResponseCache\Middlewares\CacheResponse;
@@ -91,8 +93,14 @@ Route::get('/'.trim((string) config('app.admin_path', 'admin'), '/').'/transfers
 // no session or cookies, rate limited.
 Route::post('/webhooks/stripe', StripeWebhookController::class)
     ->withoutMiddleware(['web'])
-    ->middleware('throttle:stripe-webhook')
+    ->middleware([AddStatelessSecurityHeaders::class, 'throttle:stripe-webhook'])
     ->name('webhooks.stripe');
+
+// CSP violation reports (PLAN §7): no session, cookies or CSRF; rate limited.
+Route::post('/csp-report', CspReportController::class)
+    ->withoutMiddleware(['web'])
+    ->middleware([AddStatelessSecurityHeaders::class, 'throttle:csp-report'])
+    ->name('csp.report');
 
 // Served from the generated file, which a queued job rewrites after the
 // page cache has been cleared, so it is never response-cached.
@@ -117,19 +125,19 @@ Route::middleware(['guest', 'cache.headers:private;no_store'])->group(function (
     Route::post('/login/code', [LoginController::class, 'verify'])->middleware('throttle:login-code-verify')->name('login.verify.store');
 
     Route::get('/login/restore', [RestoreAccountController::class, 'show'])->name('account.restore');
-    Route::post('/login/restore', [RestoreAccountController::class, 'store'])->name('account.restore.store');
-    Route::delete('/login/restore', [RestoreAccountController::class, 'destroy'])->name('account.restore.cancel');
+    Route::post('/login/restore', [RestoreAccountController::class, 'store'])->middleware('throttle:account-actions')->name('account.restore.store');
+    Route::delete('/login/restore', [RestoreAccountController::class, 'destroy'])->middleware('throttle:account-actions')->name('account.restore.cancel');
 });
 
-Route::post('/logout', [LoginController::class, 'logout'])->middleware('auth')->name('logout');
+Route::post('/logout', [LoginController::class, 'logout'])->middleware(['auth', 'throttle:account-actions'])->name('logout');
 
 Route::middleware(['auth', 'cache.headers:private;no_store'])->prefix('account')->name('account.')->group(function (): void {
     Route::get('/', DashboardController::class)->name('dashboard');
     Route::get('/bookings', [BookingController::class, 'index'])->name('bookings');
     Route::get('/bookings/{ticket}/reschedule', [BookingChangeController::class, 'editReschedule'])->name('bookings.reschedule.edit');
-    Route::post('/bookings/{ticket}/reschedule', [BookingChangeController::class, 'reschedule'])->name('bookings.reschedule');
+    Route::post('/bookings/{ticket}/reschedule', [BookingChangeController::class, 'reschedule'])->middleware('throttle:account-actions')->name('bookings.reschedule');
     Route::get('/bookings/{ticket}/cancel', [BookingChangeController::class, 'confirmCancel'])->name('bookings.cancel');
-    Route::post('/bookings/{ticket}/cancel', [BookingChangeController::class, 'cancel'])->name('bookings.cancel.store');
+    Route::post('/bookings/{ticket}/cancel', [BookingChangeController::class, 'cancel'])->middleware('throttle:account-actions')->name('bookings.cancel.store');
     Route::get('/tickets', [TicketController::class, 'index'])->name('tickets');
     Route::get('/tickets/{code}', [TicketController::class, 'show'])->name('tickets.show');
     Route::get('/credits', CreditController::class)->name('credits');
@@ -137,13 +145,13 @@ Route::middleware(['auth', 'cache.headers:private;no_store'])->prefix('account')
     Route::get('/orders/{reference}', [OrderController::class, 'show'])->name('orders.show');
     Route::get('/riders', RiderController::class)->name('riders');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile');
-    Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::put('/profile', [ProfileController::class, 'update'])->middleware('throttle:account-actions')->name('profile.update');
 
     Route::get('/privacy', [PrivacyController::class, 'show'])->name('privacy');
     Route::post('/privacy/export', [PrivacyController::class, 'export'])->middleware('throttle:account-export')->name('privacy.export');
-    Route::delete('/', [PrivacyController::class, 'destroy'])->name('destroy');
+    Route::delete('/', [PrivacyController::class, 'destroy'])->middleware('throttle:account-actions')->name('destroy');
 
-    Route::post('/sign-out-everywhere', SignOutEverywhereController::class)->name('sign-out-everywhere');
+    Route::post('/sign-out-everywhere', SignOutEverywhereController::class)->middleware('throttle:account-actions')->name('sign-out-everywhere');
 });
 
 // Component styleguide: local development only.

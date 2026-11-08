@@ -10,6 +10,7 @@ use App\Models\Booking;
 use App\Models\Rider;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException;
 use Livewire\Livewire;
 use Spatie\Activitylog\Models\Activity;
 
@@ -105,11 +106,10 @@ it('never lets a customer read, change or remove another customer’s rider', fu
 it('cannot save over another customer’s rider by setting the id', function (): void {
     $rider = Rider::factory()->create(['name' => 'Private']);
 
-    $component = Livewire::actingAs(User::factory()->create())->test(Riders::class)
-        ->set('editingId', $rider->id)
-        ->set('name', 'Hijacked');
-
-    $component->call('save')->assertNotFound();
+    // The id is #[Locked]: the browser can't change it at all.
+    expect(fn () => Livewire::actingAs(User::factory()->create())->test(Riders::class)
+        ->set('editingId', $rider->id))
+        ->toThrow(CannotUpdateLockedPropertyException::class);
 
     expect($rider->fresh()?->name)->toBe('Private');
 });

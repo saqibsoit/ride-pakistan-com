@@ -124,10 +124,15 @@ function startGa4(measurementId, nonce) {
 
 const GA4_NAMES = { Lead: 'generate_lead', InitiateCheckout: 'begin_checkout', Purchase: 'purchase' };
 
+const fired = new Set();
+
 function fire(event) {
-    if (!event || !event.name || !event.id) {
+    // Once per event id (a stashed event can also be on the reloaded page).
+    if (!event || !event.name || !event.id || fired.has(event.id)) {
         return;
     }
+
+    fired.add(event.id);
 
     const money = event.value === undefined ? {} : { value: event.value, currency: event.currency || 'PKR' };
 
@@ -164,12 +169,22 @@ function start() {
     pending.splice(0).forEach(fire);
 }
 
-/** Called by the consent banner. */
+/**
+ * Called by the consent banner. The page's CSP lists the vendor origins
+ * only for visitors who have consented (App\Support\Csp\PolicyBuilder), so
+ * accepting reloads the page: the new response carries a policy that
+ * allows Pixel and GA4. This page's queued events and the landing data
+ * are kept across the reload.
+ */
 export function setConsent(granted) {
     writeCookie(CONSENT_COOKIE, granted ? 'granted' : 'denied', CONSENT_DAYS);
 
     if (granted) {
-        start();
+        if (config) {
+            writeFirstTouch();
+            stashEvents([...(config.events || []), ...pending]);
+            window.location.reload();
+        }
 
         return;
     }
@@ -213,6 +228,31 @@ export function initTracking() {
     });
 
     if (consentState() === 'granted') {
+        config.events = [...takeStashedEvents(), ...(config.events || [])];
         start();
+    }
+}
+
+const STASH_KEY = 'rp_pending_events';
+
+function stashEvents(events) {
+    try {
+        if (events.length > 0) {
+            window.sessionStorage.setItem(STASH_KEY, JSON.stringify(events.slice(0, 20)));
+        }
+    } catch {
+        // Storage blocked: the events are lost, nothing else breaks.
+    }
+}
+
+function takeStashedEvents() {
+    try {
+        const raw = window.sessionStorage.getItem(STASH_KEY);
+        window.sessionStorage.removeItem(STASH_KEY);
+        const events = raw ? JSON.parse(raw) : [];
+
+        return Array.isArray(events) ? events : [];
+    } catch {
+        return [];
     }
 }

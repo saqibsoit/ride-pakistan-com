@@ -25,6 +25,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 
@@ -71,6 +72,7 @@ final class BookingFlow extends Component
 
     public string $newRiderName = '';
 
+    #[Locked]
     public ?string $error = null;
 
     public function mount(): void

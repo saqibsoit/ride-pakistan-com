@@ -1,4 +1,6 @@
-import Alpine from 'alpinejs';
+// Alpine's CSP build: no eval, so the strict CSP needs no 'unsafe-eval'
+// (PLAN §7). Components are registered by name (components/register.js).
+import Alpine from '@alpinejs/csp';
 import registerComponents from './components/register';
 import fillLeadAttribution from './lead-attribution';
 import { initTracking } from './tracking';

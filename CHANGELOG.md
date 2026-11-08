@@ -5,6 +5,18 @@ All notable changes to this project are documented here. The format follows [Kee
 ## [Unreleased]
 
 ### Added
+- Milestone 10 security hardening:
+  - Security headers on every web and admin response, cached pages included (`AddSecurityHeaders`): CSP, HSTS (two years, `includeSubDomains; preload`, HTTPS only), `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy` and `Cross-Origin-Opener-Policy`.
+  - Enforced CSP built from `config/csp.php` (`PolicyBuilder`): nonce plus `strict-dynamic`, no `unsafe-eval` or inline styles on public pages; the admin panel adds only `'unsafe-eval'` and inline styles. Meta Pixel and GA4 are allowed only for visitors who accepted the cookie banner (accepting reloads the page; queued events carry over). Turnstile and the Stripe Checkout redirect allowed. `CSP_REPORT_ONLY` for a staging trial.
+  - `POST /csp-report`: legacy and Reporting API reports, no session, 16 KB cap, rate limited, logged to `storage/logs/csp.log` without query strings or IPs.
+  - Public bundles switched to Alpine's CSP build (`@alpinejs/csp`) and Livewire's CSP-safe build.
+  - Admin: 30-minute idle timeout (`ADMIN_IDLE_MINUTES`; polling doesn't count); failed-login alert emails to the account and every admin after 5 failures in 15 minutes, wrong MFA codes included (`RecordFailedTeamLogin`, `FailedTeamLogin`); audit entries for team sign-ins, sign-outs, failures, idle sign-outs, MFA and password changes (log `auth`), lead deletes and lead notes (log `leads`, no text).
+  - Admin panel loads the brand font locally and draws initials avatars locally (no fonts.bunny.net or ui-avatars.com).
+  - New-lead email to every admin for each site lead (`NewLeadReceived`), with visitor text escaped.
+  - `account-actions` rate limit on logout, profile, reschedule, cancel, restore, delete and sign out everywhere; `#[Locked]` on server-owned Livewire state.
+  - `docs/SECURITY.md`: threat model, ASVS L2 mapping, CSP register, route table, key rotation, backup and restore, incident response.
+  - `config/security.php`; `.env.example` defaults to `APP_DEBUG=false` and documents the new settings; a critical log if debug is on in production.
+  - Pest tests in `tests/Feature/Security`: headers (first view and cache hit, HSTS over HTTPS only), nonce on every script and a fresh nonce per cache hit, consent-gated vendors, admin policy, report-only, report endpoint, a check that every write route is throttled, rate limits, IDOR sweeps over orders, tickets, checkout, check-in and proofs, idle timeout, failed-login alerts and MFA failures, audit entries, lead alerts, private files and no stack traces; unit tests for `PolicyBuilder`.
 - Milestone 9 leads CRM and tracking:
   - Lead capture: the `/contact` form and a new "Ask a question" form on `/prices` (`POST /prices/question`; shared `<x-lead-form>`). The route sets the source (`contact_form`, `prices_form`). Honeypot, a shared rate limit (3 a minute, 20 a day per IP) and Cloudflare Turnstile when both keys are set (with a key missing, lead forms skip it; `/login` still fails closed in production). Errors and the confirmation from the cached `/prices` page show on `/contact`.
   - Attribution: UTM tags, `fbclid`, `gclid`, landing URL and referrer from hidden fields (filled by JS on cached pages). With tracking consent, a first-touch cookie (`rp_ft`, 90 days) records the visit's landing page and time and takes precedence (validated and capped on the server; `leads.first_touch_at`).
@@ -107,9 +119,12 @@ All notable changes to this project are documented here. The format follows [Kee
 - README with local setup steps.
 
 ### Fixed
+- The admin panel now loads Livewire's script and styles. Livewire's automatic asset injection is off (since milestone 2, for the public bundle), so in a real browser the panel's Livewire and Alpine never started and forms such as the login spun forever. Tests render HTML only, so they missed it; a regression test now checks for the script.
+- The private `local` disk no longer registers the framework's `GET`/`PUT /storage/{path}` signed-URL routes (`serve` off; nothing used them).
 - The full-page cache now has its own cache store. It used the default store, and `ResponseCache::clear()` (run after every seat change and content edit) emptied that whole store, resetting rate-limit counters, including the sign-in code limits. A regression test covers it.
 
 ### Changed
+- npm devDependencies pinned to exact versions; `alpinejs` replaced by `@alpinejs/csp` 3.17.5 (milestone 10).
 - Leads and lead notes are no longer admin-only: staff can view, add, move, assign and note them (milestone 9). Converting, deleting and the lead reports stay admin-only.
 - Removed unconfirmed claims that could be wrong or unsafe: helmet provision and requirements, arrival time, weather rescheduling, consent for minors, photography, transport, the "Is horse riding safe for beginners?" FAQ, reply-time promises, "Most popular", "multi-day" expeditions and package outcome claims. Riding rules and booking policies now default to confirmed or neutral wording only.
 - Group size is derived from the riders-per-slot setting instead of a hard-coded "Up to 6 riders".

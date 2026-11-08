@@ -35,7 +35,10 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
-            'serve' => true,
+            // Off (PLAN §7): nothing private is served by signed URL from
+            // this disk, so the framework's GET/PUT /storage/{path} routes
+            // are not registered.
+            'serve' => false,
             'throw' => false,
             'report' => false,
         ],

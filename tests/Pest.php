@@ -63,7 +63,7 @@ function putTestImage(string $disk, string $path, int $width, int $height, strin
  */
 function jsonLdGraph(string $html): array
 {
-    preg_match_all('#<script type="application/ld\+json">(.*?)</script>#s', $html, $matches);
+    preg_match_all('#<script type="application/ld\+json"[^>]*>(.*?)</script>#s', $html, $matches);
 
     expect($matches[1])->toHaveCount(1);
 

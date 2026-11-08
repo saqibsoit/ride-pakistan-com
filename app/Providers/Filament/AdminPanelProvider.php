@@ -5,8 +5,13 @@ declare(strict_types=1);
 namespace App\Providers\Filament;
 
 use App\Filament\Auth\Login;
+use App\Filament\Support\InitialsAvatarProvider;
+use App\Http\Middleware\AddSecurityHeaders;
+use App\Http\Middleware\EnforceAdminIdleTimeout;
 use App\Http\Middleware\EnsureSessionIsCurrent;
+use App\Http\Middleware\SetCspNonce;
 use Filament\Auth\MultiFactor\App\AppAuthentication;
+use Filament\FontProviders\LocalFontProvider;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -17,13 +22,17 @@ use Filament\PanelProvider;
 use Filament\Support\Assets\Css;
 use Filament\Support\Colors\Color;
 use Filament\Support\Facades\FilamentAsset;
+use Filament\View\PanelsRenderHook;
 use Filament\Widgets\AccountWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
+use Illuminate\Support\Facades\Vite;
+use Illuminate\Support\HtmlString;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use Livewire\Mechanisms\FrontendAssets\FrontendAssets;
 use RuntimeException;
 
 class AdminPanelProvider extends PanelProvider
@@ -60,6 +69,16 @@ class AdminPanelProvider extends PanelProvider
             ->colors([
                 'primary' => Color::Amber,
             ])
+            // Nothing from third parties (PLAN §7): self-hosted brand font
+            // instead of Bunny Fonts, local initials instead of ui-avatars.com.
+            ->font('Instrument Sans', url: fn (): string => Vite::asset('resources/css/filament/fonts.css'), provider: LocalFontProvider::class)
+            ->defaultAvatarProvider(InitialsAvatarProvider::class)
+            // Livewire's automatic asset injection is off for the public
+            // site (config/livewire.php: the public bundle ships its own
+            // CSP build), so the panel adds Livewire's standard styles and
+            // script itself, with the request's nonce.
+            ->renderHook(PanelsRenderHook::STYLES_AFTER, fn (): HtmlString => new HtmlString(FrontendAssets::styles()))
+            ->renderHook(PanelsRenderHook::BODY_END, fn (): HtmlString => new HtmlString(FrontendAssets::scripts()))
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([
@@ -70,6 +89,10 @@ class AdminPanelProvider extends PanelProvider
                 AccountWidget::class,
             ])
             ->middleware([
+                // CSP nonce and security headers, as on the public site
+                // (admin context: AddSecurityHeaders::isAdmin()).
+                SetCspNonce::class,
+                AddSecurityHeaders::class,
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
                 StartSession::class,
@@ -83,7 +106,12 @@ class AdminPanelProvider extends PanelProvider
             ->authMiddleware([
                 Authenticate::class,
                 EnsureSessionIsCurrent::class,
-            ]);
+            ])
+            // Also on Livewire update requests from the panel, so an idle
+            // tab can't keep acting (polling doesn't count as activity).
+            ->authMiddleware([
+                EnforceAdminIdleTimeout::class,
+            ], isPersistent: true);
     }
 
     /**

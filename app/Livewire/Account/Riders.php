@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Propaganistas\LaravelPhone\Rules\Phone;
 
@@ -27,6 +28,7 @@ use Propaganistas\LaravelPhone\Rules\Phone;
  */
 final class Riders extends Component
 {
+    #[Locked]
     public ?int $editingId = null;
 
     public bool $showForm = false;
@@ -45,6 +47,7 @@ final class Riders extends Component
 
     public string $notes = '';
 
+    #[Locked]
     public ?string $status = null;
 
     /**

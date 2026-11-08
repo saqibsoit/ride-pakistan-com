@@ -7,6 +7,7 @@ namespace App\Models;
 use App\Enums\LeadInterest;
 use App\Enums\LeadSource;
 use App\Enums\LeadStatus;
+use App\Models\Concerns\AuditsAdminChanges;
 use Carbon\CarbonImmutable;
 use Database\Factories\LeadFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -57,7 +58,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Lead extends Model
 {
     /** @use HasFactory<LeadFactory> */
-    use HasFactory;
+    use AuditsAdminChanges, HasFactory;
 
     /** @var list<string> */
     protected $fillable = [
@@ -84,6 +85,20 @@ class Lead extends Model
         'tracking_event_id',
         'created_by',
     ];
+
+    /**
+     * Changes go through the lead Actions (which log them); deleting in
+     * the panel doesn't, so it is audited here.
+     */
+    public function auditedEvents(): array
+    {
+        return ['deleted'];
+    }
+
+    public function auditLogName(): string
+    {
+        return 'leads';
+    }
 
     /**
      * @return BelongsTo<User, $this>

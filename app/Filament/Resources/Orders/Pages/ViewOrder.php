@@ -18,6 +18,7 @@ class ViewOrder extends ViewRecord
             OrderActions::resend(),
             OrderActions::clearReview(),
             OrderActions::refund(),
+            OrderActions::transferRefund(),
             OrderActions::refundCovered(),
         ];
     }

@@ -137,9 +137,7 @@ final class HandleVoucherStripeEvent
             return true; // already recorded
         }
 
-        $meta['amount_refunded_minor'] = $refunded;
-        $order->meta = $meta;
-        $order->save();
+        $order->addRefund('stripe', self::str($charge['id'] ?? null) ?: null, $refunded - (int) ($meta['amount_refunded_minor'] ?? 0), ['dashboard' => true]);
 
         if ($order->status === VoucherOrderStatus::Paid) {
             $this->orders->transition($order, VoucherOrderStatus::Refunded, reason: 'Refunded in the Stripe dashboard', context: $context);
@@ -217,6 +215,13 @@ final class HandleVoucherStripeEvent
             'at' => CarbonImmutable::now()->toIso8601String(),
         ];
 
+        if ($status === 'succeeded') {
+            // Cash in, whatever happens next (a voucher, a mismatch flag or an
+            // automatic refund): the voucher sales export follows the bank.
+            $meta['amount_received_minor'] = (int) ($meta['amount_received_minor'] ?? 0) + $amount;
+            $order->paid_at ??= CarbonImmutable::now();
+        }
+
         $meta['payments'] = $payments;
         $order->meta = $meta;
 
@@ -250,10 +255,7 @@ final class HandleVoucherStripeEvent
             return;
         }
 
-        $meta = $order->meta ?? [];
-        $meta['amount_refunded_minor'] = (int) ($meta['amount_refunded_minor'] ?? 0) + $amount;
-        $order->meta = $meta;
-        $order->save();
+        $order->addRefund('stripe', $refund->id, $amount, ['automatic' => true]);
 
         $this->flag($order, 'payment_refunded_unfulfillable', 'Paid but no voucher could be issued ('.$why.'). Refunded automatically.', [...$context, 'stripe_refund' => $refund->id]);
     }

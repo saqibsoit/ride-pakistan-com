@@ -72,8 +72,21 @@
                 @endforelse
             </tbody>
             <tfoot>
+                {{-- Discounts (milestone 10e Part B): the subtotal, each line, then what was paid. --}}
+                @if ($order->discounts->isNotEmpty())
+                    <tr class="border-t border-line-strong">
+                        <th scope="row" colspan="2" class="py-2 pr-4 font-normal text-sand-dim">Subtotal</th>
+                        <td class="py-2 text-right text-sand-dim"><x-money :minor="$order->subtotal_minor" :currency="$order->currency" /></td>
+                    </tr>
+                    @foreach ($order->discounts as $line)
+                        <tr>
+                            <th scope="row" colspan="2" class="py-1 pr-4 font-normal text-sand-dim">{{ $line->label }}</th>
+                            <td class="py-1 text-right text-sand-dim">−<x-money :minor="$line->amount_minor" :currency="$order->currency" /></td>
+                        </tr>
+                    @endforeach
+                @endif
                 <tr class="border-t border-line-strong">
-                    <th scope="row" colspan="2" class="py-3 pr-4 font-semibold text-sand">Total</th>
+                    <th scope="row" colspan="2" class="py-3 pr-4 font-semibold text-sand">{{ $order->discounts->isNotEmpty() ? 'Paid' : 'Total' }}</th>
                     <td class="py-3 text-right font-semibold text-sand"><x-money :minor="$order->amount_minor" :currency="$order->currency" /></td>
                 </tr>
                 @if ($order->amount_refunded_minor > 0)

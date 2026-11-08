@@ -6,6 +6,7 @@ namespace App\Actions\Referrals;
 
 use App\Actions\Credit\AccountCredit;
 use App\Enums\BookingStatus;
+use App\Enums\DiscountKind;
 use App\Enums\OrderStatus;
 use App\Enums\ReferralStatus;
 use App\Enums\SettingKey;
@@ -103,6 +104,13 @@ final class RewardReferral
     {
         $order = $booking->order ?? $booking->creditPack?->order;
 
-        return $order !== null && in_array($order->status, [OrderStatus::Paid, OrderStatus::PartiallyRefunded], true) && $order->amount_minor > 0;
+        if ($order === null || ! in_array($order->status, [OrderStatus::Paid, OrderStatus::PartiallyRefunded], true)) {
+            return false;
+        }
+
+        // Money paid: by card or transfer, or with a gift voucher or account
+        // credit (milestone 10e Part B). Promo and referral discounts alone don't count.
+        return $order->amount_minor > 0
+            || $order->discounts()->whereIn('kind', [DiscountKind::Voucher, DiscountKind::AccountCredit])->exists();
     }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions\Payments;
 
 use App\Actions\Booking\FulfilOrder;
+use App\Actions\Discounts\RestoreOrderDiscounts;
 use App\Actions\Vouchers\HandleVoucherStripeEvent;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentProvider;
@@ -58,6 +59,7 @@ final class HandleStripeEvent
         private readonly FlagOrderForReview $flag,
         private readonly StripeGateway $stripe,
         private readonly HandleVoucherStripeEvent $vouchers,
+        private readonly RestoreOrderDiscounts $restore,
     ) {}
 
     /** @return bool false when the event had already been processed */
@@ -219,6 +221,9 @@ final class HandleStripeEvent
             'charge' => $charge['id'] ?? null,
             'amount_refunded' => $refundedTotal,
         ], context: $context);
+
+        // Gift voucher and credit share, as for an admin refund (milestone 10e Part B).
+        $this->restore->afterRefund($order, null, 'Refunded in the Stripe dashboard');
 
         $this->flag->handle($order, 'refund_outside_admin', sprintf(
             'A refund of %s %d was made outside the admin panel. Check bookings and credits.',

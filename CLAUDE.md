@@ -28,7 +28,7 @@ Read `docs/PLAN.md` before every task. It is the source of truth for business ru
 - No third-party scripts without consent handling and a CSP entry.
 
 ## Never
-- Never fulfil an order outside `FulfilOrder` (called by the Stripe webhook handler or the admin approval).
+- Never fulfil an order outside `FulfilOrder` (called by the Stripe webhook handler, the admin bank transfer approval, or `CompleteCoveredOrder` for an order that gift voucher and account credit cover completely).
 - Never expose transfer screenshots publicly.
 - Never disable CSRF, CSP or rate limits to “make something work”.
 - Never commit `.env`, keys or customer data.

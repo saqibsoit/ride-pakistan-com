@@ -6,6 +6,7 @@ namespace App\Actions\Payments;
 
 use App\Actions\Booking\CancelBooking;
 use App\Actions\Booking\CreditPacks;
+use App\Actions\Discounts\RestoreOrderDiscounts;
 use App\Actions\Orders\OrderStateMachine;
 use App\Enums\BookingStatus;
 use App\Enums\CreditPackStatus;
@@ -44,6 +45,7 @@ final class RefundOrder
         private readonly RecordRefund $record,
         private readonly CancelBooking $cancel,
         private readonly CreditPacks $credits,
+        private readonly RestoreOrderDiscounts $restore,
     ) {}
 
     /**
@@ -116,6 +118,9 @@ final class RefundOrder
                 'amount' => $refund->amount,
             ], ['stripe_refund' => $refund->id]);
 
+            // The same share of any gift voucher or account credit comes back (milestone 10e Part B).
+            $restored = $this->restore->afterRefund($locked, $admin, $reason);
+
             /** @var Collection<int, Booking> $toCancel */
             foreach ($toCancel as $booking) {
                 $this->cancel->handle($booking, $admin, 'Refunded: '.$reason, asAdmin: true, returnCredit: false);
@@ -141,6 +146,8 @@ final class RefundOrder
                     'stripe_refund' => $refund->id,
                     'bookings_cancelled' => $toCancel->pluck('id')->all(),
                     'credits_removed' => $full ? 'all' : $removeCredits,
+                    'voucher_returned_minor' => $restored['voucher'],
+                    'account_credit_returned_minor' => $restored['credit'],
                     'reason' => $reason,
                 ])
                 ->log('Order '.$locked->reference.' refunded');

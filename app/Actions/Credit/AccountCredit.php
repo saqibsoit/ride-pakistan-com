@@ -8,6 +8,7 @@ use App\Actions\Orders\OrderStateMachine;
 use App\Enums\AccountCreditReason;
 use App\Exceptions\CreditRejected;
 use App\Models\AccountCreditEntry;
+use App\Models\Order;
 use App\Models\Referral;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -35,6 +36,67 @@ final class AccountCredit
             'referral_id' => $referral->id,
             'note' => 'Referral reward',
         ]);
+    }
+
+    /**
+     * Spends up to $maxMinor of the customer's credit on an order at
+     * checkout (milestone 10e Part B) and returns what was spent. Locks the
+     * user row, so the balance never goes below zero.
+     */
+    public function spend(User $customer, Order $order, int $maxMinor): int
+    {
+        return DB::transaction(function () use ($customer, $order, $maxMinor): int {
+            User::withTrashed()->whereKey($customer->id)->lockForUpdate()->firstOrFail();
+
+            $spent = min(max(0, $maxMinor), $this->balance($customer));
+
+            if ($spent > 0) {
+                AccountCreditEntry::query()->create([
+                    'user_id' => $customer->id,
+                    'delta_minor' => -$spent,
+                    'reason' => AccountCreditReason::Used,
+                    'order_id' => $order->id,
+                    'note' => 'Order '.$order->reference,
+                ]);
+            }
+
+            return $spent;
+        });
+    }
+
+    /**
+     * Puts credit back for an order: an unpaid order ended, the customer
+     * stopped using credit, or a refund (milestone 10e Part B). With
+     * VoucherReturned: a gift voucher share that its cancelled or expired
+     * voucher could no longer take back.
+     */
+    public function giveBack(User $customer, Order $order, int $amountMinor, ?User $actor, string $note, AccountCreditReason $reason = AccountCreditReason::Returned): void
+    {
+        if ($amountMinor <= 0) {
+            return;
+        }
+
+        DB::transaction(function () use ($customer, $order, $amountMinor, $actor, $note, $reason): void {
+            User::withTrashed()->whereKey($customer->id)->lockForUpdate()->firstOrFail();
+
+            AccountCreditEntry::query()->create([
+                'user_id' => $customer->id,
+                'delta_minor' => $amountMinor,
+                'reason' => $reason,
+                'order_id' => $order->id,
+                'note' => mb_substr($note.' (order '.$order->reference.')', 0, 500),
+                'actor_id' => $actor?->id,
+            ]);
+        });
+    }
+
+    /** Credit an order holds now: spent at checkout minus returned for it. */
+    public static function heldBy(Order $order): int
+    {
+        return -1 * (int) AccountCreditEntry::query()
+            ->where('order_id', $order->id)
+            ->whereIn('reason', [AccountCreditReason::Used, AccountCreditReason::Returned])
+            ->sum('delta_minor');
     }
 
     /**

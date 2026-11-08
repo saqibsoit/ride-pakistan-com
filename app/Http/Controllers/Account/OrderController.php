@@ -34,7 +34,7 @@ final class OrderController extends Controller
 
         $order = $user->orders()
             ->where('reference', $reference)
-            ->with(['product', 'items.slot', 'items.rider', 'payments'])
+            ->with(['product', 'items.slot', 'items.rider', 'payments', 'discounts'])
             ->firstOrFail();
 
         Gate::authorize('view', $order);

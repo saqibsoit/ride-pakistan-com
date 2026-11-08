@@ -39,17 +39,78 @@
                         <dd class="font-semibold">{{ $slotItems->map(fn ($i) => $i->rider?->name)->filter()->join(', ') }}</dd>
                     </div>
                 @endif
+                @if ($order->discounts->isNotEmpty())
+                    {{-- Discounts, worked out on the server (milestone 10e Part B). --}}
+                    <div class="border-t border-line pt-4 sm:col-span-2">
+                        <dt class="sr-only">Price and discounts</dt>
+                        <dd>
+                            <ul class="flex flex-col gap-2" role="list">
+                                <li class="flex justify-between gap-4"><span class="text-sand-dim">Subtotal</span><x-money :minor="$order->subtotal_minor" :currency="$order->currency" /></li>
+                                @foreach ($order->discounts as $line)
+                                    <li class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+                                        <span class="text-sand-dim">{{ $line->label }}</span>
+                                        <span class="flex items-center gap-3">
+                                            <span>−&nbsp;<x-money :minor="$line->amount_minor" :currency="$order->currency" /></span>
+                                            @if ($order->status === \App\Enums\OrderStatus::PendingPayment && $line->kind !== \App\Enums\DiscountKind::Referral)
+                                                <form method="POST" action="{{ route('checkout.discount.remove', [$order->reference, $line->kind->value]) }}">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="text-sm underline underline-offset-4 hover:text-sand">Remove<span class="sr-only"> {{ $line->kind->label() }}</span></button>
+                                                </form>
+                                            @endif
+                                        </span>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </dd>
+                    </div>
+                @endif
                 <div class="border-t border-line pt-4 sm:col-span-2">
-                    <dt class="text-sm text-sand-dim">Total</dt>
+                    <dt class="text-sm text-sand-dim">{{ $order->discounts->isNotEmpty() ? 'To pay' : 'Total' }}</dt>
                     <dd class="font-display text-display-md font-black"><x-money :minor="$order->amount_minor" :currency="$order->currency" /></dd>
                 </div>
             </dl>
 
+            @if (session('discount_status'))
+                <x-alert variant="success">{{ session('discount_status') }}</x-alert>
+            @endif
+
             @if (session('checkout_error'))
-                <x-alert variant="error" title="Card payment didn't start.">{{ session('checkout_error') }}</x-alert>
+                <x-alert variant="error" title="That didn't work.">{{ session('checkout_error') }}</x-alert>
             @endif
 
             @if ($order->status === \App\Enums\OrderStatus::PendingPayment)
+                <section aria-labelledby="discount-title" class="flex flex-col gap-4 rounded-sm border border-line p-6">
+                    <h2 id="discount-title" class="text-display-xs">Gift voucher or promo code</h2>
+                    <form method="POST" action="{{ route('checkout.discount', $order->reference) }}" class="flex flex-col gap-3 sm:flex-row sm:items-end">
+                        @csrf
+                        <div class="grow">
+                            <x-form.field name="code" label="Code" required autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="60" hint="One promo code per order; a gift voucher can be added as well." />
+                        </div>
+                        <x-button type="submit" variant="ghost">Apply</x-button>
+                    </form>
+
+                    @if ($creditAvailable > 0)
+                        <form method="POST" action="{{ route('checkout.credit', $order->reference) }}" class="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
+                            @csrf
+                            <input type="hidden" name="use" value="{{ $choices['use_credit'] ? '0' : '1' }}">
+                            <p class="text-sm">You have <strong><x-money :minor="$creditAvailable" /></strong> of account credit{{ $choices['use_credit'] ? ' (in use on this order)' : '' }}.</p>
+                            <x-button type="submit" variant="ghost" size="sm">{{ $choices['use_credit'] ? 'Don’t use my credit' : 'Use my credit' }}</x-button>
+                        </form>
+                    @endif
+                </section>
+            @endif
+
+            @if ($order->status === \App\Enums\OrderStatus::PendingPayment && $order->amount_minor === 0 && $order->discounts->isNotEmpty())
+                <section aria-labelledby="pay-title" class="flex flex-col gap-4">
+                    <h2 id="pay-title" class="text-display-xs">Nothing left to pay.</h2>
+                    <p class="text-sand-dim">Your discounts cover the whole order. Confirm to get your {{ $slotItems->isNotEmpty() ? 'tickets' : 'package' }} by email.</p>
+                    <form method="POST" action="{{ route('checkout.confirm', $order->reference) }}">
+                        @csrf
+                        <x-button type="submit">Confirm booking</x-button>
+                    </form>
+                </section>
+            @elseif ($order->status === \App\Enums\OrderStatus::PendingPayment)
                 <section aria-labelledby="pay-title" class="flex flex-col gap-5">
                     <h2 id="pay-title" class="text-display-xs">How would you like to pay?</h2>
 
@@ -58,12 +119,19 @@
                     @endif
 
                     <div class="grid gap-4 sm:grid-cols-2">
-                        <form method="POST" action="{{ route('checkout.card', $order->reference) }}" class="flex flex-col gap-3 rounded-sm border border-line-strong p-6">
-                            @csrf
-                            <h3 class="font-semibold">Pay by card</h3>
-                            <p class="text-sm text-sand-dim">Secure payment on Stripe's checkout page, in Pakistani rupees. Your booking is confirmed as soon as the payment clears.</p>
-                            <x-button type="submit">{{ $cardFailed ? 'Try card again' : 'Pay by card' }}</x-button>
-                        </form>
+                        @if ($cardOffered)
+                            <form method="POST" action="{{ route('checkout.card', $order->reference) }}" class="flex flex-col gap-3 rounded-sm border border-line-strong p-6">
+                                @csrf
+                                <h3 class="font-semibold">Pay by card</h3>
+                                <p class="text-sm text-sand-dim">Secure payment on Stripe's checkout page, in Pakistani rupees. Your booking is confirmed as soon as the payment clears.</p>
+                                <x-button type="submit">{{ $cardFailed ? 'Try card again' : 'Pay by card' }}</x-button>
+                            </form>
+                        @else
+                            <div class="flex flex-col gap-3 rounded-sm border border-line p-6">
+                                <h3 class="font-semibold">Pay by card</h3>
+                                <p class="text-sm text-sand-dim">The amount left is below the smallest card payment. Please pay it by bank transfer.</p>
+                            </div>
+                        @endif
 
                         <div class="flex flex-col gap-3 rounded-sm border border-line-strong p-6">
                             <h3 class="font-semibold">Pay by bank transfer</h3>

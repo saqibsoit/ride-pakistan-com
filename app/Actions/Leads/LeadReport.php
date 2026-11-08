@@ -8,6 +8,7 @@ use App\Enums\LeadSource;
 use App\Enums\OrderStatus;
 use App\Models\Lead;
 use App\Models\Order;
+use App\Support\OrderRevenue;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 
@@ -97,6 +98,9 @@ final class LeadReport
         }
 
         // Revenue: each order once, for the customer's first lead before it.
+        // Money net of refunds plus gift voucher spent (OrderRevenue, milestone 10e Part B).
+        $vouchers = OrderRevenue::voucherByOrder(array_map(fn (Order $o): int => $o->id, array_merge([], ...array_values($orders))));
+
         foreach ($orders as $userId => $userOrders) {
             $userLeads = $leads->where('user_id', $userId)->sortBy('created_at');
 
@@ -104,7 +108,7 @@ final class LeadReport
                 $first = $userLeads->first(fn (Lead $lead): bool => $lead->created_at->lte($order->created_at));
 
                 if ($first instanceof Lead) {
-                    $revenue[$first->source->value] += max(0, $order->amount_minor - $order->amount_refunded_minor);
+                    $revenue[$first->source->value] += OrderRevenue::cash($order) + ($vouchers[$order->id] ?? 0);
                 }
             }
         }

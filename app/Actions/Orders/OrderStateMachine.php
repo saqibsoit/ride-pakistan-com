@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Orders;
 
+use App\Actions\Discounts\ReleaseOrderDiscounts;
 use App\Enums\OrderStatus;
 use App\Exceptions\InvalidStatusTransition;
 use App\Models\Order;
@@ -50,6 +51,12 @@ final class OrderStateMachine
             }
 
             $locked->save();
+
+            // An unpaid order that ends gives back its gift voucher, account
+            // credit and promo use (milestone 10e Part B).
+            if ($from->isUnpaid() && in_array($to, [OrderStatus::Expired, OrderStatus::Cancelled, OrderStatus::Rejected], true)) {
+                app(ReleaseOrderDiscounts::class)->handle($locked, $actor, 'Order '.mb_strtolower($to->label()));
+            }
 
             activity('orders')
                 ->performedOn($locked)

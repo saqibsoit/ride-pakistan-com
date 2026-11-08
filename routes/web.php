@@ -86,6 +86,12 @@ Route::middleware(['auth', 'cache.headers:private;no_store'])->prefix('checkout/
     Route::post('/card', [CheckoutController::class, 'card'])->middleware('throttle:checkout')->name('card');
     Route::get('/status', [CheckoutController::class, 'status'])->name('status');
 
+    // Gift vouchers, promo codes and account credit (milestone 10e Part B).
+    Route::post('/discount', [CheckoutController::class, 'discount'])->middleware('throttle:checkout-discounts')->name('discount');
+    Route::delete('/discount/{kind}', [CheckoutController::class, 'removeDiscount'])->middleware('throttle:checkout-discounts')->name('discount.remove');
+    Route::post('/credit', [CheckoutController::class, 'credit'])->middleware('throttle:checkout-discounts')->name('credit');
+    Route::post('/confirm', [CheckoutController::class, 'confirm'])->middleware('throttle:checkout')->name('confirm');
+
     // Bank transfer (PLAN §3.2): same order and reference as card payment.
     Route::post('/transfer', [BankTransferController::class, 'choose'])->middleware('throttle:checkout')->name('transfer.choose');
     Route::get('/transfer', [BankTransferController::class, 'show'])->name('transfer');

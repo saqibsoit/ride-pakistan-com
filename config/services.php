@@ -45,6 +45,9 @@ return [
         // in total). The full "Ride Pakistan by Destination Pakistan" line
         // goes on the Checkout page and the receipt email.
         'statement_descriptor_suffix' => env('STRIPE_STATEMENT_DESCRIPTOR_SUFFIX', 'RIDE PAKISTAN'),
+        // Smallest card charge offered (whole rupees). Below it, after
+        // discounts, only bank transfer is offered (milestone 10e Part B).
+        'min_charge_pkr' => (int) env('STRIPE_MIN_CHARGE_PKR', 200),
     ],
 
     // Cloudflare Turnstile (bot check on public forms). /login: an empty

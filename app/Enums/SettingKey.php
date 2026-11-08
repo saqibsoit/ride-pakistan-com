@@ -25,6 +25,7 @@ enum SettingKey: string
 
     case RidersPerSlot = 'booking.riders_per_slot';
     case TransferHoldHours = 'booking.transfer_hold_hours';
+    case TransferMinNoticeHours = 'booking.transfer_min_notice_hours';
     case CancellationCutoffHours = 'booking.cancellation_cutoff_hours';
     case SellingFastThreshold = 'booking.selling_fast_threshold';
     case MinRiderAge = 'booking.min_rider_age';
@@ -56,7 +57,7 @@ enum SettingKey: string
         return match ($this) {
             self::Email => SettingType::Email,
             self::InstagramUrl, self::InstagramDmUrl, self::ExpeditionsUrl, self::MapPinUrl => SettingType::Url,
-            self::RidersPerSlot, self::TransferHoldHours, self::CancellationCutoffHours,
+            self::RidersPerSlot, self::TransferHoldHours, self::TransferMinNoticeHours, self::CancellationCutoffHours,
             self::SellingFastThreshold, self::MinRiderAge, self::SlotHorizonWeeks,
             self::CardHoldMinutes, self::MinNoticeHours,
             self::DeletionGraceDays, self::OrderRetentionYears => SettingType::Integer,
@@ -87,6 +88,7 @@ enum SettingKey: string
             self::ScheduleSummary => 'Schedule summary',
             self::RidersPerSlot => 'Riders per slot',
             self::TransferHoldHours => 'Bank transfer hold window (hours)',
+            self::TransferMinNoticeHours => 'Offer bank transfer only if the session starts at least this many hours later',
             self::CancellationCutoffHours => 'Cancellation and reschedule cutoff (hours before slot)',
             self::SellingFastThreshold => 'Show "Selling fast" at or below (seats)',
             self::MinRiderAge => 'Minimum rider age',

@@ -37,6 +37,7 @@ return [
         // Booking rules (PLAN §2 open decisions)
         'booking.riders_per_slot' => 6,
         'booking.transfer_hold_hours' => 24,
+        'booking.transfer_min_notice_hours' => 2,
         'booking.cancellation_cutoff_hours' => 48,
         'booking.selling_fast_threshold' => 2,
         'booking.slot_horizon_weeks' => 8,

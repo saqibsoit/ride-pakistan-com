@@ -90,6 +90,10 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('checkout', fn (Request $request): Limit => Limit::perMinute(10)
             ->by('checkout:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
 
+        // Transfer proof uploads (PLAN §7): a few replacements, not a flood.
+        RateLimiter::for('transfer-upload', fn (Request $request): Limit => Limit::perHour(10)
+            ->by('transfer-upload:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
+
         // Stripe sends bursts on retries; anything far above this is not Stripe.
         RateLimiter::for('stripe-webhook', fn (Request $request): Limit => Limit::perMinute(300)
             ->by('stripe-webhook:'.$request->ip()));

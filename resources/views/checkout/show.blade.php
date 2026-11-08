@@ -68,8 +68,14 @@
                         <div class="flex flex-col gap-3 rounded-sm border border-line-strong p-6">
                             <h3 class="font-semibold">Pay by bank transfer</h3>
                             <p class="text-sm text-sand-dim">Transfer to our bank account using your reference <strong class="text-sand">{{ $order->reference }}</strong>, then upload the screenshot. We confirm once we've checked it.</p>
-                            <p class="text-sm text-sand-dim" id="transfer-soon">Bank transfer checkout opens here very soon. Until then, message us with your reference.</p>
-                            <x-button variant="ghost" disabled aria-disabled="true" aria-describedby="transfer-soon">Pay by bank transfer</x-button>
+                            @if ($transferOffered)
+                                <form method="POST" action="{{ route('checkout.transfer.choose', $order->reference) }}">
+                                    @csrf
+                                    <x-button variant="ghost" type="submit">Pay by bank transfer</x-button>
+                                </form>
+                            @else
+                                <p class="text-sm text-sand-dim">Your session starts too soon for a bank transfer to be checked in time. Please pay by card.</p>
+                            @endif
                         </div>
                     </div>
 
@@ -79,7 +85,8 @@
             @elseif ($isUnpaid)
                 <section aria-labelledby="pay-title" class="flex flex-col gap-3">
                     <h2 id="pay-title" class="text-display-xs">Payment</h2>
-                    <p class="text-sand-dim">We're waiting for your bank transfer. Use your order reference <strong class="text-sand">{{ $order->reference }}</strong> if you contact us.</p>
+                    <p class="text-sand-dim">You're paying by bank transfer with reference <strong class="text-sand">{{ $order->reference }}</strong>.</p>
+                    <div><x-button :href="route('checkout.transfer', $order->reference)">Bank details and upload</x-button></div>
                 </section>
             @endif
 

@@ -29,6 +29,7 @@ use Illuminate\Database\Query\Builder as QueryBuilder;
  * @property CarbonImmutable $starts_at
  * @property CarbonImmutable $ends_at
  * @property int $capacity
+ * @property bool $private_only only private sessions can book it (manual slots)
  * @property SlotStatus $status
  * @property string|null $cancel_reason
  * @property CarbonImmutable|null $cancelled_at
@@ -56,12 +57,14 @@ class Slot extends Model
         'starts_at',
         'ends_at',
         'capacity',
+        'private_only',
     ];
 
     /** @var array<string, mixed> */
     protected $attributes = [
         'status' => 'open',
         'source' => 'rule',
+        'private_only' => false,
     ];
 
     public function isManual(): bool
@@ -245,6 +248,7 @@ class Slot extends Model
             'starts_at' => 'immutable_datetime',
             'ends_at' => 'immutable_datetime',
             'capacity' => 'integer',
+            'private_only' => 'boolean',
             'status' => SlotStatus::class,
             'source' => SlotSource::class,
             'cancelled_at' => 'immutable_datetime',

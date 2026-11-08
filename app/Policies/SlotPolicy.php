@@ -10,7 +10,8 @@ use App\Models\User;
 /**
  * Staff and admins see slots. Rule slots come from the generator; admins
  * can add manual slots (CreateManualSlot) and close, reopen or cancel any
- * slot (ChangeSlotStatus). Nobody edits or deletes slots directly.
+ * slot (ChangeSlotStatus), and edit manual slots (UpdateManualSlot).
+ * Nobody deletes slots; rule slots follow their schedule rule.
  */
 final class SlotPolicy
 {
@@ -30,9 +31,10 @@ final class SlotPolicy
         return $user->isAdmin();
     }
 
+    /** Edit a manual slot's time, capacity or private-only flag (UpdateManualSlot). */
     public function update(User $user, Slot $slot): bool
     {
-        return false;
+        return $user->isAdmin() && $slot->isManual();
     }
 
     public function delete(User $user, Slot $slot): bool

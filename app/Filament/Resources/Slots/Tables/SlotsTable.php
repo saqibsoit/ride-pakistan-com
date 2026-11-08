@@ -12,6 +12,8 @@ use Carbon\CarbonImmutable;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DatePicker;
+use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
@@ -33,6 +35,7 @@ class SlotsTable
                     ->state(fn (Slot $record): string => $record->localStartsAt()->format('H:i').'–'.$record->localEndsAt()->format('H:i')),
                 TextColumn::make('status')->badge(),
                 TextColumn::make('source')->badge(),
+                IconColumn::make('private_only')->label('Private only')->boolean()->trueIcon(Heroicon::OutlinedLockClosed)->falseIcon(null),
                 TextColumn::make('capacity')->label('Seats')->numeric(),
                 TextColumn::make('seats_booked')->label('Booked')->numeric(),
                 TextColumn::make('seats_held')->label('Held')->numeric(),

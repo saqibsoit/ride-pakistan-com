@@ -55,12 +55,16 @@ it('lets only admins change slot status, add manual slots or run the generator',
     ['admin', true],
 ]);
 
-it('never allows editing or deleting slots, or creating, editing or deleting bookings in the panel', function (): void {
+it('never allows deleting slots or editing rule slots, or creating, editing or deleting bookings in the panel', function (): void {
     $admin = roleUser('admin');
     $slot = Slot::factory()->manual()->create();
+    $ruleSlot = Slot::factory()->create();
     $booking = Booking::factory()->create(['slot_id' => $slot->id]);
 
-    expect($admin->can('update', $slot))->toBeFalse()
+    // Manual slots are edited through UpdateManualSlot (milestone 10a); rule slots follow their rule.
+    expect($admin->can('update', $slot))->toBeTrue()
+        ->and(roleUser('staff')->can('update', $slot))->toBeFalse()
+        ->and($admin->can('update', $ruleSlot))->toBeFalse()
         ->and($admin->can('delete', $slot))->toBeFalse()
         ->and($admin->can('create', Booking::class))->toBeFalse()
         ->and($admin->can('update', $booking))->toBeFalse()

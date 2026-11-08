@@ -18,6 +18,9 @@ class TransfersWaiting extends StatsOverviewWidget
 {
     protected static ?int $sort = 1;
 
+    // Rendered with the page: the dashboard is the first thing staff open.
+    protected static bool $isLazy = false;
+
     public static function canView(): bool
     {
         $user = auth()->user();

@@ -9,7 +9,6 @@ use App\Models\Rider;
 use App\Models\Slot;
 use App\Models\User;
 use Carbon\CarbonImmutable;
-use Illuminate\Support\Facades\Vite;
 
 /*
  * Browser smoke test of the run sheet (milestone 10b): a trainer on a phone
@@ -17,8 +16,6 @@ use Illuminate\Support\Facades\Vite;
  * no JavaScript errors or console errors on the page.
  */
 it('lets a trainer work the run sheet on a phone', function (): void {
-    // Use the built assets even while a local Vite dev server is running.
-    Vite::useHotFile(storage_path('framework/testing-no-vite-hot'));
     $start = CarbonImmutable::now('Asia/Karachi')->addHour()->startOfHour();
     $trainer = User::factory()->trainer()->withMfa()->create();
     $slot = Slot::factory()->at($start)->create(['trainer_id' => $trainer->id]);

@@ -121,6 +121,54 @@ enum SettingKey: string
         };
     }
 
+    /**
+     * One plain sentence for the admin settings page: what it does, where
+     * it shows and its unit (milestone 10a). Every key has one.
+     */
+    public function help(): string
+    {
+        return match ($this) {
+            self::BusinessName => 'Shown in page titles, emails, structured data and llms.txt.',
+            self::ParentCompany => 'The company behind the business, shown in the footer, on receipts, in structured data and in llms.txt.',
+            self::TrainerName => 'Used wherever the site names the trainer (session pages, FAQs with {trainer}, structured data).',
+            self::Location => 'The public location, e.g. "Islamabad". Never put the exact address here; that is the private map pin.',
+            self::Tagline => 'Short line shown in the footer, in structured data and as the default social-share image description.',
+            self::Email => 'Where customers write to. Shown in the footer and in every email.',
+            self::InstagramUrl => 'Link to the Instagram profile in the header, footer and structured data.',
+            self::InstagramDmUrl => 'Opens an Instagram message to us ("Send us a DM" buttons).',
+            self::GoogleReviewUrl => 'Review link in the thank-you email after a session. Leave empty to leave the button out.',
+            self::ExpeditionsUrl => 'Where the "Expeditions" page and chips link to (the separate expeditions site).',
+            self::ScheduleSummary => 'Free-text note about when sessions run. Not shown on the site: schedule wording is generated from the schedule rules so it is always right.',
+            self::RidersPerSlot => 'Default number of riders for new schedule rules and manual slots. Existing slots keep their own capacity.',
+            self::TransferHoldHours => 'How long seats stay held after a customer chooses bank transfer and before they upload proof. Never past the session start.',
+            self::TransferMinNoticeHours => 'Bank transfer is only offered when the first session is at least this many hours away, so there is time to verify it.',
+            self::CancellationCutoffHours => 'Customers can cancel or reschedule credit bookings until this many hours before the session. Shown in the booking policies as ":cutoff".',
+            self::SellingFastThreshold => 'Slots with this many seats left or fewer show a "Selling fast" badge.',
+            self::MinRiderAge => 'Minimum age for riders, shown in "Good to know" and the policies as ":min_age". Leave empty until decided; it is then hidden.',
+            self::CheckinOpensMinutes => 'Staff can mark riders as attended from this many minutes before the start until the session ends.',
+            self::ArrivalMinutes => 'Reminder emails ask riders to arrive this many minutes early. Leave empty to leave it out.',
+            self::SlotHorizonWeeks => 'How far ahead slots are created from the schedule rules (and how far the rule preview looks). 1 to 52 weeks.',
+            self::CardHoldMinutes => 'How long seats stay held while a customer pays by card. Stripe needs at least 31, so shorter values use 31.',
+            self::MinNoticeHours => 'Online booking for a slot closes this many hours before it starts. 0 keeps it open until the start.',
+            self::MapPinUrl => 'Exact location link (e.g. Google Maps). Never shown on public pages; sent only in confirmation and reminder emails.',
+            self::RidingRules => 'One rule per line (helmet, shoes, ...), shown on the prices page and in reminder emails.',
+            self::BookingPolicies => 'One policy per line, shown on the prices and session pages. ":cutoff" becomes the cutoff hours; ":min_age" the minimum age.',
+            self::RefundPolicy => 'Short refund summary shown in the booking policies on the prices page. The full text is the Refund policy page.',
+            self::BankAccountName => 'Account name customers pay by bank transfer. Shown only on the checkout transfer page.',
+            self::BankName => 'Bank name for transfers, shown only on the checkout transfer page.',
+            self::BankIban => 'IBAN for transfers, shown only on the checkout transfer page. Check it twice: payments go here.',
+            self::BankSwift => 'SWIFT/BIC code for transfers from abroad, shown on the checkout transfer page.',
+            self::BankCountry => 'Country of the bank account, shown on the checkout transfer page.',
+            self::BankAddress => 'Branch address, shown on the checkout transfer page for international transfers.',
+            self::DeletionGraceDays => 'A customer who deletes their account can sign in and keep it for this many days.',
+            self::OrderRetentionYears => 'Deleted accounts with paid orders are anonymised only after this many years since the last payment (accounting records).',
+            self::TransferProofRetentionDays => 'Transfer screenshots are deleted this many days after an admin approves or rejects them. The payment record is kept.',
+            self::DefaultTitle => 'Page title used when a page has none of its own.',
+            self::DefaultDescription => 'Search-result description used when a page has none of its own (up to about 160 characters).',
+            self::AiCrawlers => 'One crawler name per line (e.g. GPTBot) allowed in robots.txt to read the site for AI answers.',
+        };
+    }
+
     /** Private settings are never rendered on public pages or in llms.txt. */
     public function isPrivate(): bool
     {

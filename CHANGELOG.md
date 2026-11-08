@@ -5,6 +5,14 @@ All notable changes to this project are documented here. The format follows [Kee
 ## [Unreleased]
 
 ### Added
+- Milestone 10c Instagram DM quick replies and lead follow-up:
+  - Reply templates (Leads → Reply templates, admins; `QuickReply`, `QuickReplyPolicy`) with categories and a live preview. Tokens filled from live data when copied (`RenderQuickReply`): prices, per-session prices, validity, schedule, location, trainer, cutoff, `{booking_link}`, `{product_link:slug}`, `{lead_name}`. Eight templates seeded by migration (first reply, prices, timings, location, private sessions, packages, bank transfer steps, follow-up after no reply).
+  - One-click copy from the lead page ("Quick replies"), the lead board ("Replies") and Leads → Quick replies (optional lead), with or without the tracking reference. Each copy is logged on the new lead timeline (`LogQuickReplyCopy`, title only).
+  - Tracked links: signed `?ref=ig-dm&lead={id}-{tag}` (`LeadRef`). `CaptureLeadReference` keeps the lead in the session and redirects to the clean URL (works with the page cache); `CreateOrder` stores `meta.lead_id`; `MarkLeadsBooked` links and books that lead when the order is paid, and logs a mismatch when the lead belongs to another customer.
+  - Follow-up: setting `leads.follow_up_days` [2] (new "Leads" settings group); suggested date in the change-status form, applied on board moves to Contacted (`SuggestFollowUp`). Daily 09:00 Pakistan-time digest to admins and staff (`leads:digest`, `SendFollowUpDigest`, `FollowUpDigest`), skipped when nothing is due. "Follow-ups due" list on the dashboard.
+  - Admin guide: "Answering Instagram DMs".
+  - Migrations: `create_quick_replies_table`, `seed_quick_replies`.
+  - Pest tests: token rendering against live prices and schedule, unknown tokens, signed refs (forged, tampered, unsigned), seeded templates, copy logging and access, page and lead slide-over; attribution (session, clean redirect, cached pages, order meta, paid order books and links, lost leads, other customer's lead, unpaid orders); follow-up suggestion (form, board, setting off); digest contents, order, recipients, once a day, empty day, schedule; dashboard list.
 - Milestone 10b daily operations:
   - Trainer role (`UserRole::Trainer`): panel sign-in with required MFA, but not part of the office team (`isTeamMember()` stays staff and admin; `isPanelUser()` covers all three for sign-in codes, auth logging and account deletion). Trainers reach only the run sheets, check-in, horse assignment, session notes and rider history of their own slots. `admin:create` and the customer form offer the role.
   - Trainer per session: `schedule_rules.trainer_id` is copied onto generated slots; a rule's new trainer moves future slots that had the old one (`ApplyRuleTrainer`); admins override per slot (`AssignSlotTrainer`) or pick one for a manual slot. Trainer column and filter on the slots list.

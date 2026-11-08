@@ -45,6 +45,16 @@
         <p>Every change here is recorded in the audit log with who made it, and the public pages refresh straight away.@if ($productsUrl) Manage them under {!! $link($productsUrl, 'Products') !!}.@endif</p>
     </x-filament::section>
 
+    <x-filament::section heading="Answering Instagram DMs" :collapsible="true">
+        <ol>
+            <li>Add the person as a lead (Leads → Add lead) with their Instagram handle.</li>
+            <li>On the lead (or its card on the board) open <strong>Quick replies</strong> and press <strong>Copy</strong> on the reply you need, then paste it into Instagram. Prices, times and links are always today’s.</li>
+            <li>Links in a copied reply carry the lead’s tracking reference. If they book and pay from it in the same visit, the lead moves to <strong>Booked</strong> by itself.</li>
+            <li>Move the lead to <strong>Contacted</strong>: a follow-up date is suggested (change it if you like). Leads due show on the dashboard and in the 09:00 email.</li>
+        </ol>
+        <p>Admins edit the wording under Leads → Reply templates. Use tokens such as <code>{price:single-session}</code>, <code>{schedule}</code> and <code>{booking_link}</code> instead of typing prices or times, so the replies never go out of date.</p>
+    </x-filament::section>
+
     <x-filament::section heading="Horses, trainers and run sheets" :collapsible="true">
         <ol>
             <li><strong>Horses</strong> (admins, Schedule → Horses): set the levels each horse suits, the most sessions a day, and rest or vet days under “Unavailable days”. Retire a horse that won’t work again; it stays in the history of the sessions it carried.</li>

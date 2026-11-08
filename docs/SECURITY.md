@@ -14,7 +14,7 @@ Last reviewed: 2026-11-08 (milestone 10).
 | **Admin panel** (Filament at `ADMIN_PATH`) | Credential stuffing; stolen password; an unattended signed-in screen; a malicious insider | Unguessable path; strong passwords with a breach (HIBP) check in production; required app-based MFA with recovery codes; 5 attempts a minute per IP plus 5 per 15 minutes per email; failed-login alert emails; 30-minute idle timeout (polling doesn't count); "sign out everywhere" (`session_version`); staff versus admin policies; every admin action audited. |
 | **Customer sign-in** (email codes) | Code guessing; account enumeration; abuse of the email sender | 6-digit HMAC-stored codes, 10-minute expiry, single use, dead after 5 wrong guesses; request and submit rate limits; Turnstile; identical responses whether or not the account exists; team accounts never get codes. |
 | **Public site and forms** | XSS; clickjacking; spam and lead flooding; third-party script compromise | Strict nonce CSP with `strict-dynamic` and no `unsafe-eval` on public pages, `frame-ancestors 'none'`; Blade escaping; Markdown escaped in lead emails; honeypot, Turnstile and rate limits on lead forms; tracking vendors load only after consent and only appear in the CSP for consenting visitors. |
-| **Infrastructure** (Hostinger shared, Cloudflare) | Leaked `.env`; debug pages; vulnerable dependencies; lost data | `.env` outside the web root (document root is `public/`); `APP_DEBUG=false` (a critical log fires if it is ever on in production); `composer audit` and `npm audit` in CI and Dependabot weekly; encrypted off-site backups (section 6). |
+| **Infrastructure** (Hostinger shared, Cloudflare) | Leaked `.env`; debug pages; vulnerable dependencies; lost data | `.env` outside the web root (document root is `public/`); `APP_DEBUG=false` (a critical log fires if it is ever on in production); `composer audit` and `npm audit` in CI and Dependabot weekly; encrypted daily backups outside the web root (section 6; off-site copy deferred, see `docs/DEPLOY.md`). |
 
 ## 2. Controls mapped to OWASP ASVS 4.0.3 (Level 2)
 
@@ -85,16 +85,16 @@ Last reviewed: 2026-11-08 (milestone 10).
 
 ## 6. Backup and restore
 
-Backups use `spatie/laravel-backup`. The package is installed; the schedule, the off-site disk and the alert address (`config/backup.php` still has the package defaults) are set up in milestone 12. The target set-up:
+Backups use `spatie/laravel-backup`, set up in milestone 12 (`config/backup.php`, full runbook in `docs/DEPLOY.md` section 11):
 
 - **What:** the database and private files (`storage/app/transfers`, `storage/app/private`, uploaded images). Not `vendor/`, `node_modules/` or caches.
-- **How often and how long:** daily, encrypted with `BACKUP_ARCHIVE_PASSWORD` (AES-256 zip), copied to an off-site disk, kept 30 days.
-- **Monitoring:** `backup:monitor` emails admins when the newest backup is too old or the storage too large.
+- **How often and how long:** daily at 01:30 UTC, encrypted with `BACKUP_ARCHIVE_PASSWORD` (AES-256 zip), kept 30 days on the private `backups` disk (the server's shared storage, outside the web root). **Decided 2026-11-08: no off-site disk yet.** The backups don't survive losing the hosting account, so download one every week until an S3-compatible bucket is added.
+- **Monitoring:** failures are emailed to `BACKUP_NOTIFICATION_EMAIL` straight away, and `backup:monitor` sends a health report every Monday (unhealthy when the newest backup is older than a day or they use over 5 GB).
 
 **Restore procedure** (practise on staging before launch and after any big change):
 
 1. Put the site in maintenance mode: `php artisan down --secret=<random>`.
-2. Download the backup zip from the off-site disk and unzip it with the backup password.
+2. Take the zip from `shared/storage/app/backups/` (or your weekly downloaded copy) and extract it with `BACKUP_ARCHIVE_PASSWORD=… php deploy/extract-backup.php <zip> <folder>` (stock `unzip` can't open AES zips).
 3. Database: `mysql -u <user> -p <database> < db-dumps/<file>.sql` (into an empty database, or a new one that `.env` then points to).
 4. Files: copy `storage/app/transfers` and `storage/app/private` back, keeping ownership and permissions (the web server user, `0700` folders).
 5. `php artisan migrate --force` (only if the code is newer than the backup), `php artisan optimize`, `php artisan responsecache:clear`.
@@ -105,7 +105,7 @@ Payments made in Stripe after the backup's time are recovered by replaying webho
 
 ## 7. Incident response
 
-1. **Detect.** Sources: failed-login alert emails, Sentry/Flare errors, uptime alerts, CSP reports (`storage/logs/csp.log`), Stripe dashboard alerts, a customer report, the audit log.
+1. **Detect.** Sources: failed-login alert emails, ops alerts (stuck queue, transfers waiting), `storage/logs` (error tracking is deferred), UptimeRobot alerts, CSP reports (`storage/logs/csp.log`), Stripe dashboard alerts, a customer report, the audit log.
 2. **Contain** (minutes):
    - Suspected admin compromise: change that account's password, reset its MFA (another admin, Customers → user), and use "sign out everywhere" (or bump `session_version`). Change `ADMIN_PATH` if the path leaked. Cloudflare: block the IPs or put the admin path behind Cloudflare Access.
    - Leaked secret: rotate it (section 5).

@@ -141,7 +141,8 @@ CI runs the same suite against a MariaDB 11.8 service container.
 
 ## CI and dependencies
 
-- `.github/workflows/ci.yml`: Pint, Larastan, Pest on MariaDB 11.8, `composer audit`, `npm audit`, plus a production asset build.
+- `.github/workflows/ci.yml`: Pint, Larastan, Pest on MariaDB 11.8, `composer audit`, `npm audit`, plus a production asset build. Runs on pull requests, and on `main` as the first step of the deploy.
+- `.github/workflows/deploy.yml`: builds the release (production Composer install, Filament assets, Vite, AVIF/WebP variants) and deploys it to Hostinger: staging on every push to `main`, production after approval, with rollback. Setup, the values still needed, backups and restore: [`docs/DEPLOY.md`](docs/DEPLOY.md).
 - `.github/dependabot.yml`: weekly composer, npm and GitHub Actions updates. Composer respects the PHP 8.3 platform pin.
 
 ## Secrets

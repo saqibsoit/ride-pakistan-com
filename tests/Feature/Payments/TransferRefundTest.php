@@ -36,6 +36,25 @@ use Livewire\Livewire;
 use Spatie\Activitylog\Models\Activity;
 
 /**
+ * Days ahead for the next order's slot.
+ * Counts up from 3 in call order and is reset before every test, so no
+ * two slots in a test share a start time (slots.starts_at is unique).
+ * Replaces a random value that could repeat.
+ */
+function trSlotDay(bool $reset = false): int
+{
+    static $n = 2;
+
+    if ($reset) {
+        $n = 2;
+
+        return $n;
+    }
+
+    return ++$n;
+}
+
+/**
  * A bank transfer order, approved and paid: $riders riders at PKR 10,000.
  * With $voucherPkr / $creditPkr the customer also used a gift voucher and
  * account credit at checkout.
@@ -45,7 +64,7 @@ function trOrder(int $riders = 2, int $voucherPkr = 0, int $creditPkr = 0, ?Prod
     $user = User::factory()->create();
     $product ??= Product::factory()->create(['price_minor' => 1_000_000]);
     $riderIds = array_map('intval', Rider::factory()->count($riders)->for($user)->create()->modelKeys());
-    $slotId = $product->type === ProductType::Package ? null : nearSlot(random_int(3, 60), 8, ['capacity' => 6])->id;
+    $slotId = $product->type === ProductType::Package ? null : nearSlot(trSlotDay(), 8, ['capacity' => 6])->id;
     $order = app(CreateOrder::class)->handle($user, $product, $slotId, $slotId === null ? [] : $riderIds);
     $change = app(ChangeOrderDiscounts::class);
 
@@ -76,6 +95,7 @@ function trToday(): CarbonImmutable
 }
 
 beforeEach(function (): void {
+    trSlotDay(reset: true);
     Notification::fake();
 });
 

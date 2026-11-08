@@ -153,7 +153,7 @@ Bank refunds (milestone 10e, bank transfer orders): the team pays the customer b
 - **Media:** responsive AVIF/WebP generated at upload time; private disk for transfer screenshots.
 - **Queues:** `database` driver, processed by cron (no Supervisor on shared hosting).
 - **Cache/session:** `file` or `database` (no Redis on shared hosting); full-page response cache for public pages.
-- **Email:** transactional provider via SMTP/API (Postmark, Resend or Amazon SES) with SPF, DKIM and DMARC on ride-pakistan.com.
+- **Email:** Resend (`resend/resend-laravel`, decided 2026-11-08) from `bookings@mail.ride-pakistan.com` ("Ride Pakistan"; `mail.ride-pakistan.com` is the verified sending domain), Reply-To `hello@ride-pakistan.com` on every email (global `mail.reply_to`). `MAIL_MAILER=log` locally (tests: `array`), `resend` on the servers; `RESEND_API_KEY` is a server secret. Notifications are queued with 5 tries and backoff (1, 5, 15, 60 minutes). Sign-in codes are sent straight away and queued (encrypted) for a retry only when the send fails; ops, backup and email-failure alerts are sent straight away. A send that fails for good is logged without its contents and emails every admin, at most once an hour (`ReportMailFailure`). `php artisan mail:test {email}` checks delivery. SPF, DKIM and DMARC as in `docs/DEPLOY.md` §10 (one apex DMARC record, `p=none` for now). Resend's free plan allows 100 emails a day.
 - **Bot protection:** Cloudflare Turnstile on public forms + honeypot + rate limits.
 - **CDN/WAF:** Cloudflare in front of Hostinger (proxied DNS, Full (strict) SSL).
 - **Quality:** Pest, Larastan (level 8, reached at bootstrap; never lower it), Pint (with `declare_strict_types`), `composer audit`, `npm audit`, GitHub Actions CI.
@@ -283,8 +283,9 @@ Target OWASP ASVS Level 2 and OWASP Top 10 coverage.
 - Every write route is rate limited (account changes: `account-actions`, 20 a minute).
 - Lead alerts (milestone 10): every admin (not staff) gets an email for each new lead from a site form (contact form, /prices question), once per lead. Leads the team enters by hand don't alert.
 - Dependencies: `composer audit` and `npm audit` in CI; Dependabot.
-- Daily encrypted off-site backups (database + private files), 30-day retention, restore tested before launch.
-- Error monitoring (Sentry or Flare) and uptime monitoring.
+- Daily encrypted backups (database + private files + admin uploads), 30-day retention, restore tested before launch. Milestone 12 (decided 2026-11-08): kept on a private disk on the server (shared storage, outside the web root) with **no off-site copy yet**. The risk is accepted for launch; a weekly manual download covers it until an S3-compatible bucket is added (`docs/DEPLOY.md` §11).
+- Uptime monitoring (UptimeRobot on `/`, `/book`, `/up`; `/up` also checks the database) and ops alerts (`monitor:operations`, every 5 minutes): every admin is emailed when a queued job has waited over 5 minutes or a bank transfer (booking or gift voucher) has waited for review over 12 hours, again every 6 hours while it lasts, and once when it clears. Sent straight away, never queued. **Error tracking (Sentry or Flare) is deferred** (decided 2026-11-08, no budget); errors go to the daily log files.
+- Behind Cloudflare the app trusts `X-Forwarded-For` / `-Proto` only from Cloudflare's published ranges (`config/security.php`, `TRUSTED_PROXIES`), never `X-Forwarded-Host`, so rate limits and logs see the visitor's IP.
 
 ## 8. SEO, AEO and GEO
 
@@ -316,7 +317,7 @@ Target OWASP ASVS Level 2 and OWASP Top 10 coverage.
   - `line-strong` (sand at 45%, 3.9:1) for borders that must meet 3:1 (form fields, chips). `line` is for decorative dividers only.
   - `saddle` is 3.1:1 on earth: only for large display numerals and decoration, never body text. Sand text on a saddle background (4.8:1) is fine ("Selling fast").
 - Lighthouse is measured against built assets (`npm run build`, no Vite dev server, Herd scripts blocked). Milestone 2 baseline (mobile, local Herd over HTTPS via `herd secure`, median of 3): Performance `/` 95, `/prices` 100, `/faq` 100; Accessibility, Best Practices and SEO 100 on all three.
-- Image variants: `php artisan images:responsive` generates AVIF (where GD supports it) and WebP at 480/768/1200/1800 into `_variants/` next to each source; uploads dispatch `ImageUploaded`. Variants are build output (gitignored) and must be generated on deploy.
+- Image variants: `php artisan images:responsive` generates AVIF (where GD supports it) and WebP at 480/768/1200/1800 into `_variants/` next to each source; uploads dispatch `ImageUploaded`. Variants are build output (gitignored): the deploy build generates them in CI (milestone 12) and fails without AVIF; images uploaded on the server get the formats its GD supports.
 
 ## 10. Database decision: MySQL
 
@@ -334,6 +335,7 @@ Rules: InnoDB, utf8mb4_unicode_ci, strict SQL mode, foreign keys everywhere, ind
 - Deploy via GitHub Actions: run tests → build assets → `composer install --no-dev --optimize-autoloader` → rsync over SSH → `php artisan migrate --force` → `php artisan optimize` → clear response cache. Zero manual FTP.
 - Cron (every minute): `php artisan schedule:run`. The scheduler runs `queue:work --stop-when-empty --max-time=50`, expires holds, generates future slots, sends reminders, checks the weather (hourly), runs backups and prunes logs.
 - Environments: local (Laravel Herd or Sail), staging (subdomain, noindex, Stripe test mode), production.
+- Milestone 12 (`docs/DEPLOY.md`): `.github/workflows/deploy.yml` runs on every push to `main`: tests → build (production Composer install, Filament assets, Vite, AVIF/WebP variants) → staging → production after a required reviewer approves the GitHub `production` environment. Releases are rsynced to `releases/<UTC timestamp>-<sha>`; `deploy/remote-deploy.sh` links the shared `.env`, `storage` and `uploads` (`public/images/uploads`), migrates, optimizes, switches the `current` symlink, clears the page cache and keeps 5 releases. A failed smoke test (`/`, `/up`) rolls back automatically; rollback (code only, migrations must stay backward compatible) can also be run by hand. The scheduler also runs `queue:work --stop-when-empty --max-time=50` every minute, the backups and `queue:prune-failed` (30 days); the audit and notification logs are kept.
 
 ## 12. Milestones
 

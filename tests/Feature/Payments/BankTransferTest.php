@@ -28,13 +28,32 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 
+/**
+ * Minutes added to the next order's slot time ($days ahead).
+ * Counts up from 1 in call order and is reset before every test, so no
+ * two slots in a test share a start time (slots.starts_at is unique).
+ * Replaces a random value that could repeat.
+ */
+function btSlotMinute(bool $reset = false): int
+{
+    static $n = 0;
+
+    if ($reset) {
+        $n = 0;
+
+        return $n;
+    }
+
+    return ++$n;
+}
+
 /** A held order whose session starts $days from now. */
 function transferOrder(int $days = 5, ?Product $product = null, bool $withSlot = true): Order
 {
     $user = User::factory()->create();
     $riders = array_values(array_map('intval', Rider::factory()->count(2)->for($user)->create()->modelKeys()));
     $product ??= Product::factory()->create(['price_minor' => 1_000_000]);
-    $slot = $withSlot ? Slot::factory()->at(CarbonImmutable::now()->addDays($days)->addMinutes(random_int(1, 50_000)))->create(['capacity' => 6]) : null;
+    $slot = $withSlot ? Slot::factory()->at(CarbonImmutable::now()->addDays($days)->addMinutes(btSlotMinute()))->create(['capacity' => 6]) : null;
 
     return app(CreateOrder::class)->handle($user, $product, $slot?->id, $withSlot ? $riders : []);
 }
@@ -79,6 +98,7 @@ function awaitingTransfer(int $days = 5): Order
 }
 
 beforeEach(function (): void {
+    btSlotMinute(reset: true);
     Storage::fake(TransferProofs::DISK);
     Notification::fake();
 });

@@ -41,11 +41,30 @@ function referrer(array $attributes = []): User
     return $user;
 }
 
+/**
+ * Extra minutes in the past for the next started session (at least 30 minutes ago).
+ * Counts up from 1 in call order and is reset before every test, so no
+ * two slots in a test share a start time (slots.starts_at is unique).
+ * Replaces a random value that could repeat.
+ */
+function rfSlotMinute(bool $reset = false): int
+{
+    static $n = 0;
+
+    if ($reset) {
+        $n = 0;
+
+        return $n;
+    }
+
+    return ++$n;
+}
+
 /** A booking for the customer that has started, paid through an order with the given status. */
 function startedBooking(User $customer, OrderStatus $status = OrderStatus::Paid, int $amount = 1_000_000): Booking
 {
     $order = Order::factory()->status($status)->create(['user_id' => $customer->id, 'amount_minor' => $amount]);
-    $slot = Slot::factory()->at(CarbonImmutable::now()->subMinutes(random_int(30, 50_000)))->create();
+    $slot = Slot::factory()->at(CarbonImmutable::now()->subMinutes(29 + rfSlotMinute()))->create();
 
     return Booking::factory()->create(['user_id' => $customer->id, 'order_id' => $order->id, 'slot_id' => $slot->id]);
 }
@@ -62,6 +81,7 @@ function signUpThroughLink(TestCase $test, string $code, string $email): void
 }
 
 beforeEach(function (): void {
+    rfSlotMinute(reset: true);
     Notification::fake();
     Mail::fake();
 });
@@ -158,7 +178,7 @@ it('counts a session paid with credits from a paid pack', function (): void {
     app(AttachReferral::class)->handle((string) $referrer->referral_code, $friend);
     $order = Order::factory()->status(OrderStatus::Paid)->create(['user_id' => $friend->id]);
     $pack = CreditPack::factory()->create(['order_id' => $order->id, 'user_id' => $friend->id]);
-    $booking = Booking::factory()->create(['user_id' => $friend->id, 'order_id' => null, 'credit_pack_id' => $pack->id, 'slot_id' => Slot::factory()->at(CarbonImmutable::now()->subMinutes(random_int(30, 50_000)))->create()->id]);
+    $booking = Booking::factory()->create(['user_id' => $friend->id, 'order_id' => null, 'credit_pack_id' => $pack->id, 'slot_id' => Slot::factory()->at(CarbonImmutable::now()->subMinutes(29 + rfSlotMinute()))->create()->id]);
 
     app(ChangeBookingStatus::class)->handle($booking, BookingStatus::Attended);
 
@@ -171,7 +191,7 @@ it('does not reward unpaid, refunded or no-charge sessions, or a no-show', funct
     app(AttachReferral::class)->handle((string) $referrer->referral_code, $friend);
 
     $refunded = startedBooking($friend, OrderStatus::Refunded);
-    $free = Booking::factory()->create(['user_id' => $friend->id, 'order_id' => null, 'slot_id' => Slot::factory()->at(CarbonImmutable::now()->subMinutes(random_int(30, 50_000)))->create()->id]);
+    $free = Booking::factory()->create(['user_id' => $friend->id, 'order_id' => null, 'slot_id' => Slot::factory()->at(CarbonImmutable::now()->subMinutes(29 + rfSlotMinute()))->create()->id]);
     $noShow = startedBooking($friend);
 
     app(ChangeBookingStatus::class)->handle($refunded, BookingStatus::Attended);

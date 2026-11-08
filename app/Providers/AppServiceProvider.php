@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Actions\Mail\ReportMailFailure;
 use App\Auth\LoginCodes\EmailLoginCodeChannel;
 use App\Auth\LoginCodes\LoginCodeChannel;
 use App\Http\Middleware\EnsureSessionIsCurrent;
@@ -18,9 +19,14 @@ use App\Support\Tracking\BrowserEvents;
 use Closure;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Foundation\Events\DiagnosingHealth;
+use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Queue\Events\JobExceptionOccurred;
+use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
@@ -152,6 +158,32 @@ class AppServiceProvider extends ServiceProvider
             if ($event->user instanceof User && $request->hasSession()) {
                 $request->session()->put(EnsureSessionIsCurrent::SESSION_KEY, $event->user->session_version);
             }
+        });
+
+        // Behind Cloudflare (milestone 12): the visitor's IP and HTTPS come
+        // from Cloudflare's headers, only when the request comes from one of
+        // its ranges (config/security.php). Set here because config isn't
+        // loaded yet when bootstrap/app.php configures middleware.
+        TrustProxies::at(config('security.trusted_proxies'));
+        TrustProxies::withHeaders(Request::HEADER_X_FORWARDED_FOR | Request::HEADER_X_FORWARDED_PROTO);
+
+        // Email delivery (milestone 12): log every failed attempt of a
+        // queued email without its contents; a final failure alerts admins.
+        Event::listen(function (JobExceptionOccurred $event): void {
+            if (ReportMailFailure::isMailJob($event->job)) {
+                app(ReportMailFailure::class)->attemptFailed($event->job, $event->exception);
+            }
+        });
+        Event::listen(function (JobFailed $event): void {
+            if (ReportMailFailure::isMailJob($event->job)) {
+                app(ReportMailFailure::class)->failed($event->job, $event->exception);
+            }
+        });
+
+        // /up (deploy smoke test, uptime checks) fails when the database
+        // can't be reached, not only when the app can't boot (milestone 12).
+        Event::listen(function (DiagnosingHealth $event): void {
+            DB::connection()->select('select 1');
         });
     }
 

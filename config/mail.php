@@ -63,6 +63,8 @@ return [
             // ],
         ],
 
+        // Production (docs/DEPLOY.md, Email): resend/resend-laravel, API key
+        // RESEND_API_KEY (config/resend.php). Local and tests stay on "log".
         'resend' => [
             'transport' => 'resend',
         ],
@@ -120,9 +122,18 @@ return [
         ],
     ],
 
+    // Sender on the domain verified in Resend (mail.ride-pakistan.com).
     'from' => [
-        'address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
-        'name' => env('MAIL_FROM_NAME', env('APP_NAME', 'Laravel')),
+        'address' => env('MAIL_FROM_ADDRESS', 'bookings@mail.ride-pakistan.com'),
+        'name' => env('MAIL_FROM_NAME', 'Ride Pakistan'),
+    ],
+
+    // Replies go to the team inbox, not the sending subdomain. Applied by
+    // the mailer to every message (mailables, notifications, package
+    // emails); nothing in app/ sets its own reply-to.
+    'reply_to' => [
+        'address' => env('MAIL_REPLY_TO_ADDRESS', 'hello@ride-pakistan.com'),
+        'name' => env('MAIL_REPLY_TO_NAME', 'Ride Pakistan'),
     ],
 
 ];

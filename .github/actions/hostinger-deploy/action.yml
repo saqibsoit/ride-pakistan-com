@@ -1,0 +1,107 @@
+name: Hostinger deploy
+description: Uploads a built release to a timestamped folder, activates it (deploy/remote-deploy.sh) and smoke tests it; rolls back automatically if the smoke test fails.
+
+inputs:
+  release:
+    description: Release folder name (UTC timestamp and short SHA)
+    required: true
+  archive:
+    description: Path to release.tar.gz from the build job
+    required: true
+  ssh-host:
+    required: true
+    description: Hostinger SSH host
+  ssh-port:
+    required: false
+    default: '65002'
+    description: SSH port
+  ssh-user:
+    required: true
+    description: SSH user
+  ssh-private-key:
+    required: true
+    description: Deploy key
+  ssh-known-hosts:
+    required: true
+    description: Pinned host key
+  deploy-path:
+    required: true
+    description: Folder that holds releases/, shared/ and current (DEPLOY.md)
+  php-bin:
+    required: false
+    default: php
+    description: PHP 8.3 CLI on the server
+  app-url:
+    required: true
+    description: Public URL for the smoke test
+  smoke-token:
+    required: false
+    default: ''
+    description: Optional X-Smoke-Test header value
+
+runs:
+  using: composite
+  steps:
+    - name: Check settings
+      shell: bash
+      env:
+        DEPLOY_PATH: ${{ inputs.deploy-path }}
+        APP_URL: ${{ inputs.app-url }}
+        RELEASE: ${{ inputs.release }}
+      run: |
+        set -euo pipefail
+        [ -n "$DEPLOY_PATH" ] || { echo "::error::Variable DEPLOY_PATH is not set for this environment (docs/DEPLOY.md)"; exit 1; }
+        [ -n "$APP_URL" ] || { echo "::error::Variable APP_URL is not set for this environment (docs/DEPLOY.md)"; exit 1; }
+        [[ "$RELEASE" =~ ^[0-9A-Za-z._-]+$ ]] || { echo "::error::Bad release name"; exit 1; }
+
+    - uses: ./.github/actions/hostinger-ssh
+      with:
+        ssh-host: ${{ inputs.ssh-host }}
+        ssh-port: ${{ inputs.ssh-port }}
+        ssh-user: ${{ inputs.ssh-user }}
+        ssh-private-key: ${{ inputs.ssh-private-key }}
+        ssh-known-hosts: ${{ inputs.ssh-known-hosts }}
+
+    - name: Upload release
+      shell: bash
+      env:
+        DEPLOY_PATH: ${{ inputs.deploy-path }}
+        RELEASE: ${{ inputs.release }}
+        ARCHIVE: ${{ inputs.archive }}
+      run: |
+        set -euo pipefail
+        mkdir -p "$RUNNER_TEMP/release"
+        tar -xzf "$ARCHIVE" -C "$RUNNER_TEMP/release"
+        ssh hostinger "mkdir -p '$DEPLOY_PATH/releases/$RELEASE' '$DEPLOY_PATH/shared'"
+        rsync -az --delete --stats "$RUNNER_TEMP/release/" "hostinger:$DEPLOY_PATH/releases/$RELEASE/"
+
+    - name: Activate release
+      shell: bash
+      env:
+        DEPLOY_PATH: ${{ inputs.deploy-path }}
+        RELEASE: ${{ inputs.release }}
+        PHP_BIN: ${{ inputs.php-bin }}
+      run: |
+        set -euo pipefail
+        ssh hostinger "PHP_BIN='${PHP_BIN:-php}' bash '$DEPLOY_PATH/releases/$RELEASE/deploy/remote-deploy.sh' '$DEPLOY_PATH' '$RELEASE'"
+
+    - name: Smoke test
+      id: smoke
+      shell: bash
+      env:
+        APP_URL: ${{ inputs.app-url }}
+        SMOKE_TEST_TOKEN: ${{ inputs.smoke-token }}
+      run: bash "$GITHUB_ACTION_PATH/smoke-test.sh" "$APP_URL"
+
+    # Code only; migrations stay (DEPLOY.md, Migrations). On the very first
+    # deploy there is nothing to go back to, so the script says so and fails.
+    - name: Roll back after a failed smoke test
+      if: failure() && steps.smoke.outcome == 'failure'
+      shell: bash
+      env:
+        DEPLOY_PATH: ${{ inputs.deploy-path }}
+        PHP_BIN: ${{ inputs.php-bin }}
+      run: |
+        echo "::error::Smoke test failed; rolling back to the previous release"
+        ssh hostinger "PHP_BIN='${PHP_BIN:-php}' bash '$DEPLOY_PATH/current/deploy/rollback.sh' '$DEPLOY_PATH'"
+        exit 1

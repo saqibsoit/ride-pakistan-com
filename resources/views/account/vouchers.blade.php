@@ -4,6 +4,10 @@
 @endphp
 
 <x-layouts.account title="Gift vouchers" intro="Gift vouchers you've bought. Each one is emailed to its recipient once the payment is confirmed.">
+    @if (session('status'))
+        <x-alert variant="success" title="Saved.">{{ session('status') }}</x-alert>
+    @endif
+
     <div><x-button :href="route('gift-vouchers.create')">Buy a gift voucher</x-button></div>
 
     @if ($orders->isEmpty())
@@ -45,6 +49,26 @@
                         <p class="text-sm text-sand-dim">Valid until <time datetime="{{ $voucher->expires_at->toIso8601String() }}">{{ $voucher->expires_at->setTimezone($tz)->format('j F Y') }}</time>.</p>
                     @elseif ($order->status->isUnpaid())
                         <div><x-button size="sm" variant="ghost" :href="route('gift-vouchers.show', $order->reference)">Finish paying</x-button></div>
+                    @endif
+
+                    @if (($voucher === null && ($order->status->isUnpaid() || $order->status === VoucherOrderStatus::Paid)) || ($voucher && $voucher->delivered_at === null && $voucher->isUsable()))
+                        @php($mine = old('form') === $order->reference)
+                        <details class="text-sm" @if ($mine) open @endif>
+                            <summary class="cursor-pointer text-sand-dim hover:text-sand">Change the recipient</summary>
+                            <form method="POST" action="{{ route('account.vouchers.recipient', $order->reference) }}" class="mt-4 flex flex-col gap-4" novalidate>
+                                @csrf
+                                @method('PUT')
+                                <input type="hidden" name="form" value="{{ $order->reference }}">
+                                @if ($errors->has('recipient_'.$order->reference))
+                                    <x-alert variant="error" title="Not changed.">{{ $errors->first('recipient_'.$order->reference) }}</x-alert>
+                                @endif
+                                <x-form.field :id="'recipient-name-'.$order->reference" name="recipient_name" label="Their name" required maxlength="120"
+                                    :value="$mine ? old('recipient_name') : $order->recipient_name" :error="$mine ? $errors->first('recipient_name') : ''" />
+                                <x-form.field :id="'recipient-email-'.$order->reference" name="recipient_email" label="Their email" type="email" required maxlength="190"
+                                    :value="$mine ? old('recipient_email') : $order->recipient_email" :error="$mine ? $errors->first('recipient_email') : ''" />
+                                <div><x-button type="submit" size="sm">Save recipient</x-button></div>
+                            </form>
+                        </details>
                     @endif
                 </li>
             @endforeach

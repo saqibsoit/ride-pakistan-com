@@ -8,6 +8,7 @@ use App\Models\NotificationLog;
 use App\Models\User;
 use App\Notifications\CustomerNotification;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\Notification;
 
 /**
  * Sends a customer notification and logs it in notification_log
@@ -56,6 +57,52 @@ final class Notifier
 
         $notification->logId = $logId;
         $user->notify($notification);
+
+        return true;
+    }
+
+    /**
+     * Sends to an email address with no account behind it (milestone 10e:
+     * the recipient of a gift voucher). Logged with no user; same dedupe
+     * rules as send().
+     *
+     * @return bool whether it was queued
+     */
+    public function sendToAddress(string $email, CustomerNotification $notification, ?string $dedupeKey = null, ?User $resentBy = null): bool
+    {
+        $email = trim($email);
+
+        if ($email === '' || str_ends_with($email, '.invalid')) {
+            return false;
+        }
+
+        $subject = $notification->subject();
+        $now = CarbonImmutable::now();
+
+        $row = [
+            'user_id' => null,
+            'type' => $notification::type(),
+            'subject_type' => $subject?->getMorphClass(),
+            'subject_id' => $subject?->getKey(),
+            'dedupe_key' => $dedupeKey === null ? null : mb_substr($dedupeKey, 0, 191),
+            'resent_by' => $resentBy?->id,
+            'queued_at' => $now,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ];
+
+        if ($dedupeKey !== null) {
+            if (NotificationLog::query()->insertOrIgnore($row) === 0) {
+                return false;
+            }
+
+            $logId = (int) NotificationLog::query()->where('dedupe_key', $row['dedupe_key'])->value('id');
+        } else {
+            $logId = NotificationLog::query()->create($row)->id;
+        }
+
+        $notification->logId = $logId;
+        Notification::route('mail', $email)->notify($notification);
 
         return true;
     }

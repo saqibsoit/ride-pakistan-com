@@ -14,6 +14,7 @@ use App\Models\OrderItem;
 use App\Models\Payment;
 use App\Models\Rider;
 use App\Models\User;
+use App\Models\VoucherOrder;
 use Carbon\CarbonInterface;
 
 /**
@@ -108,6 +109,19 @@ final class ExportAccountData
                     'note' => $entry->note,
                     'created_at' => self::date($entry->created_at),
                 ])->all(),
+            ])->all(),
+            'gift_vouchers' => $user->voucherOrders()->with('voucher')->orderBy('id')->get()->map(fn (VoucherOrder $order): array => [
+                'reference' => $order->reference,
+                'amount_minor' => $order->amount_minor,
+                'currency' => $order->currency,
+                'status' => $order->status->value,
+                'recipient_name' => $order->recipient_name,
+                'recipient_email' => $order->recipient_email,
+                'message' => $order->message,
+                'send_on' => $order->send_on?->format('Y-m-d'),
+                'paid_at' => self::date($order->paid_at),
+                'voucher_balance_minor' => $order->voucher?->balance_minor,
+                'voucher_expires_at' => self::date($order->voucher?->expires_at),
             ])->all(),
             'enquiries' => Lead::query()->where('user_id', $user->id)->orderBy('id')->get()->map(fn (Lead $lead): array => [
                 'name' => $lead->name,

@@ -23,6 +23,7 @@ use App\Http\Controllers\CheckInController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\CspReportController;
 use App\Http\Controllers\GiftVoucherController;
+use App\Http\Controllers\PrintableVoucherController;
 use App\Http\Controllers\Public\BookController;
 use App\Http\Controllers\Public\ContactController;
 use App\Http\Controllers\Public\ContentPageController;
@@ -104,6 +105,13 @@ Route::middleware(['auth', 'cache.headers:private;no_store'])->prefix('gift-vouc
         Route::post('/transfer/proof', [VoucherCheckoutController::class, 'upload'])->middleware('throttle:transfer-upload')->name('transfer.upload');
     });
 });
+
+// Printable gift voucher from the recipient's email (milestone 10e): signed
+// link, no sign-in (the recipient may have no account), never cached.
+Route::get('/vouchers/{voucher}', PrintableVoucherController::class)
+    ->where('voucher', '[A-Z0-9]{12}')
+    ->middleware(['signed', 'cache.headers:private;no_store'])
+    ->name('vouchers.show');
 
 // Gate check-in from the ticket QR (PLAN §6): staff and admins only
 // (EnsureCheckInAccess: guests go to the admin login with MFA).
@@ -203,6 +211,7 @@ Route::middleware(['auth', 'cache.headers:private;no_store'])->prefix('account')
     Route::get('/tickets/{code}', [TicketController::class, 'show'])->name('tickets.show');
     Route::get('/credits', CreditController::class)->name('credits');
     Route::get('/vouchers', [AccountVoucherController::class, 'index'])->name('vouchers');
+    Route::put('/vouchers/{reference}/recipient', [AccountVoucherController::class, 'recipient'])->middleware('throttle:account-actions')->name('vouchers.recipient');
     Route::get('/orders', [OrderController::class, 'index'])->name('orders');
     Route::get('/orders/{reference}', [OrderController::class, 'show'])->name('orders.show');
     Route::get('/riders', RiderController::class)->name('riders');

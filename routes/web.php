@@ -30,9 +30,12 @@ use App\Http\Controllers\Public\ScheduleController;
 use App\Http\Controllers\Public\SeoFileController;
 use App\Http\Controllers\Public\SessionController;
 use App\Http\Controllers\StripeWebhookController;
+use App\Http\Controllers\Team\RiderHistoryController;
+use App\Http\Controllers\Team\RunSheetController;
 use App\Http\Controllers\TransferProofController;
 use App\Http\Middleware\AddStatelessSecurityHeaders;
 use App\Http\Middleware\EnsureCheckInAccess;
+use App\Http\Middleware\EnsureTeamAreaAccess;
 use Illuminate\Support\Facades\Route;
 use Spatie\ResponseCache\Middlewares\CacheResponse;
 
@@ -81,6 +84,19 @@ Route::middleware(['auth', 'cache.headers:private;no_store'])->prefix('checkout/
 Route::middleware([EnsureCheckInAccess::class, 'cache.headers:private;no_store'])->prefix('checkin/{code}')->name('checkin.')->group(function (): void {
     Route::get('/', [CheckInController::class, 'show'])->name('show');
     Route::post('/', [CheckInController::class, 'store'])->middleware('throttle:checkin')->name('store');
+});
+
+// Run sheets and rider history (milestone 10b): staff, admins and trainers
+// (policies decide per session and rider). Mobile-first, never cached.
+Route::middleware([EnsureTeamAreaAccess::class, 'cache.headers:private;no_store'])->prefix('team')->name('team.')->group(function (): void {
+    Route::get('sessions', [RunSheetController::class, 'index'])->name('sessions.index');
+    Route::get('sessions/{slot}', [RunSheetController::class, 'show'])->name('sessions.show');
+    Route::scopeBindings()->middleware('throttle:checkin')->prefix('sessions/{slot}/bookings/{booking}')->name('sessions.')->group(function (): void {
+        Route::post('check-in', [RunSheetController::class, 'checkIn'])->name('check-in');
+        Route::post('horse', [RunSheetController::class, 'horse'])->name('horse');
+        Route::post('note', [RunSheetController::class, 'note'])->name('note');
+    });
+    Route::get('riders/{rider}', [RiderHistoryController::class, 'show'])->name('riders.show');
 });
 
 // Transfer proofs for admins: short-lived signed URL, signed-in admin only,

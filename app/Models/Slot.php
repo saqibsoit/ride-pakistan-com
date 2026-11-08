@@ -37,7 +37,9 @@ use Illuminate\Database\Query\Builder as QueryBuilder;
  * @property int|null $seats_booked from withSeatCounts()
  * @property int|null $seats_held from withSeatCounts()
  * @property bool|null $has_private from withSeatCounts(): a private booking or hold blocks the slot
+ * @property int|null $trainer_id who runs the session (milestone 10b); trainers see only their own
  * @property-read ScheduleRule|null $scheduleRule
+ * @property-read User|null $trainer
  */
 #[ObservedBy(SeatAvailabilityObserver::class)]
 class Slot extends Model
@@ -58,6 +60,7 @@ class Slot extends Model
         'ends_at',
         'capacity',
         'private_only',
+        'trainer_id',
     ];
 
     /** @var array<string, mixed> */
@@ -70,6 +73,14 @@ class Slot extends Model
     public function isManual(): bool
     {
         return $this->source === SlotSource::Manual;
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function trainer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'trainer_id');
     }
 
     /**

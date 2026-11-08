@@ -29,6 +29,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $ticket_code
  * @property CarbonImmutable|null $cancelled_at
  * @property-read Slot $slot
+ * @property int|null $horse_id set through AssignHorse
+ * @property string|null $session_note trainer's note for this rider (encrypted, WriteSessionNote)
+ * @property-read Horse|null $horse
  * @property-read Rider $rider
  * @property-read User $user
  * @property-read Order|null $order
@@ -76,6 +79,14 @@ class Booking extends Model
     public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class);
+    }
+
+    /**
+     * @return BelongsTo<Horse, $this>
+     */
+    public function horse(): BelongsTo
+    {
+        return $this->belongsTo(Horse::class);
     }
 
     /**
@@ -137,6 +148,7 @@ class Booking extends Model
             'status' => BookingStatus::class,
             'is_private' => 'boolean',
             'cancelled_at' => 'immutable_datetime',
+            'session_note' => 'encrypted',
         ];
     }
 }

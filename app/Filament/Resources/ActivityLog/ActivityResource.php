@@ -69,7 +69,7 @@ class ActivityResource extends Resource
                     ->options(fn (): array => DB::table('activity_log')->distinct()->orderBy('event')->pluck('event', 'event')->filter()->all()),
                 SelectFilter::make('causer_id')->label('By')
                     ->options(fn (): array => User::query()
-                        ->whereIn('role', [UserRole::Admin->value, UserRole::Staff->value])
+                        ->whereIn('role', [UserRole::Admin->value, UserRole::Staff->value, UserRole::Trainer->value])
                         ->orderBy('name')
                         ->pluck('name', 'id')
                         ->all())

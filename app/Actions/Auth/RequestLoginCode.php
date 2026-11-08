@@ -72,7 +72,7 @@ final class RequestLoginCode
             return true;
         }
 
-        if ($user->isTeamMember() || $user->isAnonymised()) {
+        if ($user->isPanelUser() || $user->isAnonymised()) {
             return false;
         }
 

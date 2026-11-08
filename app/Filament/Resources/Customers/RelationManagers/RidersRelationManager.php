@@ -7,6 +7,8 @@ namespace App\Filament\Resources\Customers\RelationManagers;
 use App\Enums\AgeBracket;
 use App\Enums\ExperienceLevel;
 use App\Filament\Resources\Customers\Schemas\CustomerForm;
+use App\Models\Rider;
+use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -15,6 +17,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
@@ -64,6 +67,11 @@ class RidersRelationManager extends RelationManager
                 CreateAction::make(),
             ])
             ->recordActions([
+                Action::make('history')
+                    ->label('History')
+                    ->icon(Heroicon::OutlinedClock)
+                    ->url(fn (Rider $record): string => route('team.riders.show', $record))
+                    ->openUrlInNewTab(),
                 EditAction::make(),
                 DeleteAction::make(),
             ]);

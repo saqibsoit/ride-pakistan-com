@@ -74,9 +74,15 @@ class AppServiceProvider extends ServiceProvider
         // Staff reach the panel too, but only what their policies allow.
         Gate::define('access-admin', fn (User $user): bool => $user->isAdmin());
 
-        // Gate check-in at /checkin (PLAN §6): staff and admins. Staff get
-        // nothing else beyond their read access.
-        Gate::define('check-in', fn (User $user): bool => $user->isTeamMember());
+        // Gate check-in at /checkin (PLAN §6): staff and admins, and trainers
+        // for their own slots (BookingPolicy::checkIn decides per ticket).
+        // Staff get nothing else beyond their read access.
+        Gate::define('check-in', fn (User $user): bool => $user->isTeamMember() || $user->isTrainer());
+        // Run sheets and rider history at /team (milestone 10b): staff,
+        // admins and trainers; SlotPolicy and RiderPolicy decide per record.
+        // Exports of orders, payments, refunds, bookings and leads (milestone 10b).
+        Gate::define('export-data', fn (User $user): bool => $user->isAdmin());
+        Gate::define('team-area', fn (User $user): bool => $user->isTeamMember() || $user->isTrainer());
         Gate::policy(Activity::class, ActivityPolicy::class);
 
         // Strong passwords everywhere a password is set (PLAN §7). The

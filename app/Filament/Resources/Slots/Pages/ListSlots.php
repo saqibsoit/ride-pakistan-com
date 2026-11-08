@@ -9,12 +9,14 @@ use App\Actions\Slots\GenerateSlots;
 use App\Enums\SettingKey;
 use App\Exceptions\SlotNotCreated;
 use App\Filament\Resources\Slots\SlotResource;
+use App\Filament\Support\TrainerOptions;
 use App\Models\Slot;
 use App\Models\User;
 use App\Support\Settings;
 use Carbon\CarbonImmutable;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\TimePicker;
 use Filament\Forms\Components\Toggle;
@@ -75,6 +77,9 @@ class ListSlots extends ListRecords
                     ->default(fn (): ?int => app(Settings::class)->int(SettingKey::RidersPerSlot)),
                 Toggle::make('private_only')->label('Private sessions only')
                     ->helperText('Group sessions and package credits can’t book it; it shows as “Private only” on the schedule.'),
+                Select::make('trainer_id')->label('Trainer')
+                    ->options(fn (): array => TrainerOptions::all())
+                    ->placeholder('Nobody yet'),
             ])
             ->action(function (array $data, Action $action, CreateManualSlot $create): void {
                 $user = self::user();
@@ -90,6 +95,7 @@ class ListSlots extends ListRecords
                         (int) $data['capacity'],
                         $user,
                         (bool) ($data['private_only'] ?? false),
+                        filled($data['trainer_id'] ?? null) ? User::query()->find((int) $data['trainer_id']) : null,
                     );
                 } catch (SlotNotCreated $exception) {
                     Notification::make()->danger()->title('Slot not added')->body($exception->getMessage())->send();

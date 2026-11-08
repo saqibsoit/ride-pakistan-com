@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
@@ -29,6 +30,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property CarbonImmutable|null $valid_from
  * @property CarbonImmutable|null $valid_to
  * @property bool $is_active
+ * @property int|null $trainer_id default trainer for the slots it generates (milestone 10b)
+ * @property-read User|null $trainer
  */
 #[ObservedBy([PublicContentObserver::class, ScheduleRuleObserver::class])]
 class ScheduleRule extends Model
@@ -45,7 +48,16 @@ class ScheduleRule extends Model
         'valid_from',
         'valid_to',
         'is_active',
+        'trainer_id',
     ];
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function trainer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'trainer_id');
+    }
 
     /**
      * @return HasMany<Slot, $this>

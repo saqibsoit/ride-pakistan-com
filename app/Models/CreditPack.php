@@ -100,6 +100,22 @@ class CreditPack extends Model
     }
 
     /**
+     * Active packs with credits left that expire within the next $days
+     * (dashboard card and the credit packs list, milestone 10b).
+     *
+     * @param  Builder<CreditPack>  $query
+     */
+    public function scopeExpiringWithin(Builder $query, int $days, ?CarbonImmutable $now = null): void
+    {
+        $now ??= CarbonImmutable::now();
+
+        $query->where('status', CreditPackStatus::Active)
+            ->whereColumn('credits_used', '<', 'credits_total')
+            ->where('expires_at', '>', $now->utc())
+            ->where('expires_at', '<=', $now->addDays($days)->utc());
+    }
+
+    /**
      * Packs that can pay for a session in $slot, soonest to expire first.
      *
      * @param  Builder<CreditPack>  $query

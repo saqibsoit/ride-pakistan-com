@@ -7,6 +7,7 @@ namespace Tests;
 use App\Support\Stripe\StripeGateway;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
+use Illuminate\Foundation\Vite;
 use RuntimeException;
 use Tests\Support\FakeStripeGateway;
 
@@ -35,6 +36,11 @@ abstract class TestCase extends BaseTestCase
 
         // Never talk to the real Stripe from tests (even with keys in .env).
         $app->instance(StripeGateway::class, new FakeStripeGateway);
+
+        // Always render built assets: point Vite at a hot file that never
+        // exists, so a running `npm run dev` (public/hot) can't change what
+        // the tests see.
+        $app->make(Vite::class)->useHotFile(storage_path('framework/testing/hot'));
 
         return $app;
     }

@@ -14,6 +14,7 @@ use Filament\Support\Contracts\HasLabel;
 enum UserRole: string implements HasLabel
 {
     case Customer = 'customer';
+    case Trainer = 'trainer';
     case Staff = 'staff';
     case Admin = 'admin';
 
@@ -27,8 +28,15 @@ enum UserRole: string implements HasLabel
         return ucfirst($this->value);
     }
 
+    /** Signs in at the admin panel (with MFA): staff, admin and trainer. */
     public function canAccessPanel(): bool
     {
         return $this !== self::Customer;
+    }
+
+    /** The office team (staff or admin); trainers only see their own sessions. */
+    public function isTeamMember(): bool
+    {
+        return $this === self::Staff || $this === self::Admin;
     }
 }

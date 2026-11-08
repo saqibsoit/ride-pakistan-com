@@ -57,6 +57,11 @@ class UserFactory extends Factory
         return $this->afterMaking(fn (User $user) => $user->role = UserRole::Staff);
     }
 
+    public function trainer(): static
+    {
+        return $this->afterMaking(fn (User $user) => $user->role = UserRole::Trainer);
+    }
+
     /** A customer who signs in with codes only and hasn't filled in a name. */
     public function passwordless(): static
     {

@@ -23,6 +23,9 @@ use Illuminate\Support\Facades\DB;
  *   order line) follow rule changes or are removed when no rule produces
  *   them. Slots in use, closed or cancelled slots and past slots are never
  *   touched.
+ * - New slots get their rule's trainer (milestone 10b). The generator
+ *   never changes the trainer of an existing slot; ApplyRuleTrainer
+ *   does that when a rule's trainer changes.
  * - Manual slots (added by an admin through CreateManualSlot) are never
  *   changed or removed. If a rule produces a start time a manual slot
  *   already holds, the manual slot wins and no rule slot is created.
@@ -42,9 +45,12 @@ final class GenerateSlots
         $today = $now->setTimezone(Slot::displayTimezone())->startOfDay();
         $until = $today->addWeeks($weeks);
 
-        $desired = self::desiredSlots(ScheduleRule::query()->active()->orderBy('id')->get(), $today, $until, $now);
+        $rules = ScheduleRule::query()->active()->orderBy('id')->get();
+        $desired = self::desiredSlots($rules, $today, $until, $now);
+        /** @var array<int, int|null> $trainers */
+        $trainers = $rules->pluck('trainer_id', 'id')->all();
 
-        return DB::transaction(function () use ($desired, $now, $until): SlotGenerationResult {
+        return DB::transaction(function () use ($desired, $trainers, $now, $until): SlotGenerationResult {
             /** @var array<string, Slot> $existing */
             $existing = Slot::query()
                 ->where('starts_at', '>', $now)
@@ -68,6 +74,7 @@ final class GenerateSlots
                 if ($slot === null) {
                     $created = new Slot($wanted);
                     $created->source = SlotSource::Rule;
+                    $created->trainer_id = $trainers[$wanted['schedule_rule_id'] ?? 0] ?? null;
                     $created->save();
                     $result->created++;
 

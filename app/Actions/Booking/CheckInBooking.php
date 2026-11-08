@@ -80,8 +80,8 @@ final class CheckInBooking
     /** @throws BookingRejected */
     public function handle(Booking $booking, User $actor, BookingStatus $to): Booking
     {
-        if (! $actor->isTeamMember()) {
-            throw BookingRejected::notAllowed('Only staff can check riders in.');
+        if (! $actor->can('checkIn', $booking)) {
+            throw BookingRejected::notAllowed('Only staff or this session\'s trainer can check riders in.');
         }
 
         if (! in_array($to, [BookingStatus::Attended, BookingStatus::NoShow], true)) {

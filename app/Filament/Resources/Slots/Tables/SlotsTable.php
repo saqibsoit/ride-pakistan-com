@@ -7,6 +7,7 @@ namespace App\Filament\Resources\Slots\Tables;
 use App\Enums\SlotSource;
 use App\Enums\SlotStatus;
 use App\Filament\Resources\Slots\SlotStatusActions;
+use App\Filament\Support\TrainerOptions;
 use App\Models\Slot;
 use Carbon\CarbonImmutable;
 use Filament\Actions\ActionGroup;
@@ -36,6 +37,7 @@ class SlotsTable
                 TextColumn::make('status')->badge(),
                 TextColumn::make('source')->badge(),
                 IconColumn::make('private_only')->label('Private only')->boolean()->trueIcon(Heroicon::OutlinedLockClosed)->falseIcon(null),
+                TextColumn::make('trainer.name')->label('Trainer')->placeholder('—'),
                 TextColumn::make('capacity')->label('Seats')->numeric(),
                 TextColumn::make('seats_booked')->label('Booked')->numeric(),
                 TextColumn::make('seats_held')->label('Held')->numeric(),
@@ -55,6 +57,7 @@ class SlotsTable
                     ),
                 SelectFilter::make('status')->options(SlotStatus::class),
                 SelectFilter::make('source')->options(SlotSource::class),
+                SelectFilter::make('trainer_id')->label('Trainer')->options(fn (): array => TrainerOptions::all()),
                 Filter::make('dates')
                     ->schema([
                         DatePicker::make('from')->label('From (Pakistan date)'),

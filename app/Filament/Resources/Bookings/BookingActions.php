@@ -8,14 +8,17 @@ use App\Actions\Booking\CancelBooking;
 use App\Actions\Booking\ChangeBookingStatus;
 use App\Actions\Booking\CreateManualBooking;
 use App\Actions\Booking\RescheduleBooking;
+use App\Actions\Horses\AssignHorse;
 use App\Actions\Notifications\ResendNotification;
 use App\Enums\BookingStatus;
 use App\Enums\CreditPackStatus;
 use App\Enums\SlotStatus;
 use App\Exceptions\BookingRejected;
+use App\Exceptions\HorseAssignmentRejected;
 use App\Exceptions\InvalidStatusTransition;
 use App\Models\Booking;
 use App\Models\CreditPack;
+use App\Models\Horse;
 use App\Models\Rider;
 use App\Models\Slot;
 use App\Models\User;
@@ -40,7 +43,44 @@ final class BookingActions
      */
     public static function row(): array
     {
-        return [self::attended(), self::noShow(), self::move(), self::cancel(), self::resend()];
+        return [self::assignHorse(), self::attended(), self::noShow(), self::move(), self::cancel(), self::resend()];
+    }
+
+    /**
+     * Put the rider on a horse (AssignHorse, milestone 10b). Staff, admins
+     * and the session trainer. Limits block; a level mismatch only warns.
+     */
+    public static function assignHorse(): Action
+    {
+        return Action::make('assign_horse')
+            ->label('Horse')
+            ->icon(Heroicon::OutlinedHeart)
+            ->visible(fn (Booking $record): bool => auth()->user()?->can('assignHorse', $record) === true)
+            ->modalHeading(fn (Booking $record): string => 'Horse for '.$record->rider->name)
+            ->modalDescription(fn (Booking $record): string => 'Rider: '.($record->rider->experience_level?->label() ?? 'experience not recorded').'.')
+            ->fillForm(fn (Booking $record): array => ['horse_id' => $record->horse_id])
+            ->schema([
+                Select::make('horse_id')->label('Horse')
+                    ->options(fn (): array => Horse::query()->working()->orderBy('sort')->orderBy('name')->pluck('name', 'id')->all())
+                    ->placeholder('No horse'),
+            ])
+            ->action(function (Booking $record, array $data, AssignHorse $assign): void {
+                $user = auth()->user();
+                abort_unless($user instanceof User && $user->can('assignHorse', $record), 403);
+
+                $horse = filled($data['horse_id'] ?? null) ? Horse::query()->find((int) $data['horse_id']) : null;
+
+                try {
+                    $result = $assign->handle($record, $horse, $user);
+                } catch (HorseAssignmentRejected $e) {
+                    Notification::make()->danger()->title('Horse not assigned')->body($e->getMessage())->send();
+
+                    return;
+                }
+
+                $notification = Notification::make()->title($horse === null ? 'Horse removed' : 'On '.$horse->name);
+                ($result->warnings === [] ? $notification->success() : $notification->warning()->body(implode(' ', $result->warnings)))->send();
+            });
     }
 
     public static function attended(): Action

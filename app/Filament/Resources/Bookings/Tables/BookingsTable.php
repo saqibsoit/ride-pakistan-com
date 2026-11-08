@@ -30,6 +30,7 @@ class BookingsTable
                 TextColumn::make('rider.name')->label('Rider')->searchable(),
                 TextColumn::make('user.email')->label('Customer')->searchable(),
                 TextColumn::make('status')->badge(),
+                TextColumn::make('horse.name')->label('Horse')->placeholder('—'),
                 IconColumn::make('is_private')->label('Private')->boolean(),
                 TextColumn::make('source')
                     ->label('Paid by')

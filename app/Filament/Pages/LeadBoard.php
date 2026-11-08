@@ -6,6 +6,7 @@ namespace App\Filament\Pages;
 
 use App\Enums\LeadSource;
 use App\Enums\LeadStatus;
+use App\Filament\Concerns\InteractsWithQuickReplies;
 use App\Filament\Resources\Leads\LeadActions;
 use App\Filament\Resources\Leads\LeadResource;
 use App\Models\Lead;
@@ -27,6 +28,8 @@ use UnitEnum;
  */
 class LeadBoard extends Page
 {
+    use InteractsWithQuickReplies;
+
     public const PER_COLUMN = 50;
 
     protected string $view = 'filament.pages.lead-board';

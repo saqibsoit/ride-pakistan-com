@@ -16,3 +16,9 @@ Schedule::command('accounts:anonymise')->dailyAt('03:45')->withoutOverlapping();
 
 // Expired one-time sign-in codes.
 Schedule::command('model:prune', ['--model' => [LoginCode::class]])->dailyAt('04:00');
+
+// Card seat holds that ran out (PLAN §3.1). Cheap when there is nothing to do.
+Schedule::command('holds:release')->everyMinute()->withoutOverlapping();
+
+// Credit packs past their expiry (PLAN §2).
+Schedule::command('credits:expire')->dailyAt('00:15')->withoutOverlapping();

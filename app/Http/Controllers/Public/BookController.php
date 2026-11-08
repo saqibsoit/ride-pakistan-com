@@ -9,23 +9,19 @@ use App\Models\Product;
 use App\Support\BusinessFacts;
 use App\Support\Seo\Seo;
 use Illuminate\Contracts\View\View;
-use Illuminate\Http\Request;
 
 /**
- * /book holding page until the Livewire booking flow ships (milestone 5).
- * Every "Book" button already points here. Not indexed.
+ * /book: hosts the Livewire booking flow (App\Livewire\Book\BookingFlow).
+ * Not response-cached (per-visitor state and CSRF) and not indexed.
+ * Every "Book" button points here, optionally with ?product, ?slot and
+ * ?riders to start part-way through.
  */
 final class BookController extends Controller
 {
-    public function __invoke(Request $request, BusinessFacts $facts, Seo $seo): View
+    public function __invoke(BusinessFacts $facts, Seo $seo): View
     {
-        $slug = $request->query('product');
-        $product = is_string($slug) ? $facts->product($slug) : null;
-
         return view('public.book', [
             'facts' => $facts,
-            'product' => $product,
-            'products' => $facts->products(),
             'seo' => $seo->make(
                 title: 'Book a riding session',
                 description: 'Book a weekend horse riding session in Islamabad with Ride Pakistan.',

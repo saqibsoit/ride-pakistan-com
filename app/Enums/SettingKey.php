@@ -29,6 +29,8 @@ enum SettingKey: string
     case SellingFastThreshold = 'booking.selling_fast_threshold';
     case MinRiderAge = 'booking.min_rider_age';
     case SlotHorizonWeeks = 'booking.slot_horizon_weeks';
+    case CardHoldMinutes = 'booking.card_hold_minutes';
+    case MinNoticeHours = 'booking.min_notice_hours';
     case MapPinUrl = 'booking.map_pin_url';
 
     case RidingRules = 'policies.riding_rules';
@@ -56,6 +58,7 @@ enum SettingKey: string
             self::InstagramUrl, self::InstagramDmUrl, self::ExpeditionsUrl, self::MapPinUrl => SettingType::Url,
             self::RidersPerSlot, self::TransferHoldHours, self::CancellationCutoffHours,
             self::SellingFastThreshold, self::MinRiderAge, self::SlotHorizonWeeks,
+            self::CardHoldMinutes, self::MinNoticeHours,
             self::DeletionGraceDays, self::OrderRetentionYears => SettingType::Integer,
             self::RidingRules, self::BookingPolicies, self::AiCrawlers => SettingType::List,
             self::ScheduleSummary, self::RefundPolicy, self::DefaultDescription, self::BankAddress => SettingType::LongText,
@@ -88,6 +91,8 @@ enum SettingKey: string
             self::SellingFastThreshold => 'Show "Selling fast" at or below (seats)',
             self::MinRiderAge => 'Minimum rider age',
             self::SlotHorizonWeeks => 'Create bookable slots this many weeks ahead',
+            self::CardHoldMinutes => 'Hold seats for card payment (minutes)',
+            self::MinNoticeHours => 'Stop booking a slot this many hours before it starts (0 = until it starts)',
             self::MapPinUrl => 'Exact map pin URL (private, sent after confirmation)',
             self::RidingRules => 'Riding rules',
             self::BookingPolicies => 'Booking policies',

@@ -4,12 +4,12 @@
 
     <x-layouts.account title="Your bookings"> ... </x-layouts.account>
 --}}
-@props(['title', 'intro' => null])
+@props(['title', 'intro' => null, 'livewire' => false])
 
 @php
     $links = [
         ['label' => 'Overview', 'route' => 'account.dashboard', 'match' => 'account.dashboard'],
-        ['label' => 'Bookings', 'route' => 'account.bookings', 'match' => 'account.bookings'],
+        ['label' => 'Bookings', 'route' => 'account.bookings', 'match' => 'account.bookings*'],
         ['label' => 'Tickets', 'route' => 'account.tickets', 'match' => 'account.tickets*'],
         ['label' => 'Credits', 'route' => 'account.credits', 'match' => 'account.credits'],
         ['label' => 'Orders', 'route' => 'account.orders', 'match' => 'account.orders*'],
@@ -19,7 +19,7 @@
     ];
 @endphp
 
-<x-layouts.app :title="$title" robots="noindex, nofollow">
+<x-layouts.app :title="$title" robots="noindex, nofollow" :livewire="$livewire">
     <div class="wrap grid gap-10 pt-12 pb-section md:pt-16 lg:grid-cols-4">
         <nav aria-label="Account" class="print:hidden lg:col-span-1">
             <ul class="flex flex-wrap gap-2 lg:flex-col lg:gap-1">

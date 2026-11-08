@@ -1,6 +1,10 @@
 @php($tz = config('app.display_timezone'))
 
 <x-layouts.account title="Credits" intro="Package credits can be used until their expiry date. Expired credits can’t be used.">
+    @if ($packs->contains(fn ($pack) => $pack->isUsable()))
+        <div><x-button :href="route('book', ['use' => 'credits'])">Book a session with credits</x-button></div>
+    @endif
+
     @if ($packs->isEmpty())
         <p class="text-sand-dim">No package credits yet. <a href="{{ route('prices') }}" class="underline underline-offset-4 hover:text-sand">See packages</a>.</p>
     @else

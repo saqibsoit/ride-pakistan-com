@@ -7,6 +7,10 @@
 
     Without :seo (styleguide, simple pages) title/description/robots props
     are run through the same builder.
+
+    Pages that render Livewire components pass `livewire`: they load
+    resources/js/livewire.js (Livewire + its bundled Alpine) instead of
+    app.js, so Alpine is only ever loaded once.
 --}}
 @props([
     'seo' => null,
@@ -14,6 +18,7 @@
     'description' => null,
     'overlayHeader' => false,
     'robots' => null,
+    'livewire' => false,
 ])
 
 @php
@@ -38,7 +43,13 @@
     <link rel="apple-touch-icon" href="{{ asset('apple-touch-icon.png') }}">
     <link rel="manifest" href="{{ asset('site.webmanifest') }}">
 
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @if ($livewire)
+        @livewireStyles
+        @vite(['resources/css/app.css', 'resources/js/livewire.js'])
+        @livewireScriptConfig
+    @else
+        @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @endif
 
     {{ $head ?? '' }}
 </head>

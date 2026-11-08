@@ -40,6 +40,8 @@ return [
         'booking.cancellation_cutoff_hours' => 48,
         'booking.selling_fast_threshold' => 2,
         'booking.slot_horizon_weeks' => 8,
+        'booking.card_hold_minutes' => 30,
+        'booking.min_notice_hours' => 0,
         'booking.min_rider_age' => null,
         'booking.map_pin_url' => env('BOOKING_MAP_PIN_URL', ''),
 

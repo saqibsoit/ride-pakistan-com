@@ -34,25 +34,28 @@
         <x-answer>{{ $answer }}</x-answer>
     </section>
 
-    {{-- This weekend: times from schedule rules; live seats arrive in milestone 5. --}}
+    {{-- This weekend: live slots (rule and manual) with seats left. --}}
     <section class="wrap pt-section" aria-labelledby="weekend-title">
         <div class="flex flex-wrap items-end justify-between gap-6">
             <x-section-heading id="weekend-title" title="This weekend." size="lg" />
             <a href="{{ route('schedule') }}" class="inline-flex items-center gap-2 font-semibold underline underline-offset-4">Full schedule <x-glyph name="arrow-right" class="size-4" /></a>
         </div>
-        @if ($weekend === [])
+        @if ($weekend->isEmpty())
             <p class="mt-8 text-sand-dim">No more sessions this weekend. <a href="{{ route('schedule') }}" class="underline underline-offset-4">See next week’s times</a>.</p>
         @else
             <ul class="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                @foreach ($weekend as $session)
+                @foreach ($weekend as $slot)
+                    @php($open = $slot->status === \App\Enums\SlotStatus::Open)
                     <li>
-                        <p class="mb-2 text-xs font-semibold uppercase tracking-label text-sand-dim">{{ $session['starts_at']->setTimezone($tz)->format('l j M') }}</p>
+                        <p class="mb-2 text-xs font-semibold uppercase tracking-label text-sand-dim">{{ $slot->localStartsAt()->format('l j M') }}</p>
                         <x-slot-card
-                            :starts-at="$session['starts_at']"
-                            :ends-at="$session['ends_at']"
-                            product="Riding session"
+                            :starts-at="$slot->starts_at"
+                            :ends-at="$slot->ends_at"
+                            :product="$slot->isPrivatelyBooked() ? 'Private session' : 'Riding session'"
                             :trainer="$facts->trainer()"
-                            :href="route('book', ['date' => $session['starts_at']->format('Y-m-d'), 'time' => $session['starts_at']->format('H:i')])"
+                            :seats="$open ? $slot->seatsFree() : null"
+                            note="Closed for booking"
+                            :href="$open ? route('book', ['slot' => $slot->id]) : null"
                         />
                     </li>
                 @endforeach

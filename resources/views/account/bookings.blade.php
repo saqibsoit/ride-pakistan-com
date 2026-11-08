@@ -1,4 +1,16 @@
 <x-layouts.account title="Bookings" intro="All times are Pakistan time.">
+    @php($flash = [
+        'booked-with-credits' => 'Booked with your credits. Your tickets are below.',
+        'booking-moved' => 'Your session has been moved.',
+        'booking-cancelled-credit-back' => 'Cancelled. Your credit is back in your package.',
+        'booking-cancelled' => 'Cancelled. The credit was used because it was past the cutoff.',
+    ][session('status')] ?? null)
+    @if ($flash)
+        <x-alert variant="success">{{ $flash }}</x-alert>
+    @endif
+    @if ($errors->has('booking'))
+        <x-alert variant="error">{{ $errors->first('booking') }}</x-alert>
+    @endif
     <section aria-labelledby="upcoming-title" class="flex flex-col gap-4">
         <h2 id="upcoming-title" class="text-display-xs">Upcoming</h2>
         @if ($upcoming->isEmpty())

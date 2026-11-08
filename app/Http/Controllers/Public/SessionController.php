@@ -4,27 +4,28 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Public;
 
+use App\Enums\ProductType;
 use App\Enums\SettingKey;
 use App\Http\Controllers\Controller;
 use App\Models\Faq;
 use App\Models\Product;
+use App\Support\Availability;
 use App\Support\BusinessFacts;
 use App\Support\Seo\SchemaFactory;
 use App\Support\Seo\Seo;
-use App\Support\SessionTimes;
 use App\Support\Settings;
 use Illuminate\Contracts\View\View;
 
 /**
- * /sessions/{product}: product detail (inspiration 01). The booking widget
- * is a placeholder until milestone 5.
+ * /sessions/{product}: product detail (inspiration 01) with a booking
+ * widget showing the next slots and seats left (plain form into /book).
  */
 final class SessionController extends Controller
 {
     public function __invoke(
         Product $product,
         BusinessFacts $facts,
-        SessionTimes $times,
+        Availability $availability,
         Settings $settings,
         SchemaFactory $schema,
         Seo $seo,
@@ -46,7 +47,7 @@ final class SessionController extends Controller
             'faqs' => $faqs,
             'policies' => $settings->policies(SettingKey::BookingPolicies),
             'minAge' => $settings->int(SettingKey::MinRiderAge),
-            'weekend' => $times->thisWeekend(),
+            'slots' => $availability->upcoming(8, $product->type === ProductType::Private ? Availability::TYPE_PRIVATE : Availability::TYPE_GROUP),
             'seo' => $seo->make(
                 title: $product->meta_title ?: $product->name.' – horse riding in Islamabad',
                 description: $product->meta_description ?: $product->short_description,

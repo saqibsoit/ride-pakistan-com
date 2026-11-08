@@ -6,6 +6,7 @@ namespace App\Filament\Resources\Customers;
 
 use App\Filament\Resources\Customers\Pages\EditCustomer;
 use App\Filament\Resources\Customers\Pages\ListCustomers;
+use App\Filament\Resources\Customers\RelationManagers\CreditPacksRelationManager;
 use App\Filament\Resources\Customers\RelationManagers\RidersRelationManager;
 use App\Filament\Resources\Customers\Schemas\CustomerForm;
 use App\Filament\Resources\Customers\Tables\CustomersTable;
@@ -59,6 +60,7 @@ class CustomerResource extends Resource
     {
         return [
             RidersRelationManager::class,
+            CreditPacksRelationManager::class,
         ];
     }
 

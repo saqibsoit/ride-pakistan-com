@@ -26,6 +26,27 @@ enum BookingStatus: string implements HasLabel
         };
     }
 
+    /**
+     * Allowed status changes (ChangeBookingStatus). Attended and no-show
+     * can be swapped to correct a check-in mistake; cancelled is final.
+     *
+     * @return list<self>
+     */
+    public function allowedTransitions(): array
+    {
+        return match ($this) {
+            self::Confirmed => [self::Cancelled, self::Attended, self::NoShow],
+            self::Attended => [self::NoShow],
+            self::NoShow => [self::Attended],
+            self::Cancelled => [],
+        };
+    }
+
+    public function canTransitionTo(self $to): bool
+    {
+        return in_array($to, $this->allowedTransitions(), true);
+    }
+
     /** Counts against slot capacity. */
     public function occupiesSeat(): bool
     {

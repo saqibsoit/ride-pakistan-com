@@ -23,6 +23,14 @@
             <x-button :href="route('account.tickets.show', $booking->ticket_code)" variant="ghost" size="sm">
                 View ticket<span class="sr-only"> for {{ $slot->label() }}</span>
             </x-button>
+            @can('change', $booking)
+                <x-button :href="route('account.bookings.reschedule.edit', $booking->ticket_code)" variant="ghost" size="sm">Move<span class="sr-only"> {{ $slot->label() }}</span></x-button>
+                <x-button :href="route('account.bookings.cancel', $booking->ticket_code)" variant="ghost" size="sm">Cancel<span class="sr-only"> {{ $slot->label() }}</span></x-button>
+            @else
+                @if ($booking->slot->starts_at->isFuture())
+                    <span class="text-sm text-sand-dim">To change, <a href="{{ route('contact') }}" class="underline underline-offset-4">contact us</a></span>
+                @endif
+            @endcan
         @endif
     </div>
 </li>

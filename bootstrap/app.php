@@ -20,6 +20,9 @@ return Application::configure(basePath: dirname(__DIR__))
             EnsureSessionIsCurrent::class,
         ]);
 
+        // Stripe signs its webhooks; it can't send a CSRF token (PLAN §6).
+        $middleware->validateCsrfTokens(except: ['webhooks/stripe']);
+
         $middleware->redirectGuestsTo(fn (): string => route('login'));
         $middleware->redirectUsersTo(fn (): string => route('account.dashboard'));
     })

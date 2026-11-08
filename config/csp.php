@@ -23,6 +23,11 @@ return [
             'frame-src' => ['https://challenges.cloudflare.com'],
             'connect-src' => ['https://challenges.cloudflare.com'],
         ],
+        'stripe_checkout' => [
+            'purpose' => 'Stripe-hosted Checkout (card payment). A full-page redirect after a POST: no Stripe script, frame or request runs on our pages.',
+            'pages' => ['/checkout/{reference}'],
+            'form-action' => ['https://checkout.stripe.com'],
+        ],
     ],
 
 ];

@@ -16,4 +16,16 @@ final class OrderPolicy extends AdminReadOnlyPolicy
         return parent::view($user, $model)
             || ($model instanceof Order && $model->user_id === $user->id);
     }
+
+    /** Only the customer who placed the order pays for it. */
+    public function pay(User $user, Order $order): bool
+    {
+        return $order->user_id === $user->id;
+    }
+
+    /** Admins refund paid card orders (RefundOrder checks the rest). */
+    public function refund(User $user, Order $order): bool
+    {
+        return $user->isAdmin();
+    }
 }

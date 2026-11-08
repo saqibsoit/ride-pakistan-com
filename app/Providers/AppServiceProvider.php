@@ -86,6 +86,14 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('account-export', fn (Request $request): Limit => Limit::perHour(5)
             ->by('account-export:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
 
+        // Starting card payment calls Stripe: enough for retries, not a loop.
+        RateLimiter::for('checkout', fn (Request $request): Limit => Limit::perMinute(10)
+            ->by('checkout:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
+
+        // Stripe sends bursts on retries; anything far above this is not Stripe.
+        RateLimiter::for('stripe-webhook', fn (Request $request): Limit => Limit::perMinute(300)
+            ->by('stripe-webhook:'.$request->ip()));
+
         // Every new sign-in (customer code or admin panel) records the
         // account's session version for "sign out everywhere".
         Event::listen(function (Login $event): void {

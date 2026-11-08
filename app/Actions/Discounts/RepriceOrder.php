@@ -62,17 +62,23 @@ final class RepriceOrder
                 throw DiscountRejected::locked();
             }
 
-            $customer = $locked->user;
             $selected = [...self::choices($locked), ...($choice ?? [])];
             $messages = [];
 
-            // Promo row first (it is counted under its lock), then give back what the order held.
+            // Every lock before any plain read (order, promo, vouchers, customer):
+            // MariaDB refuses a locking read of a row that changed after the
+            // transaction's first plain read (error 1020), as in SlotLock.
             $promo = $selected['promo_code_id'] === null ? null : PromoCode::query()->whereKey($selected['promo_code_id'])->lockForUpdate()->first();
+            $vouchers = ReleaseOrderDiscounts::lockVouchers($locked, $selected['voucher_id']);
+            $customer = User::withTrashed()->whereKey($locked->user_id)->lockForUpdate()->firstOrFail();
+
+            // Give back what the order held, then take it again below.
             $this->release->giveBackVouchers($locked, null, $actor, 'Checkout recalculated');
             $this->credit->giveBack($customer, $locked, AccountCredit::heldBy($locked), $actor, 'Checkout recalculated');
 
             $subtotal = $locked->subtotal_minor;
             $lines = [];
+            $usedVouchers = [];
 
             // 1. Promo code, or the referral discount.
             if ($promo !== null) {
@@ -98,12 +104,13 @@ final class RepriceOrder
 
             // 2. Gift voucher.
             if ($selected['voucher_id'] !== null && $remaining > 0) {
-                $voucher = Voucher::query()->find($selected['voucher_id']);
+                $voucher = $vouchers->get($selected['voucher_id']);
 
                 try {
                     $taken = $voucher === null ? throw VoucherRejected::notUsable('That gift voucher no longer exists.') : $this->vouchers->redeem($voucher, $locked, $remaining, $actor ?? $customer);
                     $lines[] = $this->line(DiscountKind::Voucher, $voucher, 'Gift voucher '.$voucher->formattedCode(), $taken);
                     $remaining -= $taken;
+                    $usedVouchers[] = $voucher->id;
                 } catch (VoucherRejected $e) {
                     $messages[DiscountKind::Voucher->value] = $e->getMessage();
                     $selected['voucher_id'] = null;
@@ -142,7 +149,11 @@ final class RepriceOrder
 
             $before = $locked->amount_minor;
             $locked->amount_minor = max(0, $remaining);
-            $locked->meta = [...($locked->meta ?? []), 'discounts' => $selected];
+            // Every voucher this order ever used, oldest first (ReleaseOrderDiscounts::voucherIds).
+            // Re-read meta: giving back may have recorded voucher money moved to credit.
+            $meta = Order::query()->whereKey($locked->id)->first(['id', 'meta'])->meta ?? [];
+            $stored = array_map('intval', (array) ($meta['voucher_ids'] ?? []));
+            $locked->meta = [...$meta, 'discounts' => $selected, 'voucher_ids' => array_values(array_unique([...$stored, ...$usedVouchers]))];
             $locked->save();
 
             if ($before !== $locked->amount_minor || $choice !== null) {

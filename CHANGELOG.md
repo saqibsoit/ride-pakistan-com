@@ -5,6 +5,16 @@ All notable changes to this project are documented here. The format follows [Kee
 ## [Unreleased]
 
 ### Added
+- Milestone 12 deployment, backups and monitoring (`docs/DEPLOY.md`):
+  - Deploy workflow (`.github/workflows/deploy.yml`, composite actions in `.github/actions`): tests (ci.yml, now reusable) → build on PHP 8.3 (production Composer install, Filament assets, Vite build, `images:responsive`; fails without AVIF support or without AVIF/WebP output) → staging on every push to `main` → production after a required reviewer approves. Pull requests run the build only. Manual runs deploy one environment or roll back.
+  - Releases: rsync to `releases/<UTC timestamp>-<sha>`; `deploy/remote-deploy.sh` links the shared `.env`, `storage` and `public/images/uploads`, migrates, optimizes, switches `current` atomically, clears the page cache, restarts workers and keeps 5 releases. The smoke test (`/`, `/up`) rolls back automatically when it fails; `deploy/rollback.sh` for manual rollbacks.
+  - Scheduler: `queue:work --stop-when-empty --max-time=50` every minute (no Supervisor on shared hosting), backups (`backup:clean`, `backup:run`, weekly `backup:monitor`), `queue:prune-failed` (30 days), `monitor:operations` every 5 minutes.
+  - Ops alerts (`CheckOperationalHealth`, `OperationsAlert`): every admin is emailed when a queued job has waited over 5 minutes or a booking or gift-voucher transfer has waited for review over 12 hours, every 6 hours while it lasts and once when it clears; sent straight away, never queued.
+  - `/up` also checks the database connection.
+  - Backups: database plus transfer proofs, private and public storage and admin uploads, AES-256 encrypted (`BACKUP_ARCHIVE_PASSWORD`), on a private `backups` disk outside the web root, 30-day retention, failure and weekly health emails to `BACKUP_NOTIFICATION_EMAIL`. `deploy/extract-backup.php` opens an archive for a restore; restore tested locally (all tables match). No off-site copy yet (decided 2026-11-08).
+  - Docs: Hostinger setup, cron, Cloudflare (Full strict, HTTP/3, Brotli, WAF, Stripe webhook skip rule, Bot Fight Mode caveat), email DNS (SPF, DKIM, DMARC), UptimeRobot, rollback and restore runbooks, and the list of values still needed.
+  - Pest tests: ops alert thresholds (fresh, delayed, reserved jobs; the 12-hour boundary; voucher transfers), repeats and all-clear, admin-only recipients, synchronous sending, email content; the schedule; `/up` with the database down; backup config; trusted proxies.
+
 - Milestone 10e part A, gift vouchers, promo codes and referrals (management; applying them at checkout is part B, after 10d):
   - Gift vouchers: `/gift-vouchers` (public, in the sitemap and footer) and `/gift-vouchers/buy` for signed-in customers: a product (its price at purchase) or a PKR amount, recipient, message, send now or on a date. Paid by card (own Stripe session, `metadata.kind = voucher`) or bank transfer (same proof, review and retention rules as orders), never through `CreateOrder` or `FulfilOrder`. `HandleStripeEvent` routes voucher sessions and refunds to `HandleVoucherStripeEvent`; amount, currency and reference are re-checked. `IssueVoucher` creates the voucher only once payment is confirmed (idempotent, 12-character code, `vouchers.validity_months` [12]).
   - Delivery: recipient email with the code and a signed printable voucher page (`/vouchers/{code}`), straight away or at 09:00 Pakistan time on the chosen day (`vouchers:deliver`); receipt to the buyer, and a note when a scheduled voucher goes out. The buyer can change the recipient until then (`/account/vouchers`). `vouchers:release` closes unpaid purchases; `vouchers:expire` writes off expired balances. Every balance change has a ledger entry (`VoucherBalance`).
@@ -178,6 +188,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - README with local setup steps.
 
 ### Fixed
+- Behind Cloudflare, `X-Forwarded-For` and `X-Forwarded-Proto` are trusted from Cloudflare's published ranges only (`config/security.php`, `TRUSTED_PROXIES`), so rate limits, logs and attribution see the visitor's IP and HTTPS is detected. `X-Forwarded-Host` is never trusted.
 - The admin panel now loads Livewire's script and styles. Livewire's automatic asset injection is off (since milestone 2, for the public bundle), so in a real browser the panel's Livewire and Alpine never started and forms such as the login spun forever. Tests render HTML only, so they missed it; a regression test now checks for the script.
 - The private `local` disk no longer registers the framework's `GET`/`PUT /storage/{path}` signed-URL routes (`serve` off; nothing used them).
 - The full-page cache now has its own cache store. It used the default store, and `ResponseCache::clear()` (run after every seat change and content edit) emptied that whole store, resetting rate-limit counters, including the sign-in code limits. A regression test covers it.

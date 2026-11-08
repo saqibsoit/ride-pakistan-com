@@ -45,9 +45,9 @@ Where a value is a setting, an admin can change it on the Settings page of the a
 
 | # | Question | Current placeholder | Where it is used | Status |
 |---|---|---|---|---|
-| 4.1 | Are package prices per rider, and can one package be shared between riders? | **Not stated.** Packages are shown as "PKR 60,000 for 8 sessions" / "PKR 100,000 for 16 sessions" | `/prices`, `/experiences`, `/sessions/8-class-package`, `/sessions/16-class-package`, `/book`, `/llms.txt`. The `/prices` subtitle used to say "Prices are per rider"; it now says "All prices are in Pakistani rupees (PKR)". Single and private prices are per rider (PLAN §2). | Unconfirmed |
+| 4.1 | Are package prices per rider, and can one package be shared between riders? | **Decided in milestone 5:** one pack per order, owned by the account, priced as listed; any of the customer's riders can use its credits (one credit per rider per session). | `/book`, `/account/credits`, package pages. Package copy on `/prices` still doesn't say it can be shared; worth adding once you're happy with the rule. | Decided |
 | 4.2 | Is "2 sessions per week" a rule or a suggestion for packages? | **Shown as guidance** ("two a week") | Package short descriptions on `/experiences`, `/prices` and the package pages; note on `/prices`: "plan around two sessions a week". If it is a rule, milestone 5 must enforce it. | Unconfirmed, still shown |
-| 4.3 | Maximum group size for a private session? | **"Just your group"** (no number) | `/sessions/private-session` key facts and price box; `/experiences` card. Private sessions block the whole slot (PLAN §2), so the riders-per-slot limit (1.1) may apply. | Unconfirmed, still shown |
+| 4.3 | Maximum group size for a private session? | **Up to the slot capacity** (6 by default), price per rider; the whole slot is blocked either way. | `/book`, `/sessions/private-session` key facts and price box ("Just your group"); `/experiences` card. | Confirm |
 | 4.4 | What do packages lead to? | **Neutral.** Package copy now lists the sessions and validity only. | Replaced on the 8 and 16-class products (seeded in `database/seeders/ProductSeeder.php`): "from your first time touching a horse to riding the trail with confidence", "longer trails, more independence, real horsemanship", "gets you ready for an expedition". | Removed |
 | 4.5 | "8 and 16-class packages take beginners to confident trail riders" / "a package takes you from complete beginner to a confident trail rider" | **Shown** (adapted from your reference page) | Home page answer block and "Sessions and prices" introduction. | Unconfirmed, still shown |
 | 4.6 | Which product should be featured? | **8-class package** | Featured badge on `/experiences` and the product page; highlighted row on the home page and `/prices`. The "Most popular" label on `/prices` was removed (no data behind it). | Unconfirmed, still shown |
@@ -99,6 +99,16 @@ Defaults chosen while building sign-in and the account area. Settings can be cha
 | 8.4 | Marketing consent wording | **"Send me news and offers. Occasional emails about new sessions and expeditions. Unsubscribe any time."** Unticked by default. | `/account/profile`. No marketing emails are sent yet. | Confirm |
 | 8.5 | Sign-in code limits | **6 digits, 10 minutes, 5 tries per code; 3 codes per 10 minutes and 10 a day per email; 10 requests an hour per network** (`config/login.php`) | `/login`. Changing them needs a deploy. | Confirm |
 | 8.6 | Customers change their email by contacting you (no self-service yet). OK? | **"To change it, contact us"** | `/account/profile`. | Confirm |
+
+## 9. Booking engine (milestone 5)
+
+| # | Question | Current placeholder | Where it is used | Status |
+|---|---|---|---|---|
+| 9.1 | Until when can a slot be booked? | **Until it starts** (setting `booking.min_notice_hours` = 0) | `/book`, `/schedule`, product pages. Raise it on the Settings page to stop last-minute bookings. | Confirm |
+| 9.2 | How long are seats held while a customer pays by card? | **30 minutes** (setting `booking.card_hold_minutes`, from PLAN §3.1) | `/book` review ("We hold your seats for 30 minutes"), `/checkout/{reference}`. | Confirmed in PLAN |
+| 9.3 | Can customers change bookings they paid for directly (single or private)? | **No.** Only credit bookings can be moved or cancelled by the customer; paid bookings show "contact us" and an admin changes them. | `/account/bookings`. Linked to 1.3 (cutoff) and 1.4 (refund policy). | Decided (milestone 5) |
+| 9.4 | Should the schedule have a trainer filter? | **Hidden.** Slots don't record a trainer and there is one trainer, so the filter appears only once there are more. | `/schedule`. | Confirm |
+| 9.5 | Free ("no charge") admin bookings: who may give them, and should they be limited? | **Any admin, with a required reason** (logged). | Admin → Bookings → Manual booking. | Confirm |
 
 ## Confirmed in PLAN (no action needed)
 

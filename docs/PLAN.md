@@ -28,7 +28,15 @@ A fast, secure, bilingual-ready website for Ride Pakistan’s weekend horse ridi
 - Location shown publicly as “Islamabad” only. The exact map pin is sent after a booking is confirmed (stored as a setting, never on public pages).
 - No experience needed.
 - Package credits are only granted when the order is Paid. Validity starts at confirmation. Expired credits cannot be used (admin can extend manually with a logged reason).
-- Private session: blocks the whole slot. Allowed only if the slot has no other confirmed or held bookings.
+- Private session: blocks the whole slot. Allowed only if the slot has no other confirmed or held bookings. A private hold takes the whole capacity, and its bookings (`is_private`) keep the slot blocked after payment even with fewer riders than the capacity. Riders: 1 up to the slot capacity, price per rider.
+- Booking rules (milestone 5):
+  - Bookable slots are rule and manual slots that are open and start after now plus `booking.min_notice_hours` [0]. Confirmed bookings + unexpired holds never exceed capacity; a rider is never in the same slot twice.
+  - Single sessions cost the price per rider. A package costs its price once and belongs to the account: any of the customer's riders can use its credits, one credit per rider per session. Buying a package needs no date; an optional first session (one or more riders) is paid by credits from the new pack and must start before the pack would expire.
+  - Card seat holds last `booking.card_hold_minutes` [30]; `holds:release` (every minute) expires unpaid card orders and frees their seats. Re-submitting the same booking while its order is held returns that order.
+  - Credits book group sessions only (never private), from active packs with credits left that expire after the session starts, soonest-expiring first. `credits:expire` (daily) writes off unused credits on expired packs.
+  - Customers cancel or move only their own credit bookings. Cancelling before the cutoff (`booking.cancellation_cutoff_hours`) returns the credit if the pack hasn't expired; after the cutoff the credit is used. Moving is allowed only before the cutoff, to a slot the pack still covers. Paid single and private bookings change only through an admin.
+  - Admins can move or cancel any booking (reason required; cancellations may give the credit back), mark attended / no-show once the session has started, add manual bookings (a customer's credit, or no charge with a reason; never an order) and extend a pack (reason required, ledger "adjusted").
+  - Overbooking is prevented by a row lock: every booking or hold write takes `SELECT … FOR UPDATE` on the slot row first, then reads the slot's bookings and holds with locking reads (plain reads could see an older REPEATABLE READ snapshot). Prices are always computed on the server from the product row (`PriceQuote`).
 - Open decisions (store as settings, admin-editable, defaults in brackets):
   - Riders per slot [6]
   - Bank transfer hold window [24 hours]
@@ -96,9 +104,9 @@ Roles (milestone 3): `customer` (site and own account only), `staff` (admin pane
 - `schedule_rules` (day_of_week, start_time, end_time, capacity, valid_from, valid_to, is_active)
 - `slots` (schedule_rule_id nullable, source: rule, manual; starts_at, ends_at, capacity, status: open, closed, cancelled; cancel_reason, cancelled_at, cancelled_by; unique on starts_at). Rule slots are generated from schedule rules. Admins add manual slots from the Slots screen through `CreateManualSlot`: any future date and time, own capacity (1 to 50, default `booking.riders_per_slot`), never at a start time another slot already has; each one is logged. `GenerateSlots` (daily `slots:generate`, after every rule change, and on seed) fills the horizon set by `booking.slot_horizon_weeks` [8]. Only future open slots with no booking, hold or order line follow rule changes or are removed; slots in use, closed or cancelled slots, past slots and manual slots are never touched. If a rule produces a start time a manual slot already holds, the manual slot stays and no rule slot is created. Status changes go through `ChangeSlotStatus` (open ⇄ closed, open/closed → cancelled; cancelling needs a reason, is final and fires `SlotCancelled`).
 - `orders` (reference unique, user_id, product_id, status, payment_method, amount_minor, amount_refunded_minor, currency, stripe_checkout_session_id, stripe_payment_intent_id, expires_at, paid_at, meta json). Status changes only through `OrderStateMachine` (§3.3; reasons required for rejected, cancelled, partially_refunded and refunded).
-- `order_items` (order_id, slot_id nullable, rider_id, unit_price_minor)
-- `booking_holds` (slot_id, order_id, seats, expires_at)
-- `bookings` (slot_id, order_id, rider_id, user_id, status: confirmed, cancelled, attended, no_show, source credit_id nullable, ticket_code unique)
+- `order_items` (order_id, slot_id nullable, rider_id, unit_price_minor; a package has one item for the pack plus a 0-priced item per first-session rider)
+- `booking_holds` (slot_id, order_id, seats, is_private, expires_at)
+- `bookings` (slot_id, order_id nullable, rider_id, user_id, credit_pack_id nullable, is_private, status: confirmed, cancelled, attended, no_show (changes through `ChangeBookingStatus`), ticket_code unique, 12 unambiguous characters; created only by `FulfilOrder`, `BookWithCredit` or an admin manual booking)
 - `credit_packs` (user_id, order_id, credits_total, credits_used, valid_from, expires_at, status)
 - `credit_ledger` (credit_pack_id, booking_id nullable, delta, reason: granted, used, returned, adjusted, expired; note, actor_id)
 - `bank_transfers` (order_id, screenshot_path private, transaction_ref, submitted_at, verified_by, verified_at, status, rejection_reason)
@@ -120,9 +128,9 @@ Public (server-rendered, cached):
 - `/` Home (lessons landing, same story and look as the static page, plus a "This weekend" strip showing upcoming slots with seats left)
 - `/experiences` Catalog of all bookable products with filter chips (inspiration 03)
 - `/sessions/{product}` Product detail page with sticky "From PKR X" box, key facts, timeline, what to bring, what’s included, good to know, and an inline booking widget with live seats left (inspiration 01)
-- `/schedule` Weekly calendar of slots with filters, seats left per slot, click to book (inspiration 02)
+- `/schedule` Weekly calendar of live slots (rule and manual) with seats left, filters All / Group / Private (`?type=`), click to book (inspiration 02). A trainer filter appears once slots have more than one trainer
 - `/prices` Lesson options, pricing with packs and validity, riding rules and booking policies (inspiration 02)
-- `/book` Booking flow (Livewire), also embedded as a widget on product pages
+- `/book` Booking flow (Livewire, not cached): product → slot → riders → review; `?product`, `?slot`, `?riders` start part-way, `?use=credits` books with package credits, `?resume=1` continues after a guest signs in. Product pages have a plain-form widget (next slots, seats left, rider count) that opens it pre-filled
 - `/trainer/omar-saleem` Trainer profile (Person schema)
 - `/faq`
 - `/guides/{slug}` Content for SEO/AEO (e.g. “Horse riding lessons in Islamabad: a beginner’s guide”, “What to wear for your first riding lesson”)
@@ -133,10 +141,10 @@ Public (server-rendered, cached):
 
 Customer (auth, not cached, `Cache-Control: no-store, private`, noindex):
 - `/login` (email → 6-digit one-time code at `/login/code`; phone/WhatsApp later behind the same `LoginCodeChannel` contract), `/login/restore` (keep an account scheduled for deletion), `POST /logout`
-- `/account` dashboard (next session, credits left with expiry), `/account/bookings`, `/account/tickets` and `/account/tickets/{code}`, `/account/credits`, `/account/orders` and `/account/orders/{reference}` (printable receipt), `/account/riders` (Livewire), `/account/profile`, `/account/privacy` (download my data, sign out everywhere, delete my account)
+- `/account` dashboard (next session, credits left with expiry), `/account/bookings` (credit bookings: `/account/bookings/{ticket}/reschedule` and `/cancel`), `/account/tickets` and `/account/tickets/{code}`, `/account/credits`, `/account/orders` and `/account/orders/{reference}` (printable receipt), `/account/riders` (Livewire), `/account/profile`, `/account/privacy` (download my data, sign out everywhere, delete my account)
 
 Payment:
-- `/checkout/{reference}` choose method, `/checkout/{reference}/transfer` bank details + upload, `/checkout/{reference}/status`
+- `/checkout/{reference}` order summary and seat hold (milestone 5); choose method (milestones 6–7), `/checkout/{reference}/transfer` bank details + upload, `/checkout/{reference}/status`
 - `POST /webhooks/stripe` (CSRF-exempt, signature-verified, rate limited)
 
 Staff:

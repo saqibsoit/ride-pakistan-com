@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Orders;
 
+use App\Actions\Discounts\RefundCoveredOrder;
 use App\Actions\Notifications\ResendNotification;
 use App\Actions\Payments\FlagOrderForReview;
 use App\Actions\Payments\RefundOrder;
@@ -41,7 +42,8 @@ final class OrderActions
                 && $record->stripe_payment_intent_id !== null
                 && in_array($record->status, [OrderStatus::Paid, OrderStatus::PartiallyRefunded], true))
             ->modalDescription(fn (Order $record): string => 'Refunds go back to the card through Stripe. Not yet refunded: '
-                .Money::format($record->amount_minor - $record->amount_refunded_minor, $record->currency).'.')
+                .Money::format($record->amount_minor - $record->amount_refunded_minor, $record->currency).'.'
+                .self::discountNote($record))
             ->schema(fn (Order $record): array => [
                 Toggle::make('full')
                     ->label('Refund everything not yet refunded')
@@ -101,6 +103,66 @@ final class OrderActions
 
                 Notification::make()->success()->title('Refunded '.Money::format($amount, $record->currency))->send();
             });
+    }
+
+    /**
+     * An order paid entirely by gift voucher and account credit (milestone
+     * 10e Part B): nothing to refund by card, so cancel it and give the
+     * balances back (RefundCoveredOrder).
+     */
+    public static function refundCovered(): Action
+    {
+        return Action::make('refund_covered')
+            ->label('Cancel and restore balances')
+            ->icon(Heroicon::OutlinedArrowUturnLeft)
+            ->color('danger')
+            ->visible(fn (Order $record): bool => self::admin($record) !== null
+                && $record->payment_method === PaymentMethod::Discounts
+                && $record->status === OrderStatus::Paid)
+            ->modalDescription('This order was paid by gift voucher and/or account credit. Its upcoming bookings are cancelled, its unused package credits voided, and the voucher balance and account credit given back.')
+            ->schema([
+                Textarea::make('reason')->label('Reason')->required()->maxLength(500)->rows(2),
+            ])
+            ->requiresConfirmation()
+            ->action(function (Order $record, array $data): void {
+                $admin = self::admin($record);
+
+                if ($admin === null) {
+                    return;
+                }
+
+                try {
+                    app(RefundCoveredOrder::class)->handle($record, $admin, (string) ($data['reason'] ?? ''));
+                } catch (BookingRejected $e) {
+                    Notification::make()->danger()->title('Not cancelled')->body($e->getMessage())->send();
+
+                    return;
+                }
+
+                Notification::make()->success()->title('Cancelled; balances restored')->send();
+            });
+    }
+
+    /** What a refund does to the order's discounts, and each rider's share after discounts. */
+    private static function discountNote(Order $record): string
+    {
+        $lines = $record->discounts()->get();
+
+        if ($lines->isEmpty()) {
+            return '';
+        }
+
+        $note = ' This order had discounts ('.$lines->map(fn ($l): string => $l->label.' '.Money::format($l->amount_minor, $record->currency))->implode(', ').').'
+            .' Any gift voucher or account credit share comes back in proportion to the amount refunded; promo and referral discounts stay used.';
+
+        $priced = $record->items()->where('unit_price_minor', '>', 0)->get();
+
+        if ($priced->count() > 1 && $record->subtotal_minor > 0) {
+            $share = intdiv((int) $priced->first()?->unit_price_minor * $record->amount_minor, $record->subtotal_minor);
+            $note .= ' Each rider’s share of what was charged: about '.Money::format($share, $record->currency).'.';
+        }
+
+        return $note;
     }
 
     public static function clearReview(): Action

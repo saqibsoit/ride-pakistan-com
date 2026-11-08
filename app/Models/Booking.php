@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\BookingStatus;
+use App\Observers\SeatAvailabilityObserver;
 use Carbon\CarbonImmutable;
 use Database\Factories\BookingFactory;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -22,6 +24,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $rider_id
  * @property int $user_id
  * @property int|null $credit_pack_id
+ * @property bool $is_private part of a private session (blocks the slot)
  * @property BookingStatus $status
  * @property string $ticket_code
  * @property CarbonImmutable|null $cancelled_at
@@ -30,6 +33,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property-read User $user
  * @property-read Order|null $order
  */
+#[ObservedBy(SeatAvailabilityObserver::class)]
 class Booking extends Model
 {
     /** @use HasFactory<BookingFactory> */
@@ -42,13 +46,21 @@ class Booking extends Model
         'rider_id',
         'user_id',
         'credit_pack_id',
+        'is_private',
         'ticket_code',
     ];
 
     /** @var array<string, mixed> */
     protected $attributes = [
         'status' => 'confirmed',
+        'is_private' => false,
     ];
+
+    /** Paid for with a package credit (customers may change these themselves). */
+    public function usesCredit(): bool
+    {
+        return $this->credit_pack_id !== null;
+    }
 
     /**
      * @return BelongsTo<Slot, $this>
@@ -123,6 +135,7 @@ class Booking extends Model
     {
         return [
             'status' => BookingStatus::class,
+            'is_private' => 'boolean',
             'cancelled_at' => 'immutable_datetime',
         ];
     }

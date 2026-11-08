@@ -10,6 +10,7 @@ use App\Http\Middleware\EnsureSessionIsCurrent;
 use App\Models\User;
 use App\Policies\ActivityPolicy;
 use App\Support\BusinessFacts;
+use App\Support\PageCache;
 use App\Support\Settings;
 use Closure;
 use Illuminate\Auth\Events\Login;
@@ -41,6 +42,7 @@ class AppServiceProvider extends ServiceProvider
         // Per request (and per queued job): memoised, never stale across jobs.
         $this->app->scoped(Settings::class);
         $this->app->scoped(BusinessFacts::class);
+        $this->app->scoped(PageCache::class);
 
         // One-time sign-in codes go by email; a phone/WhatsApp channel
         // can replace or sit beside this binding later.

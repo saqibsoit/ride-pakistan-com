@@ -7,8 +7,10 @@ namespace App\Models;
 use App\Enums\BookingStatus;
 use App\Enums\SlotSource;
 use App\Enums\SlotStatus;
+use App\Observers\SeatAvailabilityObserver;
 use Carbon\CarbonImmutable;
 use Database\Factories\SlotFactory;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -33,8 +35,10 @@ use Illuminate\Database\Query\Builder as QueryBuilder;
  * @property int|null $cancelled_by
  * @property int|null $seats_booked from withSeatCounts()
  * @property int|null $seats_held from withSeatCounts()
+ * @property bool|null $has_private from withSeatCounts(): a private booking or hold blocks the slot
  * @property-read ScheduleRule|null $scheduleRule
  */
+#[ObservedBy(SeatAvailabilityObserver::class)]
 class Slot extends Model
 {
     /** @use HasFactory<SlotFactory> */
@@ -125,7 +129,25 @@ class Slot extends Model
             ->selectSub(fn (QueryBuilder $q) => $q->from('booking_holds')
                 ->selectRaw('coalesce(sum(seats), 0)')
                 ->whereColumn('booking_holds.slot_id', 'slots.id')
-                ->where('booking_holds.expires_at', '>', now()), 'seats_held');
+                ->where('booking_holds.expires_at', '>', now()), 'seats_held')
+            ->selectSub(fn (QueryBuilder $q) => $q->selectRaw('exists('.
+                'select 1 from bookings where bookings.slot_id = slots.id and bookings.is_private = 1 and bookings.status in ('.
+                implode(',', array_map(fn (string $v): string => "'".$v."'", BookingStatus::seatOccupyingValues())).')'.
+                ' union all '.
+                'select 1 from booking_holds where booking_holds.slot_id = slots.id and booking_holds.is_private = 1 and booking_holds.expires_at > ?'.
+                ')', [now()]), 'has_private');
+    }
+
+    /**
+     * Open and starting after now plus the minimum notice (rule and manual
+     * slots alike). Seats are checked separately.
+     *
+     * @param  Builder<Slot>  $query
+     */
+    public function scopeBookable(Builder $query, int $minNoticeHours = 0): void
+    {
+        $query->where('slots.status', SlotStatus::Open)
+            ->where('slots.starts_at', '>', now()->addHours(max(0, $minNoticeHours)));
     }
 
     /**
@@ -162,9 +184,30 @@ class Slot extends Model
         return $this->seats_held ?? (int) $this->holds()->where('expires_at', '>', now())->sum('seats');
     }
 
+    /** A private booking or an active private hold takes the whole slot. */
+    public function isPrivatelyBooked(): bool
+    {
+        if ($this->has_private !== null) {
+            return $this->has_private;
+        }
+
+        return $this->bookings()->where('is_private', true)->whereIn('status', BookingStatus::seatOccupyingValues())->exists()
+            || $this->holds()->where('is_private', true)->where('expires_at', '>', now())->exists();
+    }
+
     public function seatsFree(): int
     {
+        if ($this->isPrivatelyBooked()) {
+            return 0;
+        }
+
         return max(0, $this->capacity - $this->seatsBooked() - $this->seatsHeld());
+    }
+
+    /** Nothing occupies the slot: a private session can take it. */
+    public function isEmpty(): bool
+    {
+        return ! $this->isPrivatelyBooked() && $this->seatsBooked() === 0 && $this->seatsHeld() === 0;
     }
 
     public function isInUse(): bool
@@ -208,6 +251,7 @@ class Slot extends Model
             // Subquery columns from withSeatCounts().
             'seats_booked' => 'integer',
             'seats_held' => 'integer',
+            'has_private' => 'boolean',
         ];
     }
 }

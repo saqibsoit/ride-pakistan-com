@@ -44,6 +44,14 @@ class ProductFactory extends Factory
         ];
     }
 
+    public function private(int $priceMinor = 1_500_000): static
+    {
+        return $this->state(fn (): array => [
+            'type' => ProductType::Private,
+            'price_minor' => $priceMinor,
+        ]);
+    }
+
     public function package(int $sessions = 8, int $priceMinor = 6_000_000, int $validityDays = 42): static
     {
         return $this->state([

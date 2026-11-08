@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Observers\SeatAvailabilityObserver;
 use Carbon\CarbonImmutable;
 use Database\Factories\BookingHoldFactory;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -16,10 +18,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $slot_id
  * @property int $order_id
  * @property int $seats
+ * @property bool $is_private a private hold takes the whole slot
  * @property CarbonImmutable $expires_at
  * @property-read Slot $slot
  * @property-read Order $order
  */
+#[ObservedBy(SeatAvailabilityObserver::class)]
 class BookingHold extends Model
 {
     /** @use HasFactory<BookingHoldFactory> */
@@ -30,7 +34,13 @@ class BookingHold extends Model
         'slot_id',
         'order_id',
         'seats',
+        'is_private',
         'expires_at',
+    ];
+
+    /** @var array<string, mixed> */
+    protected $attributes = [
+        'is_private' => false,
     ];
 
     /**
@@ -64,6 +74,7 @@ class BookingHold extends Model
     {
         return [
             'seats' => 'integer',
+            'is_private' => 'boolean',
             'expires_at' => 'immutable_datetime',
         ];
     }

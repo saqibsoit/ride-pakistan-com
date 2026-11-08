@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Models\Slot;
+use Carbon\CarbonImmutable;
+use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
@@ -22,6 +25,13 @@ pest()->extend(TestCase::class)
     ->in('Feature');
 
 pest()->extend(TestCase::class)->in('Unit');
+
+// Real parallel processes need committed data: truncate instead of
+// wrapping each test in a transaction the other processes can't see.
+pest()->extend(TestCase::class)
+    ->use(DatabaseTruncation::class)
+    ->group('concurrency')
+    ->in('Concurrency');
 
 /*
 |--------------------------------------------------------------------------
@@ -90,4 +100,17 @@ function metaContent(string $html, string $name): ?string
     $pattern = '#<meta (?:name|property)="'.preg_quote($name, '#').'" content="([^"]*)">#';
 
     return preg_match($pattern, $html, $m) === 1 ? html_entity_decode($m[1]) : null;
+}
+
+/**
+ * A bookable slot a few days ahead (the slot factory spreads slots over
+ * years, past any credit pack's expiry). $hour is local (Asia/Karachi).
+ *
+ * @param  array<string, mixed>  $attributes
+ */
+function nearSlot(int $daysAhead = 3, int $hour = 8, array $attributes = []): Slot
+{
+    $local = CarbonImmutable::now((string) config('app.display_timezone'))->addDays($daysAhead)->setTime($hour, 0);
+
+    return Slot::factory()->at($local)->create($attributes);
 }

@@ -7,6 +7,7 @@ namespace App\Models;
 use App\Enums\CreditPackStatus;
 use Carbon\CarbonImmutable;
 use Database\Factories\CreditPackFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -82,6 +83,35 @@ class CreditPack extends Model
     public function creditsRemaining(): int
     {
         return max(0, $this->credits_total - $this->credits_used);
+    }
+
+    /** Active, not past its expiry, with a credit left. */
+    public function isUsable(?CarbonImmutable $now = null): bool
+    {
+        return $this->status === CreditPackStatus::Active
+            && $this->expires_at->isAfter($now ?? CarbonImmutable::now())
+            && $this->creditsRemaining() > 0;
+    }
+
+    /** Sessions booked with this pack must start before it expires. */
+    public function covers(Slot $slot): bool
+    {
+        return $slot->starts_at->isBefore($this->expires_at);
+    }
+
+    /**
+     * Packs that can pay for a session in $slot, soonest to expire first.
+     *
+     * @param  Builder<CreditPack>  $query
+     */
+    public function scopeUsableFor(Builder $query, Slot $slot): void
+    {
+        $query->where('status', CreditPackStatus::Active)
+            ->where('expires_at', '>', now())
+            ->where('expires_at', '>', $slot->starts_at)
+            ->whereColumn('credits_used', '<', 'credits_total')
+            ->orderBy('expires_at')
+            ->orderBy('id');
     }
 
     /**

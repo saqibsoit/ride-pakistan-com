@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Actions\Payments;
 
-use App\Actions\Orders\OrderStateMachine;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentProvider;
@@ -13,7 +12,6 @@ use App\Exceptions\BookingRejected;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Models\User;
-use App\Support\SessionTimes;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
@@ -22,14 +20,15 @@ use Illuminate\Support\Facades\DB;
  * customer paid by bank transfer (milestone 10e). Nothing is sent from
  * here: the admin makes the transfer in online banking, then records the
  * amount, the outgoing transfer's bank reference, the date it was made
- * (Pakistan date) and a reason. From there it follows the same rules as a
- * card refund (ApplyRefund): bookings cancelled and credits voided as
- * chosen, the same share of gift voucher and account credit back, the
- * order's status and reports updated, audit-logged. Admins only.
+ * (Pakistan date) and a reason (BankRefund checks). From there it follows
+ * the same rules as a card refund (ApplyRefund): bookings cancelled and
+ * credits voided as chosen, the same share of gift voucher and account
+ * credit back, the order's status and reports updated, audit-logged.
+ * Admins only.
  */
 final class RecordTransferRefund
 {
-    public const MAX_REFERENCE_LENGTH = 100;
+    public const MAX_REFERENCE_LENGTH = BankRefund::MAX_REFERENCE_LENGTH;
 
     public function __construct(private readonly ApplyRefund $refund) {}
 
@@ -49,25 +48,8 @@ final class RecordTransferRefund
         array $cancelBookingIds = [],
         int $removeCredits = 0,
     ): Order {
-        $reason = (string) OrderStateMachine::cleanReason($reason);
-        $bankReference = mb_substr(trim($bankReference), 0, self::MAX_REFERENCE_LENGTH);
-        $transferredOn = $transferredOn->startOfDay();
-
-        if (! $admin->isAdmin()) {
-            throw BookingRejected::notAllowed('Only admins can record refunds.');
-        }
-
-        if ($reason === '') {
-            throw BookingRejected::notAllowed('Give a reason for the refund.');
-        }
-
-        if ($bankReference === '') {
-            throw BookingRejected::notAllowed('Enter the bank reference of the transfer you made.');
-        }
-
-        if ($transferredOn->isAfter(SessionTimes::now()->startOfDay())) {
-            throw BookingRejected::notAllowed('The transfer date can’t be in the future.');
-        }
+        // Checked once without the order (cheap refusals), again with its payment date under lock.
+        BankRefund::check($admin, $bankReference, $transferredOn, $reason, null);
 
         return DB::transaction(function () use ($order, $admin, $amountMinor, $bankReference, $transferredOn, $reason, $cancelBookingIds, $removeCredits): Order {
             $locked = Order::query()->whereKey($order->id)->lockForUpdate()->firstOrFail();
@@ -77,16 +59,12 @@ final class RecordTransferRefund
                 throw BookingRejected::notAllowed('Only paid bank transfer orders can be refunded here.');
             }
 
-            $paidOn = $locked->paid_at?->setTimezone((string) config('app.display_timezone'))->startOfDay();
-
-            if ($paidOn !== null && $transferredOn->isBefore($paidOn)) {
-                throw BookingRejected::notAllowed('The refund can’t be dated before the order was paid ('.$paidOn->format('j M Y').').');
-            }
+            ['reference' => $reference, 'on' => $on, 'reason' => $reason] = BankRefund::check($admin, $bankReference, $transferredOn, $reason, $locked->paid_at);
 
             $duplicate = Payment::query()
                 ->where('order_id', $locked->id)
                 ->where('status', PaymentStatus::Refunded)
-                ->where('provider_id', $bankReference)
+                ->where('provider_id', $reference)
                 ->exists();
 
             if ($duplicate) {
@@ -102,11 +80,11 @@ final class RecordTransferRefund
                 $removeCredits,
                 PaymentProvider::BankTransfer,
                 fn (): array => [
-                    'provider_id' => $bankReference,
-                    'raw' => ['bank_reference' => $bankReference, 'transferred_on' => $transferredOn->toDateString(), 'recorded_by' => $admin->id],
-                    'context' => ['bank_reference' => $bankReference],
+                    'provider_id' => $reference,
+                    'raw' => ['bank_reference' => $reference, 'transferred_on' => $on->toDateString(), 'recorded_by' => $admin->id],
+                    'context' => ['bank_reference' => $reference],
                 ],
-                $transferredOn,
+                $on,
             );
 
             $order->setRawAttributes($locked->refresh()->getAttributes(), true);

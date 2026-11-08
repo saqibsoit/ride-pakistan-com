@@ -12,6 +12,7 @@ use App\Models\Order;
 use App\Models\User;
 use App\Models\Voucher;
 use App\Models\VoucherLedgerEntry;
+use App\Support\Money;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
@@ -205,6 +206,45 @@ final class VoucherBalance
             $this->sync($voucher, $locked);
 
             return true;
+        });
+    }
+
+    /**
+     * The purchase was refunded (milestone 10e, RecordVoucherTransferRefund):
+     * the unspent balance goes down by $amountMinor; at zero the voucher is
+     * void and can't be used again. Never more than the unspent balance.
+     *
+     * @throws VoucherRejected
+     */
+    public function refund(Voucher $voucher, int $amountMinor, User $actor, string $reason): Voucher
+    {
+        $reason = self::requireReason($reason);
+
+        return DB::transaction(function () use ($voucher, $amountMinor, $actor, $reason): Voucher {
+            $locked = Voucher::query()->whereKey($voucher->id)->lockForUpdate()->firstOrFail();
+
+            if ($amountMinor <= 0 || $amountMinor > $locked->balance_minor) {
+                throw VoucherRejected::notUsable('A refund can take at most the unspent balance ('.Money::format($locked->balance_minor).').');
+            }
+
+            $from = $locked->status;
+            $locked->balance_minor -= $amountMinor;
+
+            if ($locked->balance_minor === 0) {
+                $locked->status = VoucherStatus::Void;
+                $locked->void_reason = 'Refunded: '.$reason;
+            }
+
+            $locked->save();
+            $this->ledger($locked, -$amountMinor, VoucherLedgerReason::Voided, $actor, 'Refunded by bank transfer: '.$reason);
+            $this->log($locked, $actor, 'refunded', 'Voucher '.$locked->formattedCode().' refunded', [
+                'from' => $from->value,
+                'amount_minor' => $amountMinor,
+                'balance_minor' => $locked->balance_minor,
+                'reason' => $reason,
+            ]);
+
+            return $this->sync($voucher, $locked);
         });
     }
 

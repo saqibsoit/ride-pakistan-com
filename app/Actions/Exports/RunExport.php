@@ -98,7 +98,7 @@ final class RunExport
         return match ($dataset) {
             ExportDataset::Orders => ['Reference', 'Created (Pakistan time)', 'Status', 'Payment method', 'Customer', 'Customer email', 'Product', 'Type', 'Amount (PKR)', 'Refunded (PKR)', 'Net (PKR)', 'Paid at (Pakistan time)', 'Subtotal (PKR)', 'Promo or referral (PKR)', 'Gift voucher (PKR)', 'Account credit (PKR)', 'Revenue (PKR)'],
             ExportDataset::Payments, ExportDataset::Refunds => ['Order reference', 'Date (Pakistan time)', 'Provider', 'Provider ID', 'Status', 'Amount (PKR)', 'Currency', 'Customer email', 'Bank transfer date (Pakistan)'],
-            ExportDataset::VoucherSales => ['Purchase reference', 'Paid at (Pakistan time)', 'Status', 'Payment method', 'Payment reference', 'Buyer email', 'Voucher for', 'Received (PKR)', 'Refunded (PKR)', 'Net cash (PKR)'],
+            ExportDataset::VoucherSales => ['Purchase reference', 'Paid at (Pakistan time)', 'Status', 'Payment method', 'Payment reference', 'Buyer email', 'Voucher for', 'Received (PKR)', 'Refunded (PKR)', 'Net cash (PKR)', 'Refunded on', 'Refund references'],
             ExportDataset::Bookings => ['Ticket', 'Session (Pakistan time)', 'Product', 'Rider', 'Customer email', 'Status', 'Private', 'Paid with', 'Order reference', 'Price (PKR)', 'Horse', 'Price after discounts (PKR)'],
             ExportDataset::Leads => ['Received (Pakistan time)', 'Name', 'Email', 'Phone', 'Instagram', 'Source', 'Status', 'Interest', 'UTM source', 'UTM medium', 'UTM campaign', 'Assigned to', 'Booked order reference'],
         };
@@ -168,7 +168,10 @@ final class RunExport
                 ->where('paid_at', '>=', $from)->where('paid_at', '<', $until)
                 ->orderBy('paid_at')->orderBy('id')
                 ->chunk(500, fn ($sales) => $sales->each(function (VoucherOrder $sale) use ($add, $date): void {
-                    $refunded = (int) ($sale->meta['amount_refunded_minor'] ?? 0);
+                    // Late payments on closed purchases count too (received, then refunded automatically).
+                    $received = $sale->receivedMinor();
+                    $refunded = $sale->refundedMinor();
+                    $refunds = collect($sale->refundEntries());
 
                     $add([
                         $sale->reference,
@@ -178,9 +181,11 @@ final class RunExport
                         $sale->payment_method === PaymentMethod::Card ? (string) $sale->stripe_payment_intent_id : (string) $sale->transaction_ref,
                         $sale->user->email ?? '',
                         $sale->product_name ?? 'Amount',
-                        Money::decimal($sale->amount_minor),
+                        Money::decimal($received),
                         Money::decimal($refunded),
-                        Money::decimal(max(0, $sale->amount_minor - $refunded)),
+                        Money::decimal(max(0, $received - $refunded)),
+                        $refunds->pluck('on')->filter()->unique()->implode('; '),
+                        $refunds->pluck('provider_id')->filter()->implode('; '),
                     ]);
                 })),
 

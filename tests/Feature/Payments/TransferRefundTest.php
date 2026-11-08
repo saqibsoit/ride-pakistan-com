@@ -146,7 +146,7 @@ it('refuses what it shouldn’t record', function (Closure $call, string $messag
     'no reference' => [fn () => app(RecordTransferRefund::class)->handle(trOrder(), trAdmin(), 100_000, '  ', trToday(), 'R'), 'bank reference'],
     'no reason' => [fn () => app(RecordTransferRefund::class)->handle(trOrder(), trAdmin(), 100_000, 'X', trToday(), ' '), 'reason'],
     'future date' => [fn () => app(RecordTransferRefund::class)->handle(trOrder(), trAdmin(), 100_000, 'X', trToday()->addDay(), 'R'), 'future'],
-    'before payment' => [fn () => app(RecordTransferRefund::class)->handle(trOrder(), trAdmin(), 100_000, 'X', trToday()->subDays(3), 'R'), 'before the order was paid'],
+    'before payment' => [fn () => app(RecordTransferRefund::class)->handle(trOrder(), trAdmin(), 100_000, 'X', trToday()->subDays(3), 'R'), 'before the payment came in'],
     'too much' => [fn () => app(RecordTransferRefund::class)->handle(trOrder(), trAdmin(), 2_000_001, 'X', trToday(), 'R'), 'not yet refunded'],
     'card order' => [function (): void {
         $order = trOrder();

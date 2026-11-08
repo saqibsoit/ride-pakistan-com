@@ -49,6 +49,11 @@
             @empty
                 <p class="text-sand-dim">No slots open in the next few weeks. <a href="{{ route('schedule') }}" class="underline underline-offset-4">See the schedule</a> or message us.</p>
             @endforelse
+
+            @unless ($isPrivate)
+                {{-- Full slots aren't listed here; the schedule offers their waitlist (milestone 10d). --}}
+                <p class="text-sm text-sand-dim">The date you want is full? <a href="{{ route('schedule') }}" class="underline underline-offset-4">Join its waitlist from the schedule</a>.</p>
+            @endunless
         </fieldset>
 
         @if ($slots->isNotEmpty() || $isPackage)

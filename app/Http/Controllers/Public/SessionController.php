@@ -11,6 +11,7 @@ use App\Models\Faq;
 use App\Models\Product;
 use App\Support\Availability;
 use App\Support\BusinessFacts;
+use App\Support\Reviews;
 use App\Support\Seo\SchemaFactory;
 use App\Support\Seo\Seo;
 use App\Support\Settings;
@@ -29,12 +30,17 @@ final class SessionController extends Controller
         Settings $settings,
         SchemaFactory $schema,
         Seo $seo,
+        Reviews $reviews,
     ): View {
         abort_unless($product->isOnSale(), 404);
 
         $faqs = $facts->withAnswers(Faq::query()->published()->where('product_id', $product->id)->ordered()->get());
 
-        $nodes = [$schema->product($product)];
+        // Approved reviews of this product (milestone 10d); stars in the schema from 5 reviews.
+        $productReviews = $reviews->forProduct($product);
+        $summary = $reviews->summary($product);
+
+        $nodes = [$schema->product($product, $productReviews, $summary)];
 
         if ($faqs->isNotEmpty()) {
             $nodes[] = $schema->faqPage($faqs, route('sessions.show', $product));
@@ -45,6 +51,8 @@ final class SessionController extends Controller
             'facts' => $facts,
             'others' => $facts->products()->reject(fn (Product $other): bool => $other->is($product))->values(),
             'faqs' => $faqs,
+            'reviews' => $productReviews,
+            'reviewSummary' => $summary,
             'policies' => $settings->policies(SettingKey::BookingPolicies),
             'minAge' => $settings->int(SettingKey::MinRiderAge),
             'slots' => $availability->upcoming(8, $product->type === ProductType::Private ? Availability::TYPE_PRIVATE : Availability::TYPE_GROUP),

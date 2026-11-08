@@ -32,7 +32,12 @@
 
     <div aria-live="polite" class="empty:hidden">
         @if ($error)
-            <x-alert variant="error" title="That didn’t work.">{{ $error }}</x-alert>
+            <x-alert variant="error" title="That didn’t work.">
+                {{ $error }}
+                @if ($waitlistSlotId)
+                    <a href="{{ route('account.waitlist.create', ['slot' => $waitlistSlotId, 'riders' => $riderCount]) }}" class="underline underline-offset-4">Join the waitlist for that session</a>.
+                @endif
+            </x-alert>
         @endif
     </div>
 

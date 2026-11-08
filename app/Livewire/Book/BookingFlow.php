@@ -19,6 +19,7 @@ use App\Models\CreditPack;
 use App\Models\Product;
 use App\Models\Slot;
 use App\Models\User;
+use App\Models\WaitlistEntry;
 use App\Support\Availability;
 use App\Support\BusinessFacts;
 use App\Support\Settings;
@@ -75,6 +76,10 @@ final class BookingFlow extends Component
 
     #[Locked]
     public ?string $error = null;
+
+    /** A group slot that just filled up: the error offers its waitlist (milestone 10d). */
+    #[Locked]
+    public ?int $waitlistSlotId = null;
 
     public function mount(): void
     {
@@ -278,6 +283,7 @@ final class BookingFlow extends Component
             $order = $createOrder->handle($user, $product, $this->later ? null : $this->slotId, $this->later ? [] : $this->riderIds, is_int($leadRef) ? $leadRef : null);
         } catch (BookingRejected $e) {
             $this->error = $e->getMessage();
+            $this->waitlistSlotId = $e->reason === BookingRejected::SLOT_FULL && $this->product()?->type !== ProductType::Private ? $this->slotId : null;
 
             if (in_array($e->reason, [BookingRejected::SLOT_FULL, BookingRejected::SLOT_NOT_BOOKABLE, BookingRejected::SLOT_NOT_EMPTY], true)) {
                 $this->slotId = null;
@@ -372,7 +378,11 @@ final class BookingFlow extends Component
             return null;
         }
 
-        return $slot->seatsFree() > 0 ? $slot : null;
+        // Seats a waitlist offer holds for this customer are free for them (milestone 10d).
+        $user = $this->user();
+        $offered = $user === null ? 0 : WaitlistEntry::offeredSeats($user, $slot->id);
+
+        return $slot->seatsFree() + $offered > 0 ? $slot : null;
     }
 
     /**

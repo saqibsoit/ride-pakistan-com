@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace App\Actions\Booking;
 
+use App\Actions\Waitlist\OfferWaitlistSeats;
 use App\Enums\BookingStatus;
 use App\Enums\SettingKey;
 use App\Exceptions\BookingRejected;
 use App\Models\Booking;
 use App\Models\CreditPack;
+use App\Models\Slot;
 use App\Models\User;
+use App\Notifications\BookingMoved;
+use App\Support\Notifier;
 use App\Support\Settings;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
@@ -27,6 +31,8 @@ final class RescheduleBooking
         private readonly SlotLock $slotLock,
         private readonly CancellationCutoff $cutoff,
         private readonly Settings $settings,
+        private readonly Notifier $notifier,
+        private readonly OfferWaitlistSeats $waitlist,
     ) {}
 
     /**
@@ -54,7 +60,9 @@ final class RescheduleBooking
             throw BookingRejected::notAllowed('Choose a different slot.');
         }
 
-        return DB::transaction(function () use ($booking, $targetSlotId, $actor, $reason, $asAdmin): Collection {
+        $fromSlot = null;
+
+        $moved = DB::transaction(function () use ($booking, $targetSlotId, $actor, $reason, $asAdmin, &$fromSlot): Collection {
             $booking->refresh();
 
             $moving = $booking->is_private && $booking->order_id !== null
@@ -108,8 +116,11 @@ final class RescheduleBooking
 
             foreach ($moving as $item) {
                 $item->slot_id = $targetSlotId;
+                $item->calendar_sequence++; // the updated .ics replaces the old entry
                 $item->save();
             }
+
+            $fromSlot = $from->slot;
 
             activity('bookings')
                 ->performedOn($booking)
@@ -125,5 +136,19 @@ final class RescheduleBooking
 
             return $moving;
         });
+
+        if ($fromSlot instanceof Slot) {
+            // The loaded slot relation still points at the old slot.
+            $moved->each(fn (Booking $b): Booking => $b->unsetRelation('slot'));
+            $booking->unsetRelation('slot');
+
+            $notice = new BookingMoved($moved, $fromSlot);
+            $this->notifier->send($booking->user, $notice, $notice->dedupeKey());
+
+            // The seats left behind go to that slot's waitlist straight away (milestone 10d).
+            $this->waitlist->handle($fromSlot->id, $actor);
+        }
+
+        return $moved;
     }
 }

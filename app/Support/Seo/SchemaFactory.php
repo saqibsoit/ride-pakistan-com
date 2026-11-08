@@ -8,6 +8,7 @@ use App\Enums\SettingKey;
 use App\Models\Faq;
 use App\Models\Post;
 use App\Models\Product;
+use App\Models\Review;
 use App\Models\ScheduleRule;
 use App\Support\Money;
 use App\Support\Settings;
@@ -143,7 +144,47 @@ final class SchemaFactory
             ->worksFor(Schema::organization()->identifier(self::organizationId()));
     }
 
-    public function product(Product $product): ProductSchema
+    /**
+     * Product with its offer. With at least Review::AGGREGATE_MINIMUM approved
+     * reviews of this product (milestone 10d), also its AggregateRating and
+     * up to five of those reviews. Product pages are where Google allows
+     * review snippets; business-level pages never get one.
+     *
+     * @param  iterable<Review>  $reviews  approved reviews of this product
+     * @param  array{count: int, average: float}|null  $summary
+     */
+    public function product(Product $product, iterable $reviews = [], ?array $summary = null): ProductSchema
+    {
+        $node = $this->productNode($product);
+
+        if ($summary === null || $summary['count'] < Review::AGGREGATE_MINIMUM) {
+            return $node;
+        }
+
+        $items = [];
+
+        foreach ($reviews as $review) {
+            if (count($items) === 5) {
+                break;
+            }
+
+            $items[] = Schema::review()
+                ->reviewRating(Schema::rating()->ratingValue($review->rating)->bestRating(5)->worstRating(1))
+                ->author(Schema::person()->name($review->display_name))
+                ->reviewBody($review->body)
+                ->datePublished($review->created_at);
+        }
+
+        return $node
+            ->aggregateRating(Schema::aggregateRating()
+                ->ratingValue($summary['average'])
+                ->reviewCount($summary['count'])
+                ->bestRating(5)
+                ->worstRating(1))
+            ->review($items);
+    }
+
+    private function productNode(Product $product): ProductSchema
     {
         $offer = Schema::offer()
             ->url(route('sessions.show', $product))

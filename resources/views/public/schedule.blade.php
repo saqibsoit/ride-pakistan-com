@@ -71,6 +71,7 @@
                             :seats="$open ? ($slot->private_only && ! $slot->isEmpty() ? 0 : $slot->seatsFree()) : null"
                             note="Closed for booking"
                             :href="$open ? route('book', array_filter(['slot' => $slot->id, 'product' => $asPrivate ? $privateProduct?->slug : null])) : null"
+                            :waitlist="$open && ! $asPrivate && ! $slot->isPrivatelyBooked() ? route('account.waitlist.create', $slot) : null"
                         />
                     @empty
                         <p class="text-sm text-sand-dim">{{ $isWeekend ? 'No more sessions' : 'No sessions' }}</p>

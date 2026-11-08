@@ -7,14 +7,16 @@ namespace App\Notifications;
 use App\Enums\SettingKey;
 use App\Models\Booking;
 use App\Models\Slot;
+use App\Support\ReviewLink;
 use App\Support\Settings;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Notifications\Messages\MailMessage;
 
 /**
- * After a session the riders attended (thankyou:send): thanks, and a
- * Google review link when contact.google_review_url is set.
+ * After a session the riders attended (thankyou:send): thanks, a signed
+ * link to review the session on our site (milestone 10d), and a Google
+ * review link when contact.google_review_url is set.
  */
 final class ThankYou extends CustomerNotification
 {
@@ -49,6 +51,8 @@ final class ThankYou extends CustomerNotification
                 'slot' => $this->slot,
                 'riders' => $this->bookings->loadMissing('rider')->map(fn (Booking $b): string => $b->rider->name)->unique()->values()->all(),
                 'reviewUrl' => app(Settings::class)->string(SettingKey::GoogleReviewUrl),
+                // Signed, no sign-in needed (milestone 10d). One review per customer per session.
+                'siteReviewUrl' => ($first = $this->bookings->first()) === null ? null : ReviewLink::for($first),
             ]);
     }
 }

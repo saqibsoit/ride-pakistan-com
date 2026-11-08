@@ -27,10 +27,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property bool $is_private part of a private session (blocks the slot)
  * @property BookingStatus $status
  * @property string $ticket_code
+ * @property int $calendar_sequence iCalendar SEQUENCE, raised on every move (milestone 10d)
  * @property CarbonImmutable|null $cancelled_at
  * @property-read Slot $slot
  * @property int|null $horse_id set through AssignHorse
  * @property string|null $session_note trainer's note for this rider (encrypted, WriteSessionNote)
+ * @property string|null $progress_note short note the customer sees in their rider's progress (RecordRiderProgress, milestone 10d)
  * @property-read Horse|null $horse
  * @property-read Rider $rider
  * @property-read User $user
@@ -57,6 +59,7 @@ class Booking extends Model
     protected $attributes = [
         'status' => 'confirmed',
         'is_private' => false,
+        'calendar_sequence' => 0,
     ];
 
     /** Paid for with a package credit (customers may change these themselves). */
@@ -147,6 +150,7 @@ class Booking extends Model
         return [
             'status' => BookingStatus::class,
             'is_private' => 'boolean',
+            'calendar_sequence' => 'integer',
             'cancelled_at' => 'immutable_datetime',
             'session_note' => 'encrypted',
         ];

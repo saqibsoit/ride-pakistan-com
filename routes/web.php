@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Account\BookingCalendarController;
 use App\Http\Controllers\Account\BookingChangeController;
 use App\Http\Controllers\Account\BookingController;
 use App\Http\Controllers\Account\CreditController;
@@ -9,9 +10,11 @@ use App\Http\Controllers\Account\DashboardController;
 use App\Http\Controllers\Account\OrderController;
 use App\Http\Controllers\Account\PrivacyController;
 use App\Http\Controllers\Account\ProfileController;
+use App\Http\Controllers\Account\ProgressController;
 use App\Http\Controllers\Account\RiderController;
 use App\Http\Controllers\Account\SignOutEverywhereController;
 use App\Http\Controllers\Account\TicketController;
+use App\Http\Controllers\Account\WaitlistController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RestoreAccountController;
 use App\Http\Controllers\BankTransferController;
@@ -29,8 +32,10 @@ use App\Http\Controllers\Public\PriceController;
 use App\Http\Controllers\Public\ScheduleController;
 use App\Http\Controllers\Public\SeoFileController;
 use App\Http\Controllers\Public\SessionController;
+use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\Team\RiderHistoryController;
+use App\Http\Controllers\Team\RiderProgressController;
 use App\Http\Controllers\Team\RunSheetController;
 use App\Http\Controllers\TransferProofController;
 use App\Http\Middleware\AddStatelessSecurityHeaders;
@@ -95,6 +100,7 @@ Route::middleware([EnsureTeamAreaAccess::class, 'cache.headers:private;no_store'
         Route::post('check-in', [RunSheetController::class, 'checkIn'])->name('check-in');
         Route::post('horse', [RunSheetController::class, 'horse'])->name('horse');
         Route::post('note', [RunSheetController::class, 'note'])->name('note');
+        Route::post('progress', RiderProgressController::class)->name('progress');
     });
     Route::get('riders/{rider}', [RiderHistoryController::class, 'show'])->name('riders.show');
 });
@@ -121,6 +127,13 @@ Route::post('/csp-report', CspReportController::class)
 // Served from the generated file, which a queued job rewrites after the
 // page cache has been cleared, so it is never response-cached.
 Route::get('/sitemap.xml', [SeoFileController::class, 'sitemap'])->name('sitemap');
+
+// Reviews of an attended session (milestone 10d): the signed link from the
+// thank-you email is the permission, so no sign-in. Never cached or indexed.
+Route::middleware(['signed', 'cache.headers:private;no_store'])->prefix('reviews/{ticket}')->name('reviews.')->group(function (): void {
+    Route::get('/', [ReviewController::class, 'create'])->name('create');
+    Route::post('/', [ReviewController::class, 'store'])->middleware('throttle:account-actions')->name('store');
+});
 
 // Contact form: CSRF token, flash status and per-visit attribution.
 Route::get('/contact', [ContactController::class, 'show'])->name('contact');
@@ -150,16 +163,23 @@ Route::post('/logout', [LoginController::class, 'logout'])->middleware(['auth', 
 Route::middleware(['auth', 'cache.headers:private;no_store'])->prefix('account')->name('account.')->group(function (): void {
     Route::get('/', DashboardController::class)->name('dashboard');
     Route::get('/bookings', [BookingController::class, 'index'])->name('bookings');
+    Route::get('/bookings/{ticket}/calendar.ics', BookingCalendarController::class)->name('bookings.calendar');
     Route::get('/bookings/{ticket}/reschedule', [BookingChangeController::class, 'editReschedule'])->name('bookings.reschedule.edit');
     Route::post('/bookings/{ticket}/reschedule', [BookingChangeController::class, 'reschedule'])->middleware('throttle:account-actions')->name('bookings.reschedule');
     Route::get('/bookings/{ticket}/cancel', [BookingChangeController::class, 'confirmCancel'])->name('bookings.cancel');
     Route::post('/bookings/{ticket}/cancel', [BookingChangeController::class, 'cancel'])->middleware('throttle:account-actions')->name('bookings.cancel.store');
+    // Waitlists for full slots (milestone 10d).
+    Route::get('/waitlist', [WaitlistController::class, 'index'])->name('waitlist');
+    Route::get('/waitlist/join/{slot}', [WaitlistController::class, 'create'])->name('waitlist.create');
+    Route::post('/waitlist/join/{slot}', [WaitlistController::class, 'store'])->middleware('throttle:account-actions')->name('waitlist.store');
+    Route::delete('/waitlist/{entry}', [WaitlistController::class, 'destroy'])->whereNumber('entry')->middleware('throttle:account-actions')->name('waitlist.destroy');
     Route::get('/tickets', [TicketController::class, 'index'])->name('tickets');
     Route::get('/tickets/{code}', [TicketController::class, 'show'])->name('tickets.show');
     Route::get('/credits', CreditController::class)->name('credits');
     Route::get('/orders', [OrderController::class, 'index'])->name('orders');
     Route::get('/orders/{reference}', [OrderController::class, 'show'])->name('orders.show');
     Route::get('/riders', RiderController::class)->name('riders');
+    Route::get('/progress', ProgressController::class)->name('progress');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile');
     Route::put('/profile', [ProfileController::class, 'update'])->middleware('throttle:account-actions')->name('profile.update');
 

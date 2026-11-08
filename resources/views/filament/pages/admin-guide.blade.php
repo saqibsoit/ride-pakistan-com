@@ -74,4 +74,13 @@
         </ol>
         <p>The templates are neutral on purpose until the bad-weather policy is decided. Edit them under Settings → Weather alerts.</p>
     </x-filament::section>
+
+    <x-filament::section heading="Waitlists, rider progress and reviews" :collapsible="true">
+        <ol>
+            <li><strong>Waitlist</strong>: when a group session is full, customers can join its waitlist from the schedule. When seats free up, the first person in line whose group fits gets an email and the seats are held for them for the time set under Settings → Booking rules (“Waitlist offer”). If they don’t book in time, the offer moves to the next person. See and manage it on the slot page, tab <strong>Waitlist</strong>: “Offer free seats now” runs the same check straight away (it also runs every minute); “Remove” takes someone off with a reason.</li>
+            <li><strong>Rider progress</strong>: after a session the trainer ticks the skills a rider showed on the run sheet and writes a short note for the family. Customers see both under Account → Progress, with a suggested next step. Edit the checklist under Customers → Rider skills; switch a skill off instead of deleting it once riders have it.</li>
+            <li><strong>Reviews</strong>: the thank-you email links to a review form (no sign-in needed). New reviews wait under Content → Reviews. <strong>Approve</strong> to show one on the homepage and its product page, <strong>Hide</strong> with a reason, or <strong>Reply</strong> publicly. Star ratings appear in Google results only for a product with at least 5 approved reviews.</li>
+        </ol>
+        <p>Calendar files: booking emails carry an .ics file and a Google Calendar link; moving or cancelling a booking sends an updated or cancelling file.</p>
+    </x-filament::section>
 </x-filament-panels::page>

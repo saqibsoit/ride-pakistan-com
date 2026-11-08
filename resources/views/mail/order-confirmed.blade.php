@@ -23,13 +23,13 @@ Show the code at the gate. Staff scan it to check you in.
 
 @foreach ($bookings as $booking)
 **{{ $booking->rider->name }}**: {{ $booking->slot->label() }} (Pakistan time)<br>
-Ticket **{{ $booking->ticket_code }}**
+Ticket **{{ $booking->ticket_code }}** · [Add to Google Calendar]({{ $calendar[$booking->id] }})
 @isset($message)
 <br><img src="{{ $message->embedData($qr[$booking->id], 'ticket-'.$booking->ticket_code.'.png', 'image/png') }}" alt="QR code for ticket {{ $booking->ticket_code }}" width="180" height="180">
 @endisset
 
 @endforeach
-The ticket images are also attached, and each ticket is in your account.
+The ticket images are also attached, and each ticket is in your account. To add the sessions to Apple Calendar or Outlook, open the attached .ics file.
 @endif
 
 @if ($order->creditPack)

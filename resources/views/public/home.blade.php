@@ -56,6 +56,7 @@
                             :seats="$open ? $slot->seatsFree() : null"
                             note="Closed for booking"
                             :href="$open ? route('book', ['slot' => $slot->id]) : null"
+                            :waitlist="$open && ! $slot->private_only && ! $slot->isPrivatelyBooked() ? route('account.waitlist.create', $slot) : null"
                         />
                     </li>
                 @endforeach
@@ -121,6 +122,14 @@
         </div>
         <p class="mt-6 text-sm text-sand-dim">Session timings shift slightly with the seasons. We confirm your exact slot when you book. <a href="{{ route('prices') }}" class="underline underline-offset-4">Full prices and policies</a>.</p>
     </section>
+
+    {{-- Approved reviews (milestone 10d). No AggregateRating here: Google ignores self-serving business ratings. --}}
+    @if ($reviews->isNotEmpty())
+        <section id="reviews" class="wrap pb-section" aria-labelledby="reviews-title">
+            <x-section-heading id="reviews-title" title="What riders say." size="lg" />
+            <x-review-list :reviews="$reviews" class="mt-10" />
+        </section>
+    @endif
 
     <section id="book" class="wrap pb-section" aria-labelledby="book-title">
         <div class="grid gap-14 md:grid-cols-2 md:gap-20">

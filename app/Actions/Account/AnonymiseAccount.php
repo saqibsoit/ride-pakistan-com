@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Actions\Account;
 
+use App\Events\PublicContentChanged;
 use App\Models\Lead;
 use App\Models\LeadNote;
 use App\Models\LoginCode;
+use App\Models\Review;
 use App\Models\Rider;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -82,6 +84,11 @@ final class AnonymiseAccount
                 ]);
 
                 LoginCode::query()->where('destination', $email)->delete();
+
+                // Reviews keep their words and rating, without the name (milestone 10d).
+                if (Review::query()->where('user_id', $user->id)->update(['display_name' => 'A rider']) > 0) {
+                    PublicContentChanged::dispatch();
+                }
 
                 $this->redactAuditLog($user, $riders);
 

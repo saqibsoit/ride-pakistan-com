@@ -139,6 +139,15 @@
                 </section>
             @endif
 
+            {{-- Approved reviews of this product (milestone 10d). --}}
+            @if ($reviews->isNotEmpty())
+                <section aria-labelledby="reviews-title">
+                    <h2 id="reviews-title" class="text-display-lg">What riders say.</h2>
+                    <p class="mt-2 text-sm text-sand-dim">{{ number_format($reviewSummary['average'], 1) }} out of 5 from {{ $reviewSummary['count'] }} {{ $reviewSummary['count'] === 1 ? 'review' : 'reviews' }} by riders who took this session.</p>
+                    <x-review-list :reviews="$reviews" class="mt-6 md:grid-cols-2 lg:grid-cols-2" />
+                </section>
+            @endif
+
             <x-booking.widget :product="$product" :slots="$slots" />
 
             @if ($faqs->isNotEmpty())

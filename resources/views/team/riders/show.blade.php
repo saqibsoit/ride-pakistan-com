@@ -30,6 +30,19 @@
             </div>
         </dl>
 
+        {{-- Skills reached (milestone 10d), ticked from the run sheet. --}}
+        @php($reached = $rider->riderSkills()->with('skill')->get()->sortBy(fn ($r) => [$r->skill->sort, $r->skill_id]))
+        <h2 class="mt-10 text-display-xs">Skills</h2>
+        @if ($reached->isEmpty())
+            <p class="mt-4 text-sand-dim">No skills ticked yet.</p>
+        @else
+            <ul class="mt-4 flex flex-wrap gap-2" role="list">
+                @foreach ($reached as $item)
+                    <li><x-badge variant="success">{{ $item->skill->name }} · {{ $item->achieved_at->setTimezone(config('app.display_timezone'))->format('j M Y') }}</x-badge></li>
+                @endforeach
+            </ul>
+        @endif
+
         <h2 class="mt-10 text-display-xs">Sessions</h2>
 
         @if ($bookings->isEmpty())
@@ -48,6 +61,9 @@
                         </p>
                         @if ($booking->session_note)
                             <p class="mt-3 whitespace-pre-line">{{ $booking->session_note }}</p>
+                        @endif
+                        @if ($booking->progress_note)
+                            <p class="mt-3 whitespace-pre-line text-sand-dim"><span class="font-semibold text-sand">Note for the family:</span> {{ $booking->progress_note }}</p>
                         @endif
                     </li>
                 @endforeach

@@ -16,12 +16,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * @property int $id
  * @property int $slot_id
- * @property int $order_id
+ * @property int|null $order_id null for a waitlist offer
+ * @property int|null $waitlist_entry_id set for a waitlist offer (milestone 10d)
  * @property int $seats
  * @property bool $is_private a private hold takes the whole slot
  * @property CarbonImmutable $expires_at
  * @property-read Slot $slot
- * @property-read Order $order
+ * @property-read Order|null $order
+ * @property-read WaitlistEntry|null $waitlistEntry
  */
 #[ObservedBy(SeatAvailabilityObserver::class)]
 class BookingHold extends Model
@@ -33,6 +35,7 @@ class BookingHold extends Model
     protected $fillable = [
         'slot_id',
         'order_id',
+        'waitlist_entry_id',
         'seats',
         'is_private',
         'expires_at',
@@ -57,6 +60,14 @@ class BookingHold extends Model
     public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class);
+    }
+
+    /**
+     * @return BelongsTo<WaitlistEntry, $this>
+     */
+    public function waitlistEntry(): BelongsTo
+    {
+        return $this->belongsTo(WaitlistEntry::class);
     }
 
     /**

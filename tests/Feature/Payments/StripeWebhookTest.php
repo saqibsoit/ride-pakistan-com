@@ -110,7 +110,7 @@ it('renders the receipt with the brand line, reference, sessions and tickets', f
     $html = (string) $mail->render();
 
     expect($mail->subject)->toBe('Booking confirmed: '.$order->reference.' (Ride Pakistan by Destination Pakistan)')
-        ->and($mail->rawAttachments)->toHaveCount(2);
+        ->and($mail->rawAttachments)->toHaveCount(3); // two tickets and the .ics
 
     expect($html)->toContain($order->reference)
         ->toContain('PKR 20,000')

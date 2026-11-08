@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Notifications;
 
+use App\Enums\CalendarMethod;
 use App\Models\Booking;
 use App\Models\Slot;
+use App\Notifications\Concerns\AttachesCalendar;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -17,6 +19,8 @@ use Illuminate\Notifications\Messages\MailMessage;
  */
 final class SlotCancelledNotice extends CustomerNotification
 {
+    use AttachesCalendar;
+
     /**
      * @param  Collection<int, Booking>  $bookings  the customer's bookings that were cancelled
      */
@@ -48,7 +52,7 @@ final class SlotCancelledNotice extends CustomerNotification
     {
         $bookings = $this->bookings->loadMissing(['rider', 'order', 'creditPack.order.product']);
 
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject('Session cancelled: '.$this->slot->label())
             ->markdown('mail.slot-cancelled', [
                 'slot' => $this->slot,
@@ -58,5 +62,8 @@ final class SlotCancelledNotice extends CustomerNotification
                 'paidBookings' => $this->paidBookings,
                 'rebookUrl' => route('book', ['use' => 'credits']),
             ]);
+
+        // Removes the session from Apple Calendar or Outlook (milestone 10d).
+        return $bookings->isEmpty() ? $mail : $this->attachCalendar($mail, $bookings, CalendarMethod::Cancel);
     }
 }

@@ -9,6 +9,9 @@ use App\Models\Booking;
 use App\Models\CreditPack;
 use App\Models\Rider;
 use App\Models\User;
+use App\Notifications\BookingConfirmed;
+use App\Support\Notifier;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -23,6 +26,7 @@ final class CreateManualBooking
         private readonly SlotLock $slotLock,
         private readonly BookWithCredit $bookWithCredit,
         private readonly GenerateTicketCode $tickets,
+        private readonly Notifier $notifier,
     ) {}
 
     /**
@@ -48,7 +52,7 @@ final class CreateManualBooking
             throw BookingRejected::notAllowed('Give a reason for a no-charge booking.');
         }
 
-        return DB::transaction(function () use ($admin, $rider, $customer, $slotId, $reason): Booking {
+        $booking = DB::transaction(function () use ($admin, $rider, $customer, $slotId, $reason): Booking {
             $slot = $this->slotLock->acquire($slotId);
             $slot->assertBookable();
             $slot->assertRoomFor([$rider->id], private: false);
@@ -71,5 +75,9 @@ final class CreateManualBooking
 
             return $booking;
         });
+
+        $this->notifier->send($customer, new BookingConfirmed(new Collection([$booking])), Notifier::key(BookingConfirmed::type(), $booking, $customer));
+
+        return $booking;
     }
 }

@@ -75,7 +75,7 @@ it('sends the booking confirmation with tickets, QR codes, Pakistan times and th
     expect($html)->toContain(SECRET_PIN)
         ->toContain('Sat 14 Nov 2026, 08:00')
         ->toContain($codes[0])->toContain($codes[1])
-        ->and($mail->rawAttachments)->toHaveCount(2)
+        ->and($mail->rawAttachments)->toHaveCount(3) // two tickets and the .ics
         ->and($mail->rawAttachments[0]['name'])->toStartWith('ticket-')
         ->and($mail->rawAttachments[0]['options']['mime'])->toBe('image/png');
 });

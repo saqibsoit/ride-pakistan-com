@@ -10,6 +10,8 @@ use App\Exceptions\BookingRejected;
 use App\Models\Booking;
 use App\Models\CreditPack;
 use App\Models\User;
+use App\Notifications\BookingCancelled;
+use App\Support\Notifier;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
@@ -28,6 +30,7 @@ final class CancelBooking
         private readonly ChangeBookingStatus $status,
         private readonly CreditPacks $credits,
         private readonly CancellationCutoff $cutoff,
+        private readonly Notifier $notifier,
     ) {}
 
     /**
@@ -55,7 +58,7 @@ final class CancelBooking
             $returnCredit = null;
         }
 
-        return DB::transaction(function () use ($booking, $actor, $reason, $asAdmin, $returnCredit): bool {
+        $returned = DB::transaction(function () use ($booking, $actor, $reason, $asAdmin, $returnCredit): bool {
             $this->slotLock->acquire($booking->slot_id);
             $booking->refresh();
 
@@ -86,5 +89,10 @@ final class CancelBooking
 
             return $returned;
         });
+
+        // With a cancelling .ics (milestone 10d); queued after commit.
+        $this->notifier->send($booking->user, new BookingCancelled($booking, $returned), Notifier::key(BookingCancelled::type(), $booking, $booking->user));
+
+        return $returned;
     }
 }

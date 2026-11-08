@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Account\BookingCalendarController;
 use App\Http\Controllers\Account\BookingChangeController;
 use App\Http\Controllers\Account\BookingController;
 use App\Http\Controllers\Account\CreditController;
@@ -150,6 +151,7 @@ Route::post('/logout', [LoginController::class, 'logout'])->middleware(['auth', 
 Route::middleware(['auth', 'cache.headers:private;no_store'])->prefix('account')->name('account.')->group(function (): void {
     Route::get('/', DashboardController::class)->name('dashboard');
     Route::get('/bookings', [BookingController::class, 'index'])->name('bookings');
+    Route::get('/bookings/{ticket}/calendar.ics', BookingCalendarController::class)->name('bookings.calendar');
     Route::get('/bookings/{ticket}/reschedule', [BookingChangeController::class, 'editReschedule'])->name('bookings.reschedule.edit');
     Route::post('/bookings/{ticket}/reschedule', [BookingChangeController::class, 'reschedule'])->middleware('throttle:account-actions')->name('bookings.reschedule');
     Route::get('/bookings/{ticket}/cancel', [BookingChangeController::class, 'confirmCancel'])->name('bookings.cancel');

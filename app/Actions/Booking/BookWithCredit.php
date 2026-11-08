@@ -10,6 +10,8 @@ use App\Models\Booking;
 use App\Models\CreditPack;
 use App\Models\Slot;
 use App\Models\User;
+use App\Notifications\BookingConfirmed;
+use App\Support\Notifier;
 use App\Support\Settings;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
@@ -29,6 +31,7 @@ final class BookWithCredit
         private readonly GenerateTicketCode $tickets,
         private readonly CreditPacks $credits,
         private readonly Settings $settings,
+        private readonly Notifier $notifier,
     ) {}
 
     /**
@@ -49,7 +52,7 @@ final class BookWithCredit
             throw BookingRejected::noCredits();
         }
 
-        return DB::transaction(function () use ($user, $slotId, $riderIds, $actor, $only): Collection {
+        $bookings = DB::transaction(function () use ($user, $slotId, $riderIds, $actor, $only): Collection {
             $slot = $this->slotLock->acquire($slotId);
 
             // Admins may book inside the notice period; customers may not.
@@ -93,6 +96,11 @@ final class BookWithCredit
 
             return $bookings;
         });
+
+        // Tickets, map pin and calendar file (milestone 10d); queued after commit.
+        $this->notifier->send($user, new BookingConfirmed($bookings), Notifier::key(BookingConfirmed::type(), $bookings->first(), $user));
+
+        return $bookings;
     }
 
     /**

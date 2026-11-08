@@ -113,6 +113,7 @@ final class ExportAccountData
                 'name' => $lead->name,
                 'phone' => $lead->phone,
                 'email' => $lead->email,
+                'instagram_handle' => $lead->instagram_handle,
                 'message' => $lead->message,
                 'created_at' => self::date($lead->created_at),
             ])->all(),

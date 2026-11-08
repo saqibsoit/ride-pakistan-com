@@ -14,7 +14,9 @@ use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
+use Filament\Support\Assets\Css;
 use Filament\Support\Colors\Color;
+use Filament\Support\Facades\FilamentAsset;
 use Filament\Widgets\AccountWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -26,6 +28,15 @@ use RuntimeException;
 
 class AdminPanelProvider extends PanelProvider
 {
+    public function boot(): void
+    {
+        // Layout for the lead board (Filament's CSS ships no utilities).
+        // Published to public/css/app by filament:assets (composer scripts).
+        FilamentAsset::register([
+            Css::make('lead-board', resource_path('css/filament/lead-board.css')),
+        ]);
+    }
+
     public function panel(Panel $panel): Panel
     {
         return $panel
@@ -40,6 +51,7 @@ class AdminPanelProvider extends PanelProvider
             ], isRequired: true)
             ->navigationGroups([
                 'Bookings',
+                'Leads',
                 'Schedule',
                 'Customers',
                 'Content',

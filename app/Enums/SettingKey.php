@@ -42,6 +42,9 @@ enum SettingKey: string
     case BankCountry = 'bank.country';
     case BankAddress = 'bank.address';
 
+    case DeletionGraceDays = 'privacy.deletion_grace_days';
+    case OrderRetentionYears = 'privacy.order_retention_years';
+
     case DefaultTitle = 'seo.default_title';
     case DefaultDescription = 'seo.default_description';
     case AiCrawlers = 'seo.ai_crawlers';
@@ -52,7 +55,8 @@ enum SettingKey: string
             self::Email => SettingType::Email,
             self::InstagramUrl, self::InstagramDmUrl, self::ExpeditionsUrl, self::MapPinUrl => SettingType::Url,
             self::RidersPerSlot, self::TransferHoldHours, self::CancellationCutoffHours,
-            self::SellingFastThreshold, self::MinRiderAge, self::SlotHorizonWeeks => SettingType::Integer,
+            self::SellingFastThreshold, self::MinRiderAge, self::SlotHorizonWeeks,
+            self::DeletionGraceDays, self::OrderRetentionYears => SettingType::Integer,
             self::RidingRules, self::BookingPolicies, self::AiCrawlers => SettingType::List,
             self::ScheduleSummary, self::RefundPolicy, self::DefaultDescription, self::BankAddress => SettingType::LongText,
             default => SettingType::Text,
@@ -94,6 +98,8 @@ enum SettingKey: string
             self::BankSwift => 'SWIFT',
             self::BankCountry => 'Country',
             self::BankAddress => 'Bank address',
+            self::DeletionGraceDays => 'Days a deleted account can still be restored by its owner',
+            self::OrderRetentionYears => 'Keep accounts with paid orders for this many years after the last payment',
             self::DefaultTitle => 'Default page title',
             self::DefaultDescription => 'Default meta description',
             self::AiCrawlers => 'AI crawlers allowed in robots.txt',

@@ -7,6 +7,7 @@ namespace App\Models;
 use App\Enums\BookingStatus;
 use Carbon\CarbonImmutable;
 use Database\Factories\BookingFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -87,6 +88,32 @@ class Booking extends Model
     public function creditPack(): BelongsTo
     {
         return $this->belongsTo(CreditPack::class);
+    }
+
+    /**
+     * Ordered by slot start time (soonest first).
+     *
+     * @param  Builder<self>  $query
+     */
+    public function scopeUpcoming(Builder $query): void
+    {
+        $query->select('bookings.*')
+            ->join('slots', 'slots.id', '=', 'bookings.slot_id')
+            ->where('slots.starts_at', '>', now())
+            ->orderBy('slots.starts_at');
+    }
+
+    /**
+     * Ordered by slot start time (most recent first).
+     *
+     * @param  Builder<self>  $query
+     */
+    public function scopePast(Builder $query): void
+    {
+        $query->select('bookings.*')
+            ->join('slots', 'slots.id', '=', 'bookings.slot_id')
+            ->where('slots.starts_at', '<=', now())
+            ->orderByDesc('slots.starts_at');
     }
 
     /**

@@ -87,6 +87,14 @@ enum OrderStatus: string implements HasColor, HasIcon, HasLabel
         return in_array($this, [self::PendingPayment, self::AwaitingTransfer, self::AwaitingVerification], true);
     }
 
+    /**
+     * @return list<self>
+     */
+    public static function unpaidStatuses(): array
+    {
+        return array_values(array_filter(self::cases(), fn (self $status): bool => $status->isUnpaid()));
+    }
+
     public function isTerminal(): bool
     {
         return $this->allowedTransitions() === [];

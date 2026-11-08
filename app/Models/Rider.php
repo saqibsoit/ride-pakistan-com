@@ -79,6 +79,20 @@ class Rider extends Model
     }
 
     /**
+     * @return HasMany<OrderItem, $this>
+     */
+    public function orderItems(): HasMany
+    {
+        return $this->hasMany(OrderItem::class);
+    }
+
+    /** Riders on a booking or an order stay for the history. */
+    public function isInUse(): bool
+    {
+        return $this->bookings()->exists() || $this->orderItems()->exists();
+    }
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array

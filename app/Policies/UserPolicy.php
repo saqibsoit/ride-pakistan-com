@@ -7,8 +7,8 @@ namespace App\Policies;
 use App\Models\User;
 
 /**
- * Customer and team accounts in the admin. Accounts are created by sign-up
- * (milestone 4) or admin:create, never from the panel.
+ * Customer and team accounts. Accounts are created by code sign-in or
+ * admin:create, never from the panel.
  */
 final class UserPolicy
 {
@@ -38,9 +38,32 @@ final class UserPolicy
         return $user->isAdmin() && ! $user->is($model);
     }
 
+    /** Admin panel: accounts are deleted by their owner (deleteAccount). */
     public function delete(User $user, User $model): bool
     {
         return false;
+    }
+
+    public function restore(User $user, User $model): bool
+    {
+        return false;
+    }
+
+    public function forceDelete(User $user, User $model): bool
+    {
+        return false;
+    }
+
+    /** "Download my data": only your own. */
+    public function exportData(User $user, User $model): bool
+    {
+        return $user->is($model);
+    }
+
+    /** "Delete my account": customers only; team accounts are removed by an admin. */
+    public function deleteAccount(User $user, User $model): bool
+    {
+        return $user->is($model) && ! $user->isTeamMember();
     }
 
     public function deleteAny(User $user): bool

@@ -42,6 +42,12 @@
                     class="text-sm text-sand-dim no-underline transition-colors hover:text-sand current:text-sand"
                 >{{ $link['label'] }}</a>
             @endforeach
+            {{-- Same link for everyone, so cached pages stay user-neutral; guests land on /login. --}}
+            <a
+                href="{{ route('account.dashboard') }}"
+                @if (request()->is('account*', 'login*')) aria-current="page" @endif
+                class="text-sm text-sand-dim no-underline transition-colors hover:text-sand current:text-sand"
+            >Account</a>
             <x-button :href="$bookUrl" size="sm">Book a session</x-button>
         </nav>
 
@@ -78,6 +84,11 @@
                     class="border-b border-line py-4 font-display text-display-sm font-extrabold no-underline current:underline underline-offset-8"
                 >{{ $link['label'] }}</a>
             @endforeach
+            <a
+                href="{{ route('account.dashboard') }}"
+                @if (request()->is('account*', 'login*')) aria-current="page" @endif
+                class="border-b border-line py-4 font-display text-display-sm font-extrabold no-underline current:underline underline-offset-8"
+            >Account</a>
             <a href="{{ app(\App\Support\Settings::class)->string(\App\Enums\SettingKey::InstagramDmUrl) }}" target="_blank" rel="noopener" class="mt-6 text-sand-dim underline underline-offset-4">
                 Message us on Instagram<span class="sr-only"> (opens in a new tab)</span>
             </a>

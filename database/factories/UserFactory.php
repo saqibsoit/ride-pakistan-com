@@ -57,6 +57,23 @@ class UserFactory extends Factory
         return $this->afterMaking(fn (User $user) => $user->role = UserRole::Staff);
     }
 
+    /** A customer who signs in with codes only and hasn't filled in a name. */
+    public function passwordless(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'name' => null,
+            'password' => null,
+        ]);
+    }
+
+    /** Asked to delete their account this many days ago. */
+    public function deletedDaysAgo(int $days): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'deleted_at' => now()->subDays($days),
+        ]);
+    }
+
     /** App (TOTP) multi-factor authentication already set up. */
     public function withMfa(): static
     {

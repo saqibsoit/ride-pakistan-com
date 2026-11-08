@@ -65,6 +65,12 @@ return [
         'bank.country' => env('BANK_COUNTRY', ''),
         'bank.address' => env('BANK_ADDRESS', ''),
 
+        // Privacy: account deletion (PLAN §7). Deleted accounts are
+        // anonymised after the grace period, unless they have a paid order
+        // younger than the retention period (records kept for tax).
+        'privacy.deletion_grace_days' => 30,
+        'privacy.order_retention_years' => 6,
+
         // SEO
         'seo.default_title' => 'Ride Pakistan | Weekend horse riding in Islamabad',
         'seo.default_description' => 'Weekend horsemanship and trail riding sessions in Islamabad with trainer Omar Saleem. Every Saturday and Sunday. No experience needed.',

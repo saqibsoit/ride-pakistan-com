@@ -146,6 +146,39 @@ it('keeps riders with bookings and products with orders', function (): void {
         ->and($admin->can('delete', Product::factory()->create()))->toBeTrue();
 });
 
+it('lets customers manage their own riders only', function (): void {
+    $owner = roleUser('customer');
+    $other = roleUser('customer');
+    $rider = Rider::factory()->create(['user_id' => $owner->id]);
+    $onOrder = Rider::factory()->create(['user_id' => $owner->id]);
+    OrderItem::factory()->create(['rider_id' => $onOrder->id]);
+
+    expect($owner->can('create', Rider::class))->toBeTrue()
+        ->and($owner->can('view', $rider))->toBeTrue()
+        ->and($owner->can('delete', $rider))->toBeTrue()
+        ->and($owner->can('delete', $onOrder))->toBeFalse()
+        ->and($owner->can('viewAny', Rider::class))->toBeFalse()
+        ->and($other->can('view', $rider))->toBeFalse()
+        ->and($other->can('update', $rider))->toBeFalse()
+        ->and($other->can('delete', $rider))->toBeFalse()
+        ->and(roleUser('staff')->can('create', Rider::class))->toBeFalse();
+});
+
+it('lets each user export and delete only their own account', function (): void {
+    $customer = roleUser('customer');
+    $other = roleUser('customer');
+    $admin = roleUser('admin');
+
+    expect($customer->can('exportData', $customer))->toBeTrue()
+        ->and($customer->can('deleteAccount', $customer))->toBeTrue()
+        ->and($customer->can('exportData', $other))->toBeFalse()
+        ->and($customer->can('deleteAccount', $other))->toBeFalse()
+        ->and($admin->can('deleteAccount', $admin))->toBeFalse()
+        ->and($admin->can('deleteAccount', $customer))->toBeFalse()
+        ->and($admin->can('restore', $customer))->toBeFalse()
+        ->and($admin->can('forceDelete', $customer))->toBeFalse();
+});
+
 it('lets admins change other users roles but not their own', function (): void {
     $admin = roleUser('admin');
 

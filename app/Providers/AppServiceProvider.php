@@ -18,9 +18,11 @@ use App\Support\Tracking\BrowserEvents;
 use Closure;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Foundation\Events\DiagnosingHealth;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
@@ -145,6 +147,12 @@ class AppServiceProvider extends ServiceProvider
             if ($event->user instanceof User && $request->hasSession()) {
                 $request->session()->put(EnsureSessionIsCurrent::SESSION_KEY, $event->user->session_version);
             }
+        });
+
+        // /up (deploy smoke test, uptime checks) fails when the database
+        // can't be reached, not only when the app can't boot (milestone 12).
+        Event::listen(function (DiagnosingHealth $event): void {
+            DB::connection()->select('select 1');
         });
     }
 

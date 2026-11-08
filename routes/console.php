@@ -47,3 +47,22 @@ Schedule::command('vouchers:expire')->dailyAt('00:30')->withoutOverlapping();
 
 // Credit packs past their expiry (PLAN §2).
 Schedule::command('credits:expire')->dailyAt('00:15')->withoutOverlapping();
+
+// Milestone 12: shared hosting has no Supervisor, so the cron scheduler
+// drains the database queue every minute and stops before the next run.
+Schedule::command('queue:work --stop-when-empty --max-time=50 --tries=3')
+    ->everyMinute()
+    ->withoutOverlapping(5);
+
+// Alert admins when jobs wait over 5 minutes or transfers over 12 hours.
+Schedule::command('monitor:operations')->everyFiveMinutes()->withoutOverlapping();
+
+// Encrypted backups (database + private uploads) kept 30 days; a health
+// report goes to BACKUP_NOTIFICATION_EMAIL every Monday.
+Schedule::command('backup:clean')->dailyAt('01:00')->withoutOverlapping();
+Schedule::command('backup:run')->dailyAt('01:30')->withoutOverlapping();
+Schedule::command('backup:monitor')->weeklyOn(1, '08:00')->timezone('Asia/Karachi');
+
+// Log pruning: failed jobs after 30 days (file logs rotate daily, LOG_DAILY_DAYS).
+// The audit log and notification_log are kept for accounting.
+Schedule::command('queue:prune-failed', ['--hours' => 720])->dailyAt('04:30');

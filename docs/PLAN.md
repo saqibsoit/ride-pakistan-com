@@ -35,7 +35,7 @@ A fast, secure, bilingual-ready website for Ride Pakistan’s weekend horse ridi
   - Card seat holds last `booking.card_hold_minutes` [30]; `holds:release` (every minute) expires unpaid card orders and frees their seats. Re-submitting the same booking while its order is held returns that order.
   - Credits book group sessions only (never private), from active packs with credits left that expire after the session starts, soonest-expiring first. `credits:expire` (daily) writes off unused credits on expired packs.
   - Customers cancel or move only their own credit bookings. Cancelling before the cutoff (`booking.cancellation_cutoff_hours`) returns the credit if the pack hasn't expired; after the cutoff the credit is used. Moving is allowed only before the cutoff, to a slot the pack still covers. Paid single and private bookings change only through an admin.
-  - Admins can move or cancel any booking (reason required; cancellations may give the credit back), mark attended / no-show once the session has started, add manual bookings (a customer's credit, or no charge with a reason; never an order) and extend a pack (reason required, ledger "adjusted").
+  - Admins can move or cancel any booking (reason required; cancellations may give the credit back), mark attended / no-show once the session has started (gate check-in below allows attended earlier), add manual bookings (a customer's credit, or no charge with a reason; never an order) and extend a pack (reason required, ledger "adjusted").
   - Overbooking is prevented by a row lock: every booking or hold write takes `SELECT … FOR UPDATE` on the slot row first, then reads the slot's bookings and holds with locking reads (plain reads could see an older REPEATABLE READ snapshot). Prices are always computed on the server from the product row (`PriceQuote`).
 - Open decisions (store as settings, admin-editable, defaults in brackets):
   - Riders per slot [6]
@@ -80,6 +80,13 @@ Bank transfer rules (milestone 7):
 - Emails: the customer ("we've received your transfer"), every admin user ("transfer to verify"), and the customer again on rejection (with the reason) or expiry. Approval sends the usual receipt (`OrderPaid`).
 - Admin queue (Filament "Verify transfers", admins only; staff can't see proofs or decide): soonest deadline first. **Approve** (`ApproveBankTransfer`) records the verifier and time and a bank-transfer payment, then calls `FulfilOrder`; approving twice changes nothing, and if the seats are gone nothing is written. **Reject** (reason required) makes the order `rejected` and releases the seats. **Extend** (reason required) moves the deadline, never past the session start, and re-checks seats if the hold had lapsed. A dashboard widget shows how many are waiting and the oldest wait.
 - Approving, rejecting and extending transfers, and opening proofs, are **admin only** (decided: it's money; fewer approvers means fewer mistakes and a cleaner audit trail). Staff never see transfer screenshots.
+- Notifications (milestone 8): Laravel notifications through the `Notifier` service (logged in `notification_log`; automatic sends deduplicated). Email (brand Markdown theme, plain-text part) always; a WhatsApp channel exists behind `WHATSAPP_ENABLED` [false] and only logs until GT360 is connected. Sent to the account holder; anonymised addresses skipped.
+  - Booking confirmed (card paid or transfer approved): tickets with QR, Pakistan times, and the exact map pin (`booking.map_pin_url`). **The pin appears only in confirmed-booking emails (confirmation and reminder), never on public pages.**
+  - Transfer received / to verify (admins) / rejected / expired.
+  - Reminder about 24 h before (`notifications:send reminders`, every 15 min): riding rules, arrival time if `booking.arrival_minutes` is set (empty until confirmed), pin, tickets. One per customer per session.
+  - Slot cancelled by an admin: every confirmed booking is cancelled; credit bookings get the credit back whatever the cutoff; directly paid bookings are flagged "Needs review" for the admin to refund or move (no automatic refund); unpaid orders holding seats are cancelled (a late card payment is refunded by the webhook) and uploaded transfers are flagged. One email per customer.
+  - Credits expiring within 7 days (daily, once per pack). Thank-you 1 to 24 h after a session the riders attended (hourly), with a Google review button only if `contact.google_review_url` is set.
+  - Admins (not staff) can resend the emails that still match an order's or booking's state; each resend is logged.
 - Retention: `transfers:prune-proofs` (daily) deletes **only the screenshot or PDF** `privacy.transfer_proof_retention_days` [90] days after review (approved or rejected). The transfer record (reference, transaction ID, who verified it and when, rejection reason), the payment record (amount) and the audit log are kept permanently for accounting. Proofs still waiting for review are never deleted.
 - Proofs are served only by `GET /{admin-path}/transfers/{id}/proof`: a signed URL valid for 5 minutes, a signed-in admin, `nosniff`, `no-store` and a sandbox CSP. PDFs download. Each view is logged.
 
@@ -138,6 +145,7 @@ Roles (milestone 3): `customer` (site and own account only), `staff` (admin pane
 - Caches: the full-page cache has its own store (`responsecache`, file). `ResponseCache::clear()` empties the whole store it uses, so it must never share one with rate limiters, settings or anything else (fixed in milestone 7).
 - `pages` / `faqs` / `posts` (CMS content for SEO pages, guides and FAQ)
 - `activity_log` (audit trail for all admin actions and order transitions)
+- `notification_log` (milestone 8: user, type, subject, `dedupe_key` unique for automatic sends, `resent_by`, queued_at, sent_at)
 
 Overbooking protection: seat checks and holds run inside a transaction with `SELECT ... FOR UPDATE` on the slot row. Confirmed + active held seats can never exceed capacity. A concurrency test proves this.
 
@@ -170,7 +178,10 @@ Payment:
 
 Staff:
 - `/{admin-path}` Filament: Dashboard, Slots & schedule rules, Orders, Bank transfer verification queue, Bookings & check-in, Customers & riders, Credit packs, Leads (kanban + list), Content, Settings, Audit log
-- `/checkin/{ticket_code}` staff-only QR check-in page (mobile-first)
+- `/checkin/{ticket_code}` staff-only QR check-in page (mobile-first). Milestone 8 rules:
+  - Who: staff and admins (gate `check-in`). Guests go to the admin panel login (MFA), never to customer codes; customers get 403; team accounts without MFA set up finish that first. Staff may only record attended / no-show here, nothing else beyond their read access.
+  - When: attended from `booking.checkin_opens_minutes` [120] before the start until the session ends; no-show only between the start and the end; dates are Pakistan dates. Another day, a cancelled ticket, before opening or after the end: a clear warning and no button. A repeat tap says "already checked in" and changes nothing. Corrections afterwards are admin-only in the panel.
+  - Tickets: the QR code (chillerlan/php-qrcode) holds only this URL. SVG on the printable account ticket page; PNG inline in emails and attached to the confirmation.
 
 ## 7. Security (non-negotiable)
 

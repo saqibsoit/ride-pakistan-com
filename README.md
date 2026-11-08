@@ -105,6 +105,14 @@ Tests never call Stripe: `tests/TestCase.php` binds `Tests\Support\FakeStripeGat
 
 In production, add the endpoint `https://ride-pakistan.com/webhooks/stripe` in the Stripe dashboard. Subscribe it to `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `checkout.session.expired` and `charge.refunded`, and use its signing secret as `STRIPE_WEBHOOK_SECRET`.
 
+## Tickets, check-in and emails
+
+- Tickets: `/account/tickets/{code}` shows a printable ticket with a QR code that opens `/checkin/{code}`.
+- Check-in: staff and admins sign in at the admin panel (MFA), then scan the QR or open `/checkin/{code}` on a phone. Check-in opens 2 hours before the session (setting).
+- Scheduled emails (run by `php artisan schedule:work` locally, cron in production): `notifications:send reminders` (every 15 min), `notifications:send thanks` (hourly), `notifications:send credits` (daily 10:00 Pakistan time). Each email goes once (`notification_log`). Run a queue worker (`php artisan queue:work`) so queued emails are delivered; with `MAIL_MAILER=log` they land in `storage/logs/laravel.log`.
+- Set the exact location in Settings, Booking rules, "Exact map pin URL": it goes only into confirmation and reminder emails.
+- WhatsApp: `WHATSAPP_ENABLED=true` turns on a placeholder channel that only logs (GT360 not connected yet).
+
 ## Quality checks
 
 Run before every commit (CI runs the same):

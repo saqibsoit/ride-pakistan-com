@@ -76,6 +76,9 @@ jobs:
           npm ci
           npm run build
 
+      - name: Install Chromium for browser tests
+        run: npx playwright install --with-deps chromium
+
       - name: Prepare application
         run: |
           cp .env.example .env

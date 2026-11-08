@@ -26,6 +26,12 @@ pest()->extend(TestCase::class)
 
 pest()->extend(TestCase::class)->in('Unit');
 
+// Browser smoke tests (Pest browser plugin + Playwright Chromium).
+pest()->extend(TestCase::class)
+    ->use(RefreshDatabase::class)
+    ->group('browser')
+    ->in('Browser');
+
 // Real parallel processes need committed data: truncate instead of
 // wrapping each test in a transaction the other processes can't see.
 pest()->extend(TestCase::class)

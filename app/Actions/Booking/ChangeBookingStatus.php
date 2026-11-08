@@ -23,9 +23,12 @@ final class ChangeBookingStatus
      * @throws InvalidStatusTransition
      * @throws BookingRejected
      */
-    public function handle(Booking $booking, BookingStatus $to, ?User $actor = null, ?string $reason = null): Booking
+    /**
+     * @param  bool  $earlyCheckIn  attended may be recorded before the start (gate check-in window, CheckInBooking)
+     */
+    public function handle(Booking $booking, BookingStatus $to, ?User $actor = null, ?string $reason = null, bool $earlyCheckIn = false): Booking
     {
-        return DB::transaction(function () use ($booking, $to, $actor, $reason): Booking {
+        return DB::transaction(function () use ($booking, $to, $actor, $reason, $earlyCheckIn): Booking {
             $locked = Booking::query()->whereKey($booking->id)->lockForUpdate()->firstOrFail();
             $from = $locked->status;
 
@@ -34,6 +37,7 @@ final class ChangeBookingStatus
             }
 
             if (in_array($to, [BookingStatus::Attended, BookingStatus::NoShow], true)
+                && ! ($earlyCheckIn && $to === BookingStatus::Attended)
                 && $locked->slot->starts_at->isAfter(CarbonImmutable::now())) {
                 throw BookingRejected::notAllowed('Attendance can be recorded once the session has started.');
             }

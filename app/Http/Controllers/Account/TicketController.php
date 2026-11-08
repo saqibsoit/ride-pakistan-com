@@ -39,7 +39,7 @@ final class TicketController extends Controller
 
         $booking = $user->bookings()
             ->where('ticket_code', $code)
-            ->with(['slot', 'rider', 'order'])
+            ->with(['slot', 'rider', 'order.product', 'creditPack.order.product'])
             ->firstOrFail();
 
         Gate::authorize('view', $booking);

@@ -13,7 +13,8 @@ use Illuminate\Support\Facades\DB;
 use Spatie\Activitylog\Models\Activity;
 
 it('has a default for every setting except the undecided ones', function (SettingKey $key): void {
-    $undecided = [SettingKey::MinRiderAge, SettingKey::RefundPolicy, SettingKey::MapPinUrl];
+    // Empty until confirmed with Omar (OPEN-QUESTIONS); hidden on the site and in emails while empty.
+    $undecided = [SettingKey::MinRiderAge, SettingKey::RefundPolicy, SettingKey::MapPinUrl, SettingKey::ArrivalMinutes, SettingKey::GoogleReviewUrl];
 
     if (in_array($key, $undecided, true)) {
         expect(true)->toBeTrue();

@@ -15,6 +15,7 @@ use App\Http\Controllers\Account\TicketController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RestoreAccountController;
 use App\Http\Controllers\BankTransferController;
+use App\Http\Controllers\CheckInController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\Public\BookController;
 use App\Http\Controllers\Public\ContactController;
@@ -29,6 +30,7 @@ use App\Http\Controllers\Public\SeoFileController;
 use App\Http\Controllers\Public\SessionController;
 use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\TransferProofController;
+use App\Http\Middleware\EnsureCheckInAccess;
 use Illuminate\Support\Facades\Route;
 use Spatie\ResponseCache\Middlewares\CacheResponse;
 
@@ -70,6 +72,13 @@ Route::middleware(['auth', 'cache.headers:private;no_store'])->prefix('checkout/
     Route::post('/transfer', [BankTransferController::class, 'choose'])->middleware('throttle:checkout')->name('transfer.choose');
     Route::get('/transfer', [BankTransferController::class, 'show'])->name('transfer');
     Route::post('/transfer/proof', [BankTransferController::class, 'upload'])->middleware('throttle:transfer-upload')->name('transfer.upload');
+});
+
+// Gate check-in from the ticket QR (PLAN §6): staff and admins only
+// (EnsureCheckInAccess: guests go to the admin login with MFA).
+Route::middleware([EnsureCheckInAccess::class, 'cache.headers:private;no_store'])->prefix('checkin/{code}')->name('checkin.')->group(function (): void {
+    Route::get('/', [CheckInController::class, 'show'])->name('show');
+    Route::post('/', [CheckInController::class, 'store'])->middleware('throttle:checkin')->name('store');
 });
 
 // Transfer proofs for admins: short-lived signed URL, signed-in admin only,

@@ -55,4 +55,39 @@ final class CreditPacks
             'actor_id' => $actor?->id,
         ]);
     }
+
+    /**
+     * Takes unused credits off a pack (refunds, PLAN §3.3), with an
+     * "adjusted" ledger entry. Revoking also closes the pack for good.
+     *
+     * @return int credits actually removed (never more than are left)
+     */
+    public function remove(CreditPack $pack, int $credits, ?User $actor, string $note, bool $revoke = false): int
+    {
+        $removed = max(0, min($credits, $pack->creditsRemaining()));
+
+        if ($removed === 0 && ! $revoke) {
+            return 0;
+        }
+
+        $pack->credits_total -= $removed;
+
+        if ($revoke) {
+            $pack->status = CreditPackStatus::Revoked;
+        } elseif ($pack->creditsRemaining() === 0 && $pack->status === CreditPackStatus::Active) {
+            $pack->status = CreditPackStatus::Exhausted;
+        }
+
+        $pack->save();
+
+        CreditLedgerEntry::query()->create([
+            'credit_pack_id' => $pack->id,
+            'delta' => -$removed,
+            'reason' => CreditReason::Adjusted,
+            'note' => $note,
+            'actor_id' => $actor?->id,
+        ]);
+
+        return $removed;
+    }
 }

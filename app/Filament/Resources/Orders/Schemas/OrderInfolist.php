@@ -9,6 +9,7 @@ use App\Support\Money;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
 use Spatie\Activitylog\Models\Activity;
 
 class OrderInfolist
@@ -35,6 +36,12 @@ class OrderInfolist
                     TextEntry::make('expires_at')->label('Hold expires')->dateTime('j M Y H:i', timezone: $tz)->placeholder('—'),
                     TextEntry::make('paid_at')->label('Paid')->dateTime('j M Y H:i', timezone: $tz)->placeholder('—'),
                     TextEntry::make('stripe_checkout_session_id')->label('Stripe session')->placeholder('—'),
+                    TextEntry::make('stripe_payment_intent_id')->label('Stripe payment')->placeholder('—')->copyable(),
+                    TextEntry::make('meta.needs_review')->label('Needs review')
+                        ->color('danger')
+                        ->icon(Heroicon::OutlinedExclamationTriangle)
+                        ->columnSpanFull()
+                        ->visible(fn (Order $record): bool => isset($record->meta['needs_review'])),
                 ]),
             Section::make('Status history')
                 ->schema([

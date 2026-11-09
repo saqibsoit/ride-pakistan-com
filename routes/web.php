@@ -48,6 +48,7 @@ use App\Http\Controllers\VoucherTransferProofController;
 use App\Http\Middleware\AddStatelessSecurityHeaders;
 use App\Http\Middleware\EnsureCheckInAccess;
 use App\Http\Middleware\EnsureTeamAreaAccess;
+use App\Support\PageCache;
 use Illuminate\Support\Facades\Route;
 use Spatie\ResponseCache\Middlewares\CacheResponse;
 
@@ -57,11 +58,17 @@ use Spatie\ResponseCache\Middlewares\CacheResponse;
 |--------------------------------------------------------------------------
 */
 
-Route::middleware(CacheResponse::class)->group(function (): void {
+// Pages that show seats left: their cache key carries the seats version, so
+// a booking or hold renders them fresh (PageCache, milestone 11); shorter
+// lifetime so superseded copies age out.
+Route::middleware(['cache.headers:private;no_cache', CacheResponse::using(PageCache::SEAT_PAGES_LIFETIME)])->group(function (): void {
     Route::get('/', HomeController::class)->name('home');
-    Route::get('/experiences', ExperienceController::class)->name('experiences');
     Route::get('/sessions/{product:slug}', SessionController::class)->name('sessions.show');
     Route::get('/schedule', ScheduleController::class)->name('schedule');
+});
+
+Route::middleware(['cache.headers:private;no_cache', CacheResponse::class])->group(function (): void {
+    Route::get('/experiences', ExperienceController::class)->name('experiences');
     Route::get('/prices', PriceController::class)->name('prices');
     Route::get('/gift-vouchers', [GiftVoucherController::class, 'index'])->name('gift-vouchers');
     Route::get('/faq', FaqController::class)->name('faq');

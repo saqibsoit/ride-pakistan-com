@@ -15,7 +15,7 @@
 
         @if ($post->cover_image)
             <div class="wrap mb-14">
-                <x-img :src="$post->cover_image" :alt="(string) $post->cover_image_alt" sizes="(min-width: 75rem) 75rem, 100vw" eager class="aspect-video w-full object-cover" />
+                <x-img :src="$post->cover_image" :alt="(string) $post->cover_image_alt" sizes="(min-width: 75rem) 75rem, 100vw" priority class="aspect-video w-full object-cover" />
             </div>
         @endif
 

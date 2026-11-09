@@ -17,5 +17,10 @@ Livewire.start();
 
 // Consent-gated Pixel/GA4 (no-op unless configured and accepted) and
 // per-visit attribution for lead forms on cached pages.
-initTracking();
-fillLeadAttribution();
+// In a later task, so the start-up task stays short (milestone 11, TBT).
+// Neither is needed for the first paint: tracking waits for consent and
+// attribution only matters when a lead form is sent.
+setTimeout(() => {
+    initTracking();
+    fillLeadAttribution();
+}, 0);

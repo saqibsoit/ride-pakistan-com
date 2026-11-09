@@ -6,8 +6,10 @@ use App\Models\Order;
 use App\Models\Slot;
 use App\Support\Stripe\StripeGateway;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Pest\Browser\Playwright\Page;
 use Tests\Support\FakeStripeGateway;
@@ -128,6 +130,43 @@ function nearSlot(int $daysAhead = 3, int $hour = 8, array $attributes = []): Sl
     $local = CarbonImmutable::now((string) config('app.display_timezone'))->addDays($daysAhead)->setTime($hour, 0);
 
     return Slot::factory()->at($local)->create($attributes);
+}
+
+/**
+ * Query budget and N+1 guard (milestone 11): runs $work, then fails when
+ * it ran more than $max queries, or the same query (same SQL, any
+ * bindings) more than $maxRepeats times, which is the signature of an
+ * N+1 loop. Returns the queries for further checks.
+ *
+ * @return list<string> the SQL of each query, in order
+ */
+function assertQueryBudget(Closure $work, int $max, int $maxRepeats = 3): array
+{
+    $queries = [];
+    $recording = true;
+
+    DB::listen(function (QueryExecuted $query) use (&$queries, &$recording): void {
+        if ($recording) {
+            $queries[] = $query->sql;
+        }
+    });
+
+    $work();
+    $recording = false;
+
+    if (getenv('QUERY_BUDGET_REPORT') !== false) {
+        fwrite(STDOUT, "\n  queries: ".count($queries)." (budget {$max})\n");
+    }
+
+    $shapes = array_count_values($queries);
+    arsort($shapes);
+    $top = array_slice($shapes, 0, 5, true);
+    $report = implode("\n", array_map(fn (string $sql, int $n): string => $n.' × '.$sql, array_keys($top), $top));
+
+    expect(count($queries))->toBeLessThanOrEqual($max, count($queries).' queries (budget '.$max."). Most repeated:\n".$report)
+        ->and((int) reset($shapes))->toBeLessThanOrEqual($maxRepeats, "A query ran more than {$maxRepeats} times (N+1?):\n".$report);
+
+    return $queries;
 }
 
 /*

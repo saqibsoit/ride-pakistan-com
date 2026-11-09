@@ -38,6 +38,9 @@
     <meta name="theme-color" content="{{ config('site.theme_color') }}">
 
     <link rel="preload" href="{{ Vite::asset('resources/fonts/big-shoulders-display.woff2') }}" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="{{ Vite::asset('resources/fonts/instrument-sans.woff2') }}" as="font" type="font/woff2" crossorigin>
+    {{-- Page-specific hints, e.g. the hero image preload (milestone 11). --}}
+    @stack('head')
     <link rel="icon" href="{{ asset('favicon.ico') }}" sizes="48x48">
     <link rel="icon" href="{{ asset('favicon-32.png') }}" type="image/png" sizes="32x32">
     <link rel="apple-touch-icon" href="{{ asset('apple-touch-icon.png') }}">

@@ -5,6 +5,21 @@ All notable changes to this project are documented here. The format follows [Kee
 ## [Unreleased]
 
 ### Added
+- Milestone 11 performance pass (`docs/PERFORMANCE.md`):
+  - Measured before and after on every public page plus `/book` and checkout with discounts (Lighthouse mobile, built assets, HTTPS, median of 3). Performance is now 99–100 everywhere, LCP ≤ 1.9 s, CLS 0, TBT ≤ 122 ms (was up to 192 ms).
+  - Front end:
+    - shorter Alpine start-up task (no forced layout in the site header; tracking and attribution start later);
+    - hero image preloaded with high priority and no opacity fade;
+    - body font preloaded;
+    - cover images prioritised;
+    - Turnstile on the `/prices` form loaded on demand (nonce kept).
+  - Full-page cache:
+    - seat pages are versioned by a "seats version" instead of emptying the whole cache on every booking or hold (`PageCache`, `PublicPageHasher`);
+    - campaign and click tags are ignored in the cache key;
+    - no cached copies for signed-in visitors or visitors with flash data (`PublicCacheProfile`), which also fixes one-off tracking events being cached;
+    - a fresh nonce on every cached hit (tested).
+  - `Cache-Control: no-cache, private` on public HTML; long-lived headers for hashed build files and images (`public/.htaccess`); Cloudflare rules and staging checks in `docs/DEPLOY.md`.
+  - Query budgets with an N+1 guard for every key page (`assertQueryBudget`), EXPLAIN checks for the booking queries, and a config-cache check. Fixed the booking flow's repeated product lookup (11 → 6 queries); review summaries are one aggregate query.
 - Milestone 13 launch prep (local part; the rest needs staging):
   - End-to-end browser journeys (Pest browser plugin, phone viewport): single session, private session and 8-class package paid by card, then a session booked with its credits (`CardBookingJourneyTest`); bank transfer approved and rejected in Verify transfers, and hold expiry for transfer and card holds (`BankTransferJourneyTest`); cancellation before and after the cutoff and the waitlist offer booked and paid (`BookingChangesJourneyTest`); lead form and OTP login (`LeadAndLoginJourneyTest`); promo code plus gift voucher, fully covered or the rest paid by card (`CheckoutDiscountsTest`); staff check-in from the run sheet list (`RunSheetTest`).
   - Card payments in browser tests go through checkout and "Pay by card"; the fake Stripe (`returnToSuccessUrl`) sends the browser back to the status page, and a signed webhook confirms the payment through `FulfilOrder`. Shared helpers in `tests/Pest.php` send each action once and wait for its result, never a fixed delay. The transfer proof upload uses the HTTP test client, because the plugin's in-process server doesn't forward multipart bodies yet.

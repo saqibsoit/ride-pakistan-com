@@ -40,6 +40,12 @@ Commits on the branch:
 
 Nothing half-done in code. What's left needs the real server or your decision (below).
 
+**Update after the pause:**
+- Main moved on: #22 (milestone 13, local part) was merged, so PR #23 conflicted in `CHANGELOG.md` and `tests/Pest.php`. Both were additions in the same place.
+- I merged `main` into the branch, keeping both sides. I used a merge rather than a rebase so no force-push was needed.
+- The merge had dropped the closing brace of `assertQueryBudget`; I put it back.
+- The full checks are re-run on the merged branch, including the new milestone 13 browser journeys.
+
 ## Measurements so far (local, Lighthouse mobile, median of 3)
 
 | Page | Perf before → after | LCP ms after | CLS | TBT ms before → after |
@@ -75,7 +81,9 @@ Nothing half-done in code. What's left needs the real server or your decision (b
    - `MAIL_REPLY_TO_*`
 
    Two mail tests fail locally until then; they pass in CI. Nothing in the repo needs to change.
-5. **Next milestone:** `prompts/13-launch.md` (QA and launch checklist). Milestone 12 (deploy) is already merged.
+5. **Milestone 13:**
+   - The local part is merged (#22: end-to-end browser journeys, `docs/STAFF-GUIDE.md`, `docs/LAUNCH-CHECKLIST.md`).
+   - What remains needs staging and production. Work from `docs/LAUNCH-CHECKLIST.md`, together with the staging checks in step 2.
 
 ## For you to decide
 

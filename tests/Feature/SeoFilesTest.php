@@ -44,6 +44,12 @@ describe('robots.txt', function (): void {
             ->assertDontSee('test-admin');
     });
 
+    it('never mentions the admin path, even when it is /admin', function (bool $indexable): void {
+        config(['site.indexable' => $indexable, 'app.admin_path' => 'admin']);
+
+        expect((string) $this->get('/robots.txt')->getContent())->not->toContain('admin');
+    })->with(['production' => true, 'staging' => false]);
+
     it('sends X-Robots-Tag noindex on every response outside production', function (): void {
         config(['site.indexable' => false]);
         $this->get('/')->assertHeader('X-Robots-Tag', 'noindex, nofollow');

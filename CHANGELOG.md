@@ -5,6 +5,12 @@ All notable changes to this project are documented here. The format follows [Kee
 ## [Unreleased]
 
 ### Added
+- Forced password change for team accounts:
+  - `php artisan admin:create`, for a new or existing account, now marks the password as temporary (`users.must_change_password`).
+  - Until it's replaced, the admin panel blocks everything else, including Livewire requests (`EnsurePasswordIsChanged`, persistent). The only things allowed are the "Change your temporary password" screen (`ChangeTemporaryPassword`, `ReplaceTemporaryPassword`) and signing out.
+  - The new password must meet the password rules and differ from the temporary one. The change is audited without the value.
+  - Filament's required MFA set-up follows.
+- The admin panel path is `/admin` (`ADMIN_PATH=admin`) on staging and production (PLAN §7 and DEPLOY.md updated).
 - Milestone 11 performance pass (`docs/PERFORMANCE.md`):
   - Measured before and after on every public page plus `/book` and checkout with discounts (Lighthouse mobile, built assets, HTTPS, median of 3). Performance is now 99–100 everywhere, LCP ≤ 1.9 s, CLS 0, TBT ≤ 122 ms (was up to 192 ms).
   - Front end:
@@ -224,6 +230,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - README with local setup steps.
 
 ### Fixed
+- Hostinger cron: the scheduler ran nothing, so no emails were sent and holds never expired. Hostinger disables `proc_open`, which Laravel needs to start each scheduled task. The cron now runs `deploy/schedule-run.sh`, which re-enables only `proc_open`, for that one process. A script, because hPanel limits cron commands to 255 characters.
 - Images inside grid and flex layouts were misplaced on every page. `<x-img>` renders `<picture class="contents">`, so its `<source>` elements became layout items too: Chrome gave each one a grid cell and a flex gap. A base rule now takes `picture > source` out of layout. What it fixes:
   - The homepage photo band no longer shows two stacked photos of different widths with a gap on the left. It's now a full-width band as in `docs/reference/index.html`: 1.4fr / 1fr (`md:grid-cols-band`, token `--grid-template-columns-band`), equal height (`h-photo-band`, 320–680 px), and one photo on mobile. Focal points (`graze-focus`, `camp-focus`) keep the horse's face and the riders' faces in frame.
   - Same cause, also fixed: the trainer page portrait sat in the right-hand columns with the text pushed below it. The product page photo sat a row below "Key facts". The "Meet Omar Saleem" section and the header and footer logos were offset.

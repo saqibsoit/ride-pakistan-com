@@ -26,7 +26,7 @@ Nothing below is in the repository. GitHub values go in **Settings → Environme
 | Variable | Staging example | Production example |
 |---|---|---|
 | `APP_URL` | `https://staging.ride-pakistan.com` | `https://ride-pakistan.com` |
-| `DEPLOY_PATH` | `/home/u123456789/domains/ride-pakistan.com/app-staging` | `/home/u123456789/domains/ride-pakistan.com/app` |
+| `DEPLOY_PATH` | `/home/u123456789/domains/staging.ride-pakistan.com/app` | `/home/u123456789/domains/ride-pakistan.com/app` |
 | `PHP_BIN` | `/opt/alt/php83/usr/bin/php` (check with `ls /opt/alt/php8*/usr/bin/php`; empty means `php`) | same |
 
 Use absolute paths, not `~`.
@@ -80,7 +80,8 @@ Use absolute paths, not `~`.
 
 - **Plan with SSH access** (Premium, Business or Cloud). PLAN §11.
 - **PHP 8.3** for the domain and the subdomain: hPanel → Advanced → PHP Configuration. The app is pinned to 8.3 (`composer.json` `config.platform.php`).
-- **PHP extensions** (same page, "PHP extensions"): `mbstring`, `intl`, `pdo_mysql`, `bcmath`, `gd`, `zip`, `exif`, `fileinfo`, `openssl`, `curl`, `ctype`, `tokenizer`, `xml`, `dom`, `sodium`. Check over SSH with `$PHP_BIN -m`.
+- **PHP extensions** (same page, "PHP extensions"): `mbstring`, `intl`, `pdo_mysql`, `bcmath`, `gd`, `zip`, `exif`, `fileinfo`, `openssl`, `curl`, `ctype`, `tokenizer`, `xml`, `dom`, `sodium`. Check over SSH with `$PHP_BIN -m`. On Hostinger's PHP 8.3 every one of them is on by default except `sodium`. Its module is installed, so tick it on this page for each website.
+- **PHP CLI:** use `/opt/alt/php83/usr/bin/php` as `PHP_BIN`. Plain `php` (`/usr/bin/php`) follows the version chosen in hPanel, so it would change silently if someone switched that.
 - **PHP options:** `memory_limit` 256M, `upload_max_filesize` and `post_max_size` 10M (proofs are at most 5 MB), `max_execution_time` 60, OPcache on.
 - **Database:** MariaDB/MySQL, InnoDB, `utf8mb4_unicode_ci` (PLAN §10).
 - **CLI tools used by the scripts:** `bash`, `rsync`, `mysqldump`, GNU `find`, `mv -T`, `readlink -f`. All are present on Hostinger's Linux servers; check `rsync --version` once.
@@ -137,7 +138,15 @@ mv public_html public_html.hostinger-default
 ln -s <DEPLOY_PATH>/current/public public_html
 ```
 
-Staging (`staging.ride-pakistan.com`): hPanel → Domains → Subdomains. Create it with a **custom folder outside `public_html`** (e.g. `staging_html`), because `public_html` is now the production release. Then replace that folder with a symlink to `<staging DEPLOY_PATH>/current/public` in the same way. Check in hPanel where the subdomain's folder ended up before you replace it.
+Staging (`staging.ride-pakistan.com`): add it as **its own website**: hPanel → Websites → Add website, using the existing domain `staging.ride-pakistan.com`. **Don't use** Domains → Subdomains. That puts the folder at `~/domains/ride-pakistan.com/public_html/staging`, inside the production web root. The staging app would then also be served at `ride-pakistan.com/staging/`, and production's `public_html` symlink would cut it off. As its own website it gets `~/domains/staging.ride-pakistan.com/public_html`, and the release goes next to it in `~/domains/staging.ride-pakistan.com/app` (the staging `DEPLOY_PATH`). Set PHP 8.3 and the extensions for this website too. After the first staging deploy, replace its `public_html` with a symlink the same way:
+
+```bash
+cd ~/domains/staging.ride-pakistan.com
+mv public_html public_html.hostinger-default
+ln -s <staging DEPLOY_PATH>/current/public public_html
+```
+
+Hostinger puts an empty `DO_NOT_UPLOAD_HERE` file in each `~/domains/<domain>/` folder. It's only a hint for file-manager uploads. The `app` folder next to `public_html` is meant to sit there, outside the web root.
 
 `public/.htaccess` (Laravel's, plus browser cache headers for static files since milestone 11) is used by Hostinger's LiteSpeed server as is. Leave hPanel's "Force HTTPS" off: Cloudflare redirects to HTTPS, and doing it at both ends can cause redirect loops.
 

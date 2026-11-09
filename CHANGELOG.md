@@ -224,6 +224,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - README with local setup steps.
 
 ### Fixed
+- The first staging deploy failed after switching `current`, at "Keeping the last 5 releases". `deploy/remote-deploy.sh` and `deploy/rollback.sh` read the release list through process substitution (`< <(...)`), which needs `/dev/fd`, and Hostinger's CageFS shell doesn't have it. They now use a here-string.
 - The "Transaction ID" field on the order and gift voucher bank transfer pages read "Transaction ID (optional) (optional)": the form field component already adds "(optional)". Found by the milestone 13 browser journeys; regression tests added.
 - Behind Cloudflare, `X-Forwarded-For` and `X-Forwarded-Proto` are trusted from Cloudflare's published ranges only (`config/security.php`, `TRUSTED_PROXIES`), so rate limits, logs and attribution see the visitor's IP and HTTPS is detected. `X-Forwarded-Host` is never trusted.
 - The admin panel now loads Livewire's script and styles. Livewire's automatic asset injection is off (since milestone 2, for the public bundle), so in a real browser the panel's Livewire and Alpine never started and forms such as the login spun forever. Tests render HTML only, so they missed it; a regression test now checks for the script.
@@ -231,6 +232,10 @@ All notable changes to this project are documented here. The format follows [Kee
 - The full-page cache now has its own cache store. It used the default store, and `ResponseCache::clear()` (run after every seat change and content edit) emptied that whole store, resetting rate-limit counters, including the sign-in code limits. A regression test covers it.
 
 ### Changed
+- `docs/DEPLOY.md`, based on what the real Hostinger server showed:
+  - Staging is added as its own website, so it no longer sits under production's web root. The staging `DEPLOY_PATH` is now `~/domains/staging.ride-pakistan.com/app`. A subdomain made under Domains → Subdomains lands in `public_html/staging`.
+  - `sodium` must be ticked in hPanel. It's the only required extension that's off by default.
+  - `PHP_BIN` is pinned to `/opt/alt/php83/usr/bin/php`.
 - npm devDependencies pinned to exact versions; `alpinejs` replaced by `@alpinejs/csp` 3.17.5 (milestone 10).
 - Leads and lead notes are no longer admin-only: staff can view, add, move, assign and note them (milestone 9). Converting, deleting and the lead reports stay admin-only.
 - Removed unconfirmed claims that could be wrong or unsafe: helmet provision and requirements, arrival time, weather rescheduling, consent for minors, photography, transport, the "Is horse riding safe for beginners?" FAQ, reply-time promises, "Most popular", "multi-day" expeditions and package outcome claims. Riding rules and booking policies now default to confirmed or neutral wording only.

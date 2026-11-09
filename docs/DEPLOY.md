@@ -155,8 +155,10 @@ Hostinger puts an empty `DO_NOT_UPLOAD_HERE` file in each `~/domains/<domain>/` 
 One job per environment, **every minute**:
 
 ```
-* * * * * cd <DEPLOY_PATH>/current && <PHP_BIN> artisan schedule:run >> /dev/null 2>&1
+* * * * * cd <DEPLOY_PATH>/current && <PHP_BIN> -d disable_functions=system,exec,shell_exec,passthru,mysql_list_dbs,ini_alter,dl,symlink,link,chgrp,leak,popen,apache_child_terminate,virtual,mb_send_mail artisan schedule:run >> /dev/null 2>&1
 ```
+
+**Why the `-d disable_functions=…`:** Hostinger disables `proc_open` (with `exec`, `shell_exec` and others) in PHP. Laravel's scheduler needs `proc_open` to start each task, and without it every task fails silently: the queue (all emails), hold expiry, backups. The list above is Hostinger's own list with only `proc_open` removed, and it applies to this cron process only, never to the website. Check it still matches with `<PHP_BIN> -r "echo ini_get('disable_functions');"`. If Hostinger changes the list, update the cron. A plain `artisan schedule:run` by hand looks fine but runs nothing: the tasks "finish" in a few milliseconds and `SELECT COUNT(*) FROM jobs` doesn't go down.
 
 That single entry runs everything in `routes/console.php`:
 

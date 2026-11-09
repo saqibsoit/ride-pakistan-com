@@ -230,6 +230,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - README with local setup steps.
 
 ### Fixed
+- Hostinger cron: the scheduler ran nothing, so no emails were sent and holds never expired. Hostinger disables `proc_open`, which Laravel needs to start each scheduled task. The cron line in `docs/DEPLOY.md` now re-enables only `proc_open` for that one process (`-d disable_functions=…`).
 - Images inside grid and flex layouts were misplaced on every page. `<x-img>` renders `<picture class="contents">`, so its `<source>` elements became layout items too: Chrome gave each one a grid cell and a flex gap. A base rule now takes `picture > source` out of layout. What it fixes:
   - The homepage photo band no longer shows two stacked photos of different widths with a gap on the left. It's now a full-width band as in `docs/reference/index.html`: 1.4fr / 1fr (`md:grid-cols-band`, token `--grid-template-columns-band`), equal height (`h-photo-band`, 320–680 px), and one photo on mobile. Focal points (`graze-focus`, `camp-focus`) keep the horse's face and the riders' faces in frame.
   - Same cause, also fixed: the trainer page portrait sat in the right-hand columns with the text pushed below it. The product page photo sat a row below "Key facts". The "Meet Omar Saleem" section and the header and footer logos were offset.

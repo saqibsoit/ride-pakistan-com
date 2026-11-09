@@ -61,6 +61,15 @@
         display: none !important;
     }
 
+    /* <x-img> renders <picture class="contents"> so the <img> itself is the
+       grid or flex item and carries the layout classes. That also exposes
+       the <source> elements to the layout: Chrome gives each one its own
+       grid cell (pushing the image along) and a flex gap. They never draw
+       anything, so keep them out of layout. */
+    picture > source {
+        display: none;
+    }
+
     @media (prefers-reduced-motion: no-preference) {
         html {
             scroll-behavior: smooth;
@@ -149,6 +158,17 @@
 
     .hero-image-focus {
         object-position: 60% 30%;
+    }
+
+    /* Homepage photo band focal points (both photos are portrait, cropped
+       to a landscape cell): keep the grazing horse's face down to the muzzle
+       and the riders' faces in frame. */
+    .graze-focus {
+        object-position: 50% 60%;
+    }
+
+    .camp-focus {
+        object-position: 50% 30%;
     }
 
     /* Fact strip: 4 columns with dividers, 2x2 below md. */

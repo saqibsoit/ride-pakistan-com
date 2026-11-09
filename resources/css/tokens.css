@@ -84,6 +84,8 @@
     --container-prose: 62ch;
     --container-narrow: 53.75rem;
     --container-headline: 10ch;
+    /* Homepage photo band: wide photo + narrow photo (md:grid-cols-band). */
+    --grid-template-columns-band: 1.4fr 1fr;
 
     /* Radii --------------------------------------------------------------- */
     --radius-*: initial;

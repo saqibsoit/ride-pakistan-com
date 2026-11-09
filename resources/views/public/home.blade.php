@@ -84,9 +84,10 @@
         </div>
     </section>
 
-    <div class="grid gap-2 md:grid-cols-5" role="presentation">
-        <x-img src="graze.jpg" alt="Close-up of a white horse grazing" sizes="(min-width: 48rem) 60vw, 100vw" class="h-photo-band w-full object-cover md:col-span-3" />
-        <x-img src="camp.jpg" alt="Riders at camp in the golden evening light" sizes="40vw" class="hidden h-photo-band w-full object-cover md:col-span-2 md:block" />
+    {{-- Photo band: wide + narrow photo, same height; one photo below md. --}}
+    <div class="grid gap-2 md:grid-cols-band" role="presentation" data-photo-band>
+        <x-img src="graze.jpg" alt="Close-up of a white horse grazing" sizes="(min-width: 48rem) 58vw, 100vw" class="graze-focus h-photo-band w-full object-cover" />
+        <x-img src="camp.jpg" alt="Riders at camp in the golden evening light" sizes="(min-width: 48rem) 42vw, 100vw" class="camp-focus hidden h-photo-band w-full object-cover md:block" />
     </div>
 
     <section id="trainer" class="bg-earth-2 py-section" aria-labelledby="trainer-title">

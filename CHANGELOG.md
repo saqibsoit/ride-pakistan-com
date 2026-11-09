@@ -224,6 +224,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - README with local setup steps.
 
 ### Fixed
+- The first staging deploy failed after switching `current`, at "Keeping the last 5 releases". `deploy/remote-deploy.sh` and `deploy/rollback.sh` read the release list through process substitution (`< <(...)`), which needs `/dev/fd`, and Hostinger's CageFS shell doesn't have it. They now use a here-string.
 - The "Transaction ID" field on the order and gift voucher bank transfer pages read "Transaction ID (optional) (optional)": the form field component already adds "(optional)". Found by the milestone 13 browser journeys; regression tests added.
 - Behind Cloudflare, `X-Forwarded-For` and `X-Forwarded-Proto` are trusted from Cloudflare's published ranges only (`config/security.php`, `TRUSTED_PROXIES`), so rate limits, logs and attribution see the visitor's IP and HTTPS is detected. `X-Forwarded-Host` is never trusted.
 - The admin panel now loads Livewire's script and styles. Livewire's automatic asset injection is off (since milestone 2, for the public bundle), so in a real browser the panel's Livewire and Alpine never started and forms such as the login spun forever. Tests render HTML only, so they missed it; a regression test now checks for the script.

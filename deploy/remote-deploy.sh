@@ -79,7 +79,9 @@ log "Clearing the page cache and restarting queue workers"
 
 log "Keeping the last $KEEP_RELEASES releases"
 current_target="$(readlink -f "$DEPLOY_PATH/current")"
-mapfile -t releases < <(find "$DEPLOY_PATH/releases" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort -r)
+# A here-string, not < <(...): Hostinger's CageFS shell has no /dev/fd,
+# so process substitution fails there.
+mapfile -t releases <<<"$(find "$DEPLOY_PATH/releases" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort -r)"
 for old in "${releases[@]:$KEEP_RELEASES}"; do
     if [[ "$(readlink -f "$DEPLOY_PATH/releases/$old")" != "$current_target" ]]; then
         rm -rf "${DEPLOY_PATH:?}/releases/${old:?}"

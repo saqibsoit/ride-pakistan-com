@@ -21,7 +21,8 @@ fail() { printf '\nRollback failed: %s\n' "$*" >&2; exit 1; }
 [[ -L "$DEPLOY_PATH/current" ]] || fail "$DEPLOY_PATH/current is not a symlink; nothing is deployed"
 
 live="$(basename "$(readlink -f "$DEPLOY_PATH/current")")"
-mapfile -t releases < <(find "$DEPLOY_PATH/releases" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort)
+# A here-string, not < <(...): Hostinger's CageFS shell has no /dev/fd.
+mapfile -t releases <<<"$(find "$DEPLOY_PATH/releases" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort)"
 
 if [[ -z "$TARGET" ]]; then
     for i in "${!releases[@]}"; do

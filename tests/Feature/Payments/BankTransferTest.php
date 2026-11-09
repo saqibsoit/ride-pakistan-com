@@ -391,3 +391,12 @@ it('never stores proofs under public/ and the storage route does not serve them'
     $this->get('/transfers/'.$path)->assertNotFound();
     expect(file_exists(public_path('storage/'.$path)))->toBeFalse();
 });
+
+it('labels the optional transaction ID field "(optional)" only once', function (): void {
+    $order = awaitingTransfer();
+
+    $html = $this->actingAs($order->user)->get(route('checkout.transfer', $order->reference))->assertOk()->getContent();
+
+    expect(substr_count(strip_tags((string) $html), '(optional)'))->toBe(1)
+        ->and(strip_tags((string) $html))->toMatch('/Transaction ID\s+\(optional\)/');
+});

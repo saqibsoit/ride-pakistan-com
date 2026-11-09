@@ -209,3 +209,12 @@ it('deletes a reviewed voucher proof after the retention period and keeps the re
         ->and($order->transaction_ref)->toBe('TXN-9')
         ->and($waiting->refresh()->screenshot_path)->not->toBeNull();
 });
+
+it('labels the optional transaction ID field "(optional)" only once', function (): void {
+    $order = gvTransferOrder();
+
+    $html = $this->actingAs($order->user)->get(route('gift-vouchers.transfer', $order->reference))->assertOk()->getContent();
+
+    expect(substr_count(strip_tags((string) $html), '(optional)'))->toBe(1)
+        ->and(strip_tags((string) $html))->toMatch('/Transaction ID\s+\(optional\)/');
+});

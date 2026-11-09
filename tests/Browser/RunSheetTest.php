@@ -81,3 +81,31 @@ it('lets a trainer work the run sheet on a phone', function (): void {
     expect($booking->refresh()->status)->toBe(BookingStatus::Attended)
         ->and($booking->horse?->name)->toBe('Toofan');
 });
+
+it('lets staff open today’s session from the run sheet list and check a rider in', function (): void {
+    $start = CarbonImmutable::now('Asia/Karachi')->startOfHour();
+    $staff = User::factory()->staff()->withMfa()->create();
+    $slot = Slot::factory()->at($start)->create();
+    $rider = Rider::factory()->create(['name' => 'Saad Mirza']);
+    $booking = Booking::factory()->create(['slot_id' => $slot->id, 'rider_id' => $rider->id, 'status' => BookingStatus::Confirmed]);
+
+    $this->actingAs($staff);
+
+    // Staff start from the list of today's and the coming sessions.
+    $page = visit(route('team.sessions.index'))->on()->mobile()
+        ->assertSee('1/'.$slot->capacity);
+    $playwright = $page->page();
+    $page->assertNoJavaScriptErrors()->assertNoConsoleLogs();
+
+    $playwright->locator('a[href="'.route('team.sessions.show', $slot).'"]')->click(['timeout' => RUN_SHEET_WAIT_MS]);
+    $playwright->locator('#rider-'.$booking->id)->waitFor(['state' => 'visible', 'timeout' => RUN_SHEET_WAIT_MS]);
+    $page->assertSee('Saad Mirza')->assertNoJavaScriptErrors();
+
+    submitOnRunSheet($playwright, 'Check in Saad Mirza', $booking, 'Checked in: Saad Mirza');
+
+    $page->assertSee('Checked in: Saad Mirza')
+        ->assertNoJavaScriptErrors()
+        ->assertNoConsoleLogs();
+
+    expect($booking->refresh()->status)->toBe(BookingStatus::Attended);
+});

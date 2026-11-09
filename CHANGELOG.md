@@ -231,6 +231,10 @@ All notable changes to this project are documented here. The format follows [Kee
 - The full-page cache now has its own cache store. It used the default store, and `ResponseCache::clear()` (run after every seat change and content edit) emptied that whole store, resetting rate-limit counters, including the sign-in code limits. A regression test covers it.
 
 ### Changed
+- `docs/DEPLOY.md`, based on what the real Hostinger server showed:
+  - Staging is added as its own website, so it no longer sits under production's web root. The staging `DEPLOY_PATH` is now `~/domains/staging.ride-pakistan.com/app`. A subdomain made under Domains → Subdomains lands in `public_html/staging`.
+  - `sodium` must be ticked in hPanel. It's the only required extension that's off by default.
+  - `PHP_BIN` is pinned to `/opt/alt/php83/usr/bin/php`.
 - npm devDependencies pinned to exact versions; `alpinejs` replaced by `@alpinejs/csp` 3.17.5 (milestone 10).
 - Leads and lead notes are no longer admin-only: staff can view, add, move, assign and note them (milestone 9). Converting, deleting and the lead reports stay admin-only.
 - Removed unconfirmed claims that could be wrong or unsafe: helmet provision and requirements, arrival time, weather rescheduling, consent for minors, photography, transport, the "Is horse riding safe for beginners?" FAQ, reply-time promises, "Most popular", "multi-day" expeditions and package outcome claims. Riding rules and booking policies now default to confirmed or neutral wording only.

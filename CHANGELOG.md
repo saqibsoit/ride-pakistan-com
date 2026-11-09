@@ -5,6 +5,12 @@ All notable changes to this project are documented here. The format follows [Kee
 ## [Unreleased]
 
 ### Added
+- Forced password change for team accounts:
+  - `php artisan admin:create`, for a new or existing account, now marks the password as temporary (`users.must_change_password`).
+  - Until it's replaced, the admin panel blocks everything else, including Livewire requests (`EnsurePasswordIsChanged`, persistent). The only things allowed are the "Change your temporary password" screen (`ChangeTemporaryPassword`, `ReplaceTemporaryPassword`) and signing out.
+  - The new password must meet the password rules and differ from the temporary one. The change is audited without the value.
+  - Filament's required MFA set-up follows.
+- The admin panel path is `/admin` (`ADMIN_PATH=admin`) on staging and production (PLAN §7 and DEPLOY.md updated).
 - Milestone 11 performance pass (`docs/PERFORMANCE.md`):
   - Measured before and after on every public page plus `/book` and checkout with discounts (Lighthouse mobile, built assets, HTTPS, median of 3). Performance is now 99–100 everywhere, LCP ≤ 1.9 s, CLS 0, TBT ≤ 122 ms (was up to 192 ms).
   - Front end:

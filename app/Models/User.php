@@ -34,6 +34,7 @@ use Illuminate\Notifications\Notifiable;
  * @property CarbonImmutable|null $marketing_consent_at
  * @property CarbonImmutable|null $email_verified_at
  * @property int $session_version bumped by "sign out everywhere"
+ * @property bool $must_change_password temporary password from admin:create; the panel blocks everything until it's replaced
  * @property CarbonImmutable|null $deleted_at deletion requested (grace period)
  * @property CarbonImmutable|null $anonymised_at
  * @property string|null $referral_code personal referral link code (milestone 10e), set by EnsureReferralCode
@@ -73,6 +74,7 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
         'role' => 'customer',
         'session_version' => 0,
         'marketing_consent' => false,
+        'must_change_password' => false,
     ];
 
     /**
@@ -250,6 +252,7 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
             'marketing_consent' => 'boolean',
             'marketing_consent_at' => 'immutable_datetime',
             'password' => 'hashed',
+            'must_change_password' => 'boolean',
             'session_version' => 'integer',
             'deleted_at' => 'immutable_datetime',
             'anonymised_at' => 'immutable_datetime',

@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Providers\Filament;
 
+use App\Filament\Auth\ChangeTemporaryPassword;
 use App\Filament\Auth\Login;
 use App\Filament\Support\InitialsAvatarProvider;
 use App\Http\Middleware\AddSecurityHeaders;
 use App\Http\Middleware\EnforceAdminIdleTimeout;
+use App\Http\Middleware\EnsurePasswordIsChanged;
 use App\Http\Middleware\EnsureSessionIsCurrent;
 use App\Http\Middleware\SetCspNonce;
 use Filament\Auth\MultiFactor\App\AppAuthentication;
@@ -27,9 +29,11 @@ use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\HtmlString;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use Livewire\Livewire;
 use Livewire\Mechanisms\FrontendAssets\FrontendAssets;
 use RuntimeException;
 
@@ -42,6 +46,10 @@ class AdminPanelProvider extends PanelProvider
         FilamentAsset::register([
             Css::make('lead-board', resource_path('css/filament/lead-board.css')),
         ]);
+
+        // A plain route action, not a discovered page, so it needs its own
+        // Livewire name for the form's update requests.
+        Livewire::component('filament.admin.auth.change-temporary-password', ChangeTemporaryPassword::class);
     }
 
     public function panel(Panel $panel): Panel
@@ -97,10 +105,19 @@ class AdminPanelProvider extends PanelProvider
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
             ])
+            // Temporary password from admin:create: change it first.
+            ->authenticatedRoutes(function (): void {
+                Route::get('change-password', ChangeTemporaryPassword::class)->name('auth.change-password');
+            })
             ->authMiddleware([
                 Authenticate::class,
                 EnsureSessionIsCurrent::class,
             ])
+            // Persistent (Livewire requests too); before the route-level
+            // required-MFA check, so a new password comes first.
+            ->authMiddleware([
+                EnsurePasswordIsChanged::class,
+            ], isPersistent: true)
             // Also on Livewire update requests from the panel, so an idle
             // tab can't keep acting (polling doesn't count as activity).
             ->authMiddleware([

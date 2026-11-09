@@ -47,7 +47,7 @@ Use absolute paths, not `~`.
 | `APP_KEY` | new, `php artisan key:generate --show` | new, different from staging |
 | `APP_DEBUG` | `false` | `false` |
 | `APP_URL` | staging URL | `https://ride-pakistan.com` |
-| `ADMIN_PATH` | random, long | random, long, different from staging |
+| `ADMIN_PATH` | `admin` | `admin` (decided 2026-11-09) |
 | `SITE_INDEXABLE` | `false` | `true` (or leave empty) |
 | `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD` | staging database (section 4) | production database |
 | `MAIL_MAILER` | `resend` | `resend` |
@@ -177,7 +177,7 @@ File logs rotate daily (`LOG_STACK=daily`) and are deleted after `LOG_DAILY_DAYS
 
 1. Run the **Deploy** workflow on `main` with environment `staging` (Actions → Deploy → Run workflow). It creates `shared/storage`, migrates the empty database and switches `current`.
 2. Seed the business data once: `cd <DEPLOY_PATH>/current && <PHP_BIN> artisan db:seed --force` (products, schedule rules and their slots, pages, FAQs, draft guides; settings use their defaults from `config/settings.php` until an admin changes them).
-3. Create the first admin: `<PHP_BIN> artisan admin:create`, then set up MFA at `/<ADMIN_PATH>`.
+3. Create the admins: `<PHP_BIN> artisan admin:create` once for each of `connecttosaqib@gmail.com` and `bilalwarrior@gmail.com` (role Admin), with the agreed temporary password typed at the prompt (never in a command line, file or chat). Each signs in at `/admin`, must choose a new password, then sets up MFA.
 4. Do the `public_html` symlink above, then open the site.
 5. Repeat for production once staging is checked (section 13).
 
@@ -365,6 +365,7 @@ These need the real servers, so they're for you (or the next session once the va
 
 - [ ] Section 1 values set; `staging` and `production` environments created, production with required reviewers and `main` only.
 - [ ] Staging first deploy succeeds; seeded; admin created; site loads over Cloudflare Full (strict).
+- [ ] **Production admins** (after the first production deploy): `ADMIN_PATH=admin` in production `shared/.env`, then `php artisan optimize` and `php artisan responsecache:clear`; run `admin:create` for `connecttosaqib@gmail.com` and `bilalwarrior@gmail.com` (role Admin, the temporary password typed at the prompt); `https://ride-pakistan.com/admin` shows the login page; both sign in, change the password and set up MFA. In production the new password must also pass the breached-password check.
 - [ ] Push to `main` deploys to staging automatically; the production job waits for approval and then deploys.
 - [ ] **Rollback tested on staging:** deploy twice, run the `rollback` action, check the older release is live (`readlink <DEPLOY_PATH>/current`), deploy again.
 - [ ] Cron runs: `holds:release` and `queue:work` show up in the logs; a test email arrives.

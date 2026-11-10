@@ -105,6 +105,11 @@ final class Settings
      */
     public static function normalise(SettingKey $key, mixed $value): mixed
     {
+        // wa.me wants digits only: "+92 334 455-4500" becomes "923344554500".
+        if ($key === SettingKey::WhatsAppNumber) {
+            return is_scalar($value) ? (string) preg_replace('/\D+/', '', (string) $value) : '';
+        }
+
         return match ($key->type()) {
             SettingType::Integer => is_numeric($value) ? (int) $value : null,
             SettingType::Decimal => is_numeric($value) ? (float) $value : null,

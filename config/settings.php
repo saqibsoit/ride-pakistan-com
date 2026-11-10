@@ -31,6 +31,8 @@ return [
         'contact.instagram_dm_url' => env('SITE_INSTAGRAM_DM_URL', 'https://ig.me/m/ridepakistan'),
         'contact.google_review_url' => '',
         'contact.expeditions_url' => env('SITE_EXPEDITIONS_URL', 'https://ridepakistan.co'),
+        'contact.whatsapp_number' => env('SITE_WHATSAPP_NUMBER', '923344554500'),
+        'contact.whatsapp_message' => 'Hi Ride Pakistan, I’d like to ask about riding sessions.',
 
         // Booking rules (PLAN §2 open decisions)
         'booking.riders_per_slot' => 6,

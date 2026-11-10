@@ -21,6 +21,8 @@ enum SettingKey: string
     case InstagramDmUrl = 'contact.instagram_dm_url';
     case GoogleReviewUrl = 'contact.google_review_url';
     case ExpeditionsUrl = 'contact.expeditions_url';
+    case WhatsAppNumber = 'contact.whatsapp_number';
+    case WhatsAppMessage = 'contact.whatsapp_message';
 
     case RidersPerSlot = 'booking.riders_per_slot';
     case TransferHoldHours = 'booking.transfer_hold_hours';
@@ -119,6 +121,8 @@ enum SettingKey: string
             self::InstagramDmUrl => 'Instagram DM link',
             self::GoogleReviewUrl => 'Google review link (sent in the thank-you email; hidden while empty)',
             self::ExpeditionsUrl => 'Expeditions site URL',
+            self::WhatsAppNumber => 'WhatsApp number (chat button)',
+            self::WhatsAppMessage => 'WhatsApp pre-filled message',
             self::RidersPerSlot => 'Riders per slot',
             self::TransferHoldHours => 'Bank transfer hold window (hours)',
             self::TransferMinNoticeHours => 'Offer bank transfer only if the session starts at least this many hours later',
@@ -186,6 +190,8 @@ enum SettingKey: string
             self::InstagramDmUrl => 'Opens an Instagram message to us ("Send us a DM" buttons).',
             self::GoogleReviewUrl => 'Review link in the thank-you email after a session. Leave empty to leave the button out.',
             self::ExpeditionsUrl => 'Where the "Expeditions" page and chips link to (the separate expeditions site).',
+            self::WhatsAppNumber => 'Number the floating "Chat with us on WhatsApp" button opens, in international format without + or spaces, e.g. 923344554500. Leave empty to hide the button.',
+            self::WhatsAppMessage => 'Text already typed in the WhatsApp chat when a visitor taps the button. They can change it before sending.',
             self::RidersPerSlot => 'Default number of riders for new schedule rules and manual slots. Existing slots keep their own capacity.',
             self::TransferHoldHours => 'How long seats stay held after a customer chooses bank transfer and before they upload proof. Never past the session start.',
             self::TransferMinNoticeHours => 'Bank transfer is only offered when the first session is at least this many hours away, so there is time to verify it.',

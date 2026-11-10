@@ -45,6 +45,7 @@ final class ExportAccountData
                 'email' => $user->email,
                 'email_verified_at' => self::date($user->email_verified_at),
                 'phone' => $user->phone,
+                'whatsapp_phone' => $user->whatsapp_phone,
                 'marketing_consent' => $user->marketing_consent,
                 'marketing_consent_changed_at' => self::date($user->marketing_consent_at),
                 'created_at' => self::date($user->created_at),

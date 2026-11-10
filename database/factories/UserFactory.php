@@ -34,7 +34,14 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
+            // Asked for at every booking (prompt 14); withoutWhatsApp() for a customer who hasn't given it yet.
+            'whatsapp_phone' => fake()->numerify('+92300#######'),
         ];
+    }
+
+    public function withoutWhatsApp(): static
+    {
+        return $this->state(fn (array $attributes) => ['whatsapp_phone' => null]);
     }
 
     /**

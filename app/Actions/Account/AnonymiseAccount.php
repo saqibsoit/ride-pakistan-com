@@ -110,6 +110,7 @@ final class AnonymiseAccount
                     'name' => null,
                     'email' => 'deleted-'.$user->id.'@anonymised.invalid',
                     'phone' => null,
+                    'whatsapp_phone' => null,
                     'marketing_consent' => false,
                     'marketing_consent_at' => null,
                     'password' => null,

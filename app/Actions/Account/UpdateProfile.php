@@ -9,7 +9,8 @@ use Carbon\CarbonImmutable;
 use Propaganistas\LaravelPhone\PhoneNumber;
 
 /**
- * Customer profile: name, phone (stored as E.164) and marketing consent.
+ * Customer profile: name, phone and WhatsApp number (stored as E.164) and
+ * marketing consent.
  * Consent is off unless the customer ticks it; every change of consent
  * (given or withdrawn) is timestamped and lands in the audit log.
  */
@@ -18,7 +19,7 @@ final class UpdateProfile
     public const DEFAULT_PHONE_COUNTRY = 'PK';
 
     /**
-     * @param  array{name: string, phone?: string|null, marketing_consent?: bool}  $data
+     * @param  array{name: string, phone?: string|null, whatsapp_phone?: string|null, marketing_consent?: bool}  $data
      */
     public function handle(User $user, array $data): User
     {
@@ -28,6 +29,10 @@ final class UpdateProfile
             'name' => trim($data['name']),
             'phone' => self::toE164($data['phone'] ?? null),
         ]);
+
+        if (array_key_exists('whatsapp_phone', $data)) {
+            $user->whatsapp_phone = self::toE164($data['whatsapp_phone']);
+        }
 
         if ($consent !== (bool) $user->marketing_consent) {
             $user->fill([

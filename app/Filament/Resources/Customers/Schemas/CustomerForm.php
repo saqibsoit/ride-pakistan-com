@@ -32,6 +32,12 @@ class CustomerForm
                         ->regex(self::PHONE_PATTERN)
                         ->validationMessages(['regex' => 'Use the international format, for example +923001234567.'])
                         ->maxLength(16),
+                    TextInput::make('whatsapp_phone')->label('WhatsApp (international format)')
+                        ->tel()
+                        ->placeholder('+923001234567')
+                        ->regex(self::PHONE_PATTERN)
+                        ->validationMessages(['regex' => 'Use the international format, for example +923001234567.'])
+                        ->maxLength(16),
                     Toggle::make('marketing_consent')->label('Agreed to marketing messages')
                         ->helperText('Only the customer can change this.')
                         ->disabled()

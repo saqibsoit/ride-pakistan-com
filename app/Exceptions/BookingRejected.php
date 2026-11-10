@@ -20,6 +20,9 @@ final class BookingRejected extends RuntimeException
 
     public const PRIVATE_ONLY = 'private_only';
 
+    /** A private session holds or has booked the whole slot (prompt 14). */
+    public const BOOKED_PRIVATELY = 'booked_privately';
+
     public const TOO_MANY_RIDERS = 'too_many_riders';
 
     public const RIDER_ALREADY_BOOKED = 'rider_already_booked';
@@ -56,6 +59,11 @@ final class BookingRejected extends RuntimeException
     public static function privateOnly(): self
     {
         return new self(self::PRIVATE_ONLY, 'That session is for private bookings only. Please choose another time.');
+    }
+
+    public static function bookedPrivately(): self
+    {
+        return new self(self::BOOKED_PRIVATELY, 'That session has been booked privately, so no seats will come free. Please choose another time.');
     }
 
     public static function slotNotEmpty(): self

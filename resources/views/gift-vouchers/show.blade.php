@@ -14,6 +14,7 @@
             @if ($status === VoucherOrderStatus::Paid)
                 <x-alert variant="success" title="Payment received.">
                     {{ $order->send_on ? 'We\'ll email the voucher to '.$order->recipient_name.' on '.$order->send_on->format('j F Y').' at 9 am (Pakistan time).' : 'We\'ve emailed the voucher to '.$order->recipient_name.'.' }}
+                    <x-spam-hint />
                 </x-alert>
             @elseif ($status === VoucherOrderStatus::Expired)
                 <x-alert variant="warning" title="This purchase has expired.">It wasn't paid in time. <a href="{{ route('gift-vouchers.create') }}" class="underline underline-offset-4">Start again</a>.</x-alert>

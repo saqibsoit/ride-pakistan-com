@@ -2,6 +2,7 @@
     @if ($state === 'paid')
         <x-alert variant="success" title="Payment received. You're booked.">
             We've emailed your receipt. Your sessions and tickets are in your account.
+            <x-spam-hint />
         </x-alert>
         <div class="flex flex-wrap gap-3">
             <x-button :href="route('account.orders.show', $order->reference)">See your order</x-button>
@@ -19,6 +20,7 @@
     @elseif ($timedOut)
         <x-alert variant="info" title="We're still confirming your payment.">
             This can take a few minutes. You don't need to pay again: we'll email you as soon as it's confirmed, and the order in your account will update.
+            <x-spam-hint />
         </x-alert>
         <x-button variant="ghost" :href="route('account.orders.show', $order->reference)">See your order</x-button>
     @else

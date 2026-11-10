@@ -20,6 +20,7 @@
         @if (session('status') === 'lead-sent')
             <x-alert variant="success" title="Thanks, your message is on its way." class="mb-8">
                 We’ll get back to you by phone or email.
+                <x-spam-hint />
             </x-alert>
         @endif
 

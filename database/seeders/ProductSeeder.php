@@ -22,8 +22,10 @@ class ProductSeeder extends Seeder
             'Closed shoes or boots with a small heel',
         ];
 
-        // Session content as listed in PLAN §2. Equipment (helmets, tack) is an
-        // open question (docs/OPEN-QUESTIONS.md), so it is not promised here.
+        // Session content as listed in PLAN §2. Tack is an open question
+        // (docs/OPEN-QUESTIONS.md), so it is not promised here. Riders bring
+        // their own helmet: the session page adds the policies.helmet_notice
+        // setting to "What to bring" (prompt 14).
         $included = [
             'Bringing your horse in from the paddock',
             'Grooming and tacking up with your trainer',

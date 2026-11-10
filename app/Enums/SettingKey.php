@@ -41,6 +41,7 @@ enum SettingKey: string
     case RidingRules = 'policies.riding_rules';
     case BookingPolicies = 'policies.booking';
     case RefundPolicy = 'policies.refund';
+    case HelmetNotice = 'policies.helmet_notice';
 
     case BankAccountName = 'bank.account_name';
     case BankName = 'bank.name';
@@ -139,6 +140,7 @@ enum SettingKey: string
             self::RidingRules => 'Riding rules',
             self::BookingPolicies => 'Booking policies',
             self::RefundPolicy => 'Refund policy summary',
+            self::HelmetNotice => 'Helmet notice',
             self::BankAccountName => 'Account name',
             self::BankName => 'Bank',
             self::BankIban => 'IBAN',
@@ -207,6 +209,7 @@ enum SettingKey: string
             self::WaitlistOfferHours => 'When seats free up in a full slot, the first person on its waitlist who fits gets an email and the seats are held for them this long (never past the booking cutoff). If they do not book in time, the offer moves to the next person.',
             self::RidingRules => 'One rule per line (helmet, shoes, ...), shown on the prices page and in reminder emails.',
             self::BookingPolicies => 'One policy per line, shown on the prices and session pages. ":cutoff" becomes the cutoff hours; ":min_age" the minimum age.',
+            self::HelmetNotice => 'Riders bring their own helmet. This sentence is the first item of "What to bring" on every session page, in the FAQ (token {helmet}), in booking confirmation emails and in the reminder before a session.',
             self::RefundPolicy => 'Short refund summary shown in the booking policies on the prices page. The full text is the Refund policy page.',
             self::BankAccountName => 'Account name customers pay by bank transfer. Shown only on the checkout transfer page.',
             self::BankName => 'Bank name for transfers, shown only on the checkout transfer page.',

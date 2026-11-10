@@ -60,6 +60,7 @@ final class SessionReminder extends CustomerNotification
                 'rules' => $settings->policies(SettingKey::RidingRules),
                 'arrivalAt' => $arrival === null || $arrival <= 0 ? null : $this->slot->starts_at->subMinutes($arrival)->setTimezone($tz),
                 'mapPin' => $settings->string(SettingKey::MapPinUrl),
+                'helmet' => $settings->string(SettingKey::HelmetNotice),
                 'cutoffHours' => app(CancellationCutoff::class)->hours(),
                 'qr' => $bookings->mapWithKeys(fn (Booking $b): array => [$b->id => TicketQr::png($b, 6)])->all(),
             ]);

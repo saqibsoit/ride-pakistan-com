@@ -90,11 +90,15 @@
                 </x-step-list>
             </section>
 
-            @if (! empty($product->what_to_bring))
+            @php($helmet = app(\App\Support\Settings::class)->string(\App\Enums\SettingKey::HelmetNotice))
+            @if (! empty($product->what_to_bring) || $helmet !== '')
                 <section aria-labelledby="bring-title">
                     <h2 id="bring-title" class="mb-6 text-display-lg">What to bring.</h2>
                     <ul class="tick-list max-w-prose">
-                        @foreach ($product->what_to_bring as $item)
+                        @if ($helmet !== '')
+                            <li class="font-semibold" data-helmet-notice>{{ $helmet }}</li>
+                        @endif
+                        @foreach ($product->what_to_bring ?? [] as $item)
                             <li>{{ $item }}</li>
                         @endforeach
                     </ul>

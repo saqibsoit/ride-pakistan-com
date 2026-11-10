@@ -7,6 +7,7 @@ Status key:
 - **Open decision**: listed in PLAN §2 as undecided; the site uses the bracketed default.
 - **Unconfirmed, still shown**: low-risk wording kept on the site until confirmed.
 - **Removed**: a claim that could be wrong or unsafe if untrue. It has been taken off the site and replaced with neutral wording; it can go back once confirmed.
+- **Decided**: confirmed by the business; the site states it and `docs/PLAN.md` records it.
 
 Where a value is a setting, an admin can change it on the Settings page of the admin panel (roles and MFA arrived in milestone 3); the defaults live in `config/settings.php`.
 
@@ -24,7 +25,7 @@ Where a value is a setting, an admin can change it on the Settings page of the a
 
 | # | Question | Current placeholder | Where it is used | Status |
 |---|---|---|---|---|
-| 2.1 | Do you provide riding helmets? Are they required for everyone, in every session? Which sizes (children)? | **Nothing said** | Removed from: riding rules (`policies.riding_rules`: "A riding helmet is required at all times… We provide one"), "Your booking includes" on all product pages ("Riding helmet if you do not have your own"), FAQ "What should I wear?" ("We provide a riding helmet"), FAQ "Is horse riding safe for beginners?" ("You wear a helmet"), draft guide outline "What to wear…". | Removed |
+| 2.1 | Do you provide riding helmets? Are they required for everyone, in every session? Which sizes (children)? | **Riders bring their own riding helmet; riders without one can't ride** (decided 2026-11-10, prompt 14; setting `policies.helmet_notice`) | First item of "What to bring" on every `/sessions/{product}` page; FAQ "What should I wear?" (`{helmet}` token, added by migration `2026_11_20_100100`); "Before you come" in the booking confirmation emails (`OrderConfirmed`, `BookingConfirmed`) and the 24-hour reminder. Still not said: that helmets are provided or lent, sizes for children, and the safety FAQ wording (3.6). | Decided |
 | 2.2 | What other kit do you provide (tack, body protectors, boots, gloves)? | **Nothing said** | Removed from the draft guide outline "What to wear…" ("What we provide: helmet and tack"). "Grooming and tacking up with your trainer" (session content from PLAN §2) is still listed. | Removed |
 | 2.3 | What should riders wear and bring? | **Full-length trousers; closed shoes or boots with a small heel** (from the reference page FAQ) | "What to bring" on every `/sessions/{product}` page; riding rule "Wear full-length trousers and closed shoes or boots with a small heel." on `/prices` and in `/llms.txt`; FAQ "What should I wear?" (also: avoid loose scarves); home page "How to book" step 4 ("Come in long trousers and closed shoes"). | Unconfirmed, still shown |
 | 2.4 | Should riders bring water, sunscreen or warm layers? | **Nothing said** | Removed from "What to bring" ("A water bottle", "Sunscreen in summer, a warm layer in winter"). | Removed |

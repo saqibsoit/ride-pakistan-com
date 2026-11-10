@@ -242,7 +242,8 @@ it('never shows bank details or the map pin on public pages', function (): void 
 it('makes no unconfirmed safety or policy claims (docs/OPEN-QUESTIONS.md)', function (string $url): void {
     $html = strtolower(strip_tags((string) $this->get($url)->getContent()));
 
-    foreach (['helmet', 'weather', 'under 18', 'guardian', 'photos and video', 'transport', 'safe for beginners', 'within a day', '15 minutes', 'most popular', 'multi-day'] as $claim) {
+    // Helmets were decided on 2026-11-10 (prompt 14: riders bring their own), so they're no longer on this list.
+    foreach (['weather', 'under 18', 'guardian', 'photos and video', 'transport', 'safe for beginners', 'within a day', '15 minutes', 'most popular', 'multi-day'] as $claim) {
         expect($html)->not->toContain($claim);
     }
 })->with(['/', '/experiences', '/sessions/single-session', '/sessions/private-session', '/sessions/8-class-package', '/sessions/16-class-package', '/schedule', '/prices', '/faq', '/contact', '/expeditions', '/book', '/llms.txt']);

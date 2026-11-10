@@ -42,7 +42,7 @@ class PostSeeder extends Seeder
                     'Shoes and boots' => '- Why a small heel; what to avoid',
                     'Layers and weather' => '- Summer and winter in Islamabad',
                     'What to leave at home' => '- Scarves, loose jewellery',
-                    'What we provide' => '- To confirm with Omar before writing (helmets, tack)',
+                    'What we provide' => '- Riders bring their own riding helmet (no helmet, no ride); other kit: to confirm with Omar before writing',
                 ],
             ],
             'private-vs-group-riding-lessons' => [

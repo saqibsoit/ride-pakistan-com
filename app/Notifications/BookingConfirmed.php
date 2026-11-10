@@ -57,6 +57,7 @@ final class BookingConfirmed extends CustomerNotification
             ->markdown('mail.booking-confirmed', [
                 'bookings' => $bookings,
                 'mapPin' => app(Settings::class)->string(SettingKey::MapPinUrl),
+                'helmet' => app(Settings::class)->string(SettingKey::HelmetNotice),
                 'qr' => $bookings->mapWithKeys(fn (Booking $b): array => [$b->id => TicketQr::png($b, 6)])->all(),
                 'calendar' => $this->googleLinks($bookings),
                 'timezone' => (string) config('app.display_timezone'),

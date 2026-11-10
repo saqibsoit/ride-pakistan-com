@@ -163,7 +163,11 @@ class VerifyTransfers extends Page implements HasTable
                 try {
                     app(ApproveBankTransfer::class)->handle($transfer, $admin);
                 } catch (BookingRejected $e) {
-                    Notification::make()->danger()->title('Not approved')->body($e->getMessage().' Reject the transfer and refund it by bank, or move the booking.')->send();
+                    $flagged = (bool) ($record->refresh()->meta['needs_review'] ?? false) && $e->reason !== BookingRejected::NOT_ALLOWED;
+
+                    Notification::make()->danger()->title('Not approved')->body($e->getMessage()
+                        .($flagged ? ' The order is flagged "Needs review" and the customer has been emailed.' : '')
+                        .' Reject the transfer and refund it by bank, or move the booking.')->send();
 
                     return;
                 }

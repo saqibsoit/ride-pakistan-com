@@ -15,6 +15,8 @@ use App\Models\BankTransfer;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Models\User;
+use App\Notifications\OrderNotFulfilled;
+use App\Support\Notifier;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
@@ -23,12 +25,20 @@ use Illuminate\Support\Facades\DB;
  * through FulfilOrder, exactly as for a card payment. In one transaction:
  * the transfer is marked approved with the verifier and time, the payment
  * is recorded, and the order is fulfilled. Approving twice changes
- * nothing; if the seats can no longer be given (FulfilOrder says no),
- * nothing is written and the admin sees why.
+ * nothing. If the booking can no longer be given (FulfilOrder says no:
+ * the slot was closed, cancelled, filled up or booked privately after
+ * the hold ran out), the approval is rolled back, the order is flagged
+ * "Needs review" and the customer is emailed once (OrderNotFulfilled);
+ * the BookingRejected is rethrown so the admin sees why and can refund
+ * by bank or move the booking.
  */
 final class ApproveBankTransfer
 {
-    public function __construct(private readonly FulfilOrder $fulfil) {}
+    public function __construct(
+        private readonly FulfilOrder $fulfil,
+        private readonly FlagOrderForReview $flag,
+        private readonly Notifier $notifier,
+    ) {}
 
     /**
      * @return bool false when it had already been approved
@@ -41,7 +51,33 @@ final class ApproveBankTransfer
             throw BookingRejected::notAllowed('Only admins can approve transfers.');
         }
 
-        $approved = DB::transaction(function () use ($transfer, $admin): bool {
+        $unfulfillable = null;
+
+        try {
+            $approved = $this->approve($transfer, $admin, $unfulfillable);
+        } catch (BookingRejected $e) {
+            if ($e === $unfulfillable) {
+                $this->reportUnfulfillable($transfer, $admin, $e);
+            }
+
+            throw $e;
+        }
+
+        if ($approved) {
+            event(new OrderPaid(Order::query()->findOrFail($transfer->order_id)));
+        }
+
+        return $approved;
+    }
+
+    /**
+     * @param-out BookingRejected|null $unfulfillable  set when FulfilOrder refused
+     *
+     * @throws BookingRejected
+     */
+    private function approve(BankTransfer $transfer, User $admin, ?BookingRejected &$unfulfillable): bool
+    {
+        return DB::transaction(function () use ($transfer, $admin, &$unfulfillable): bool {
             $order = Order::query()->whereKey($transfer->order_id)->lockForUpdate()->firstOrFail();
             $locked = BankTransfer::query()->whereKey($transfer->id)->lockForUpdate()->firstOrFail();
 
@@ -70,7 +106,13 @@ final class ApproveBankTransfer
                 'raw' => ['bank_transfer_id' => $locked->id, 'verified_by' => $admin->id],
             ]);
 
-            $this->fulfil->handle($order, $admin, ['bank_transfer_id' => $locked->id]);
+            try {
+                $this->fulfil->handle($order, $admin, ['bank_transfer_id' => $locked->id]);
+            } catch (BookingRejected $e) {
+                $unfulfillable = $e; // rolls the approval back
+
+                throw $e;
+            }
 
             activity('payments')
                 ->performedOn($order)
@@ -83,11 +125,21 @@ final class ApproveBankTransfer
 
             return true;
         });
+    }
 
-        if ($approved) {
-            event(new OrderPaid(Order::query()->findOrFail($transfer->order_id)));
-        }
+    /** The money is in but the booking can't be given: flag it for the team and tell the customer. */
+    private function reportUnfulfillable(BankTransfer $transfer, User $admin, BookingRejected $e): void
+    {
+        DB::transaction(function () use ($transfer, $admin, $e): void {
+            $order = Order::query()->whereKey($transfer->order_id)->lockForUpdate()->firstOrFail();
 
-        return $approved;
+            $this->flag->handle($order, 'transfer_unfulfillable', 'Bank transfer received but the booking could not be confirmed ('.$e->getMessage().'). Refund it by bank or move the booking.', [
+                'bank_transfer_id' => $transfer->id,
+                'admin_id' => $admin->id,
+                'reason' => $e->reason,
+            ]);
+
+            $this->notifier->send($order->user, new OrderNotFulfilled($order, refunded: false), Notifier::key(OrderNotFulfilled::type(), $order, $order->user));
+        });
     }
 }

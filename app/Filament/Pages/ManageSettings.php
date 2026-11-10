@@ -155,7 +155,7 @@ class ManageSettings extends Page
             SettingType::Email => TextInput::make($name)->email()->maxLength(190),
             default => $key === SettingKey::WhatsAppNumber
                 ? TextInput::make($name)->tel()->maxLength(32)->regex('/^\+?[\d\s\-()]{8,20}$/')
-                :  TextInput::make($name)->maxLength(255),
+                : TextInput::make($name)->maxLength(255),
         };
 
         // Every setting explains itself (SettingKey::help(), milestone 10a).

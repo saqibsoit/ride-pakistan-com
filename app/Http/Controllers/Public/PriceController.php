@@ -33,6 +33,7 @@ final class PriceController extends Controller
             'ridingRules' => $settings->policies(SettingKey::RidingRules),
             'bookingPolicies' => $settings->policies(SettingKey::BookingPolicies),
             'refundPolicy' => $settings->string(SettingKey::RefundPolicy),
+            'refundPageUrl' => Page::query()->published()->where('slug', 'refund-policy')->exists() ? route('legal.refund-policy') : null,
             'turnstileSiteKey' => $turnstile->configured() ? $turnstile->siteKey() : null,
             'seo' => $seo->make(
                 title: 'Horse riding lesson prices in Islamabad',

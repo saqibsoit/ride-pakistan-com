@@ -56,6 +56,9 @@ class ManageSettings extends Page
         'weather' => 'Weather alerts',
     ];
 
+    /** The full refund policy lives in policies.refund (about 3,200 characters). */
+    public const REFUND_POLICY_MAX = 10000;
+
     /** @var array<string, mixed> */
     public array $data = [];
 
@@ -139,7 +142,9 @@ class ManageSettings extends Page
         $name = self::field($key);
 
         $field = match ($key->type()) {
-            SettingType::LongText => Textarea::make($name)->rows(3)->maxLength(2000)->columnSpanFull(),
+            SettingType::LongText => $key === SettingKey::RefundPolicy
+                ? Textarea::make($name)->rows(12)->maxLength(self::REFUND_POLICY_MAX)->columnSpanFull()
+                : Textarea::make($name)->rows(3)->maxLength(2000)->columnSpanFull(),
             SettingType::List => ContentFields::list($name, $key->label()),
             SettingType::Integer => $key === SettingKey::WeatherColdC
                 ? TextInput::make($name)->integer()->minValue(-50)->maxValue(50)

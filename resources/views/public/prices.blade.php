@@ -85,8 +85,19 @@
                             <li>{{ $policy }}</li>
                         @endforeach
                     </ul>
-                    @if ($refundPolicy !== '')
-                        <p class="mt-6 text-sand-dim">{{ $refundPolicy }}</p>
+                </div>
+            @endif
+            @if ($refundPolicy !== '')
+                {{-- The full refund policy (setting policies.refund, Markdown), folded away. --}}
+                <div>
+                    <details class="border-t border-b border-line py-4">
+                        <summary class="cursor-pointer font-semibold">Read the full refund policy</summary>
+                        <div class="prose-content mt-4">
+                            {!! str_replace(['<h2', '</h2>'], ['<h3', '</h3>'], \App\Support\Markdown::toHtml($refundPolicy)) !!}
+                        </div>
+                    </details>
+                    @if ($refundPageUrl)
+                        <p class="mt-4"><a href="{{ $refundPageUrl }}" class="underline underline-offset-4 hover:text-sand">Cancellation and refund policy page</a></p>
                     @endif
                 </div>
             @endif

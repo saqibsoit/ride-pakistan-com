@@ -48,7 +48,7 @@ A fast, secure, bilingual-ready website for Ride Pakistan’s weekend horse ridi
   - Riders per slot [6]
   - Bank transfer hold window [24 hours], never past the session start; transfer not offered within [12 hours] of the session (`booking.transfer_min_notice_hours`; lower it, e.g. to 2, only once someone watches the verification queue at short notice on weekend mornings)
   - Cancellation / reschedule cutoff [48 hours before slot]
-  - Refund policy text [TBD with Omar]
+  - Refund policy text: decided 2026-11-11, the approved Cancellation and Refund Policy (`docs/legal/refund-policy.md`), in `policies.refund` too
   - Minimum rider age [TBD with Omar]
 - Every other business fact the site states but this plan does not confirm (equipment, arrival time, weather, minors, photography, transport, reply times, copy claims) is tracked in `docs/OPEN-QUESTIONS.md` with its placeholder and where it is used. Unconfirmed claims that could be unsafe if wrong are kept off the site until confirmed.
 
@@ -253,7 +253,7 @@ Public (server-rendered, cached):
 - `/expeditions` (links to ridepakistan.co)
 - Every public and customer page (prompt 14): a floating "Chat with us on WhatsApp" button, bottom-right, above the mobile booking bar, a plain `wa.me` link (no script, CSP unchanged) with the number and message from settings (`contact.whatsapp_number`, `contact.whatsapp_message`); a `Contact` event only after analytics consent. Not on run sheets, check-in or the admin panel. Screens that say an email was sent add "Can't see it? Check your spam or promotions folder." (`<x-spam-hint>`), and every email has a line under its header asking to mark the sender as not spam.
 - `/gift-vouchers` (milestone 10e): what a gift voucher is, the products and amounts, validity, a buy button
-- `/privacy`, `/terms`, `/refund-policy` (required by Stripe)
+- `/privacy`, `/terms`, `/refund-policy` (required by Stripe). Published 2026-11-11 from the approved texts in `docs/legal/`: the deployed copy is `database/data/legal/` (docs aren't deployed; a test keeps them equal), turned into CMS blocks by `App\Support\LegalPages` (migration `2026_11_23_100000`, which fills only the empty seeded outlines, and `PageSeeder`). Admins edit them under Content → Pages afterwards. Footer and sitemap list them while published. `policies.refund` holds the full refund policy (Markdown, up to 10,000 characters), folded away under "Read the full refund policy" on `/prices` with a link to the page. Checkout says "By paying (or confirming) you agree to our Terms and Conditions and Cancellation and Refund Policy" next to the payment buttons (`<x-payment-terms>`, links only while the pages are published)
 - `/sitemap.xml`, `/robots.txt`, `/llms.txt`
 
 Customer (auth, not cached, `Cache-Control: no-store, private`, noindex):

@@ -168,6 +168,8 @@ it('hides draft guides and keeps an empty guides index out of search', function 
 });
 
 it('returns 404 for unpublished legal pages and inactive products', function (): void {
+    Page::query()->whereIn('slug', ['privacy', 'terms', 'refund-policy'])->update(['is_published' => false]);
+
     $this->get('/privacy')->assertNotFound();
     $this->get('/terms')->assertNotFound();
     $this->get('/refund-policy')->assertNotFound();
@@ -176,10 +178,10 @@ it('returns 404 for unpublished legal pages and inactive products', function ():
     $this->get('/sessions/private-session')->assertNotFound();
 });
 
-it('serves legal pages once published', function (): void {
-    Page::query()->where('slug', 'privacy')->update(['is_published' => true]);
-
-    $this->get('/privacy')->assertOk()->assertSee('Privacy policy');
+it('serves the published legal pages (seeded from database/data/legal)', function (): void {
+    $this->get('/privacy')->assertOk()->assertSee('Privacy Policy');
+    $this->get('/terms')->assertOk()->assertSee('Terms and Conditions');
+    $this->get('/refund-policy')->assertOk()->assertSee('Cancellation and Refund Policy');
 });
 
 it('filters the catalog with chips that work without JavaScript', function (): void {
@@ -242,8 +244,9 @@ it('never shows bank details or the map pin on public pages', function (): void 
 it('makes no unconfirmed safety or policy claims (docs/OPEN-QUESTIONS.md)', function (string $url): void {
     $html = strtolower(strip_tags((string) $this->get($url)->getContent()));
 
-    // Helmets were decided on 2026-11-10 (prompt 14: riders bring their own), so they're no longer on this list.
-    foreach (['weather', 'under 18', 'guardian', 'photos and video', 'transport', 'safe for beginners', 'within a day', '15 minutes', 'most popular', 'multi-day'] as $claim) {
+    // Helmets were decided on 2026-11-10 (prompt 14: riders bring their own). Weather, minors and
+    // photos are decided by the published legal texts (2026-11-11; the refund policy is on /prices).
+    foreach (['transport', 'safe for beginners', 'within a day', '15 minutes', 'most popular', 'multi-day'] as $claim) {
         expect($html)->not->toContain($claim);
     }
 })->with(['/', '/experiences', '/sessions/single-session', '/sessions/private-session', '/sessions/8-class-package', '/sessions/16-class-package', '/schedule', '/prices', '/faq', '/contact', '/expeditions', '/book', '/llms.txt']);

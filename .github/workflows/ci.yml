@@ -78,8 +78,43 @@ jobs:
           npm ci
           npm run build
 
+      # Browser tests need Playwright's Chromium. Only the browser is
+      # downloaded (from Playwright's CDN): no --with-deps, so nothing comes
+      # from the runner's apt mirror, whose outages broke CI. The
+      # ubuntu-24.04 image ships Google Chrome, so Chromium's system
+      # libraries are already there; the launch check below proves it.
+      # The browser is cached per Playwright version.
+      - name: Playwright version
+        id: playwright
+        run: echo "version=$(node -p "require('playwright/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-chromium
+
       - name: Install Chromium for browser tests
-        run: npx playwright install --with-deps chromium
+        run: |
+          for attempt in 1 2 3; do
+            if npx playwright install chromium; then
+              installed=yes
+              break
+            fi
+            echo "::warning::Chromium install attempt ${attempt} of 3 failed."
+            [ "$attempt" -lt 3 ] && sleep $((attempt * 20))
+          done
+
+          if [ "${installed:-no}" != yes ]; then
+            echo "::error title=Chromium not installed::Playwright's Chromium could not be installed after 3 attempts, so the browser tests can't run. This is a download problem on the runner, not a test failure. Re-run the job later."
+            exit 1
+          fi
+
+          # The browser must also start: a missing system library would only show up later, inside the tests.
+          if ! node -e "require('playwright').chromium.launch().then(b => b.close())"; then
+            echo "::error title=Chromium won't start::Playwright's Chromium installed but doesn't start on this runner (a system library is probably missing). Restore '--with-deps' on this step or install the missing package."
+            exit 1
+          fi
 
       - name: Prepare application
         run: |

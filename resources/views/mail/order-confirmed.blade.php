@@ -46,6 +46,12 @@ The ticket images are also attached, and each ticket is in your account. To add 
 **Your package:** {{ $order->creditPack->creditsRemaining() }} {{ $order->creditPack->creditsRemaining() === 1 ? 'credit' : 'credits' }} left, valid until {{ $order->creditPack->expires_at->setTimezone($timezone)->format('j M Y') }}. Book sessions from your account.
 @endif
 
+@if ($helmet !== '' && $bookings->isNotEmpty())
+## Before you come
+
+**{{ $helmet }}**
+@endif
+
 @if ($mapPin !== '' && $bookings->isNotEmpty())
 ## Where to find us
 

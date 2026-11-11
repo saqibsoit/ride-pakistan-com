@@ -24,6 +24,7 @@
                         <th scope="col" class="py-2 pr-3">Experience</th>
                         <th scope="col" class="py-2 pr-3">Horse</th>
                         <th scope="col" class="py-2 pr-3">Emergency contact</th>
+                        <th scope="col" class="py-2 pr-3">Booked by (WhatsApp)</th>
                         <th scope="col" class="py-2 pr-3">Payment</th>
                         <th scope="col" class="py-2 pr-3">Notes</th>
                         <th scope="col" class="py-2">In</th>
@@ -38,6 +39,7 @@
                             <td class="py-2 pr-3">{{ $rider->experience_level?->label() ?? '—' }}</td>
                             <td class="py-2 pr-3">{{ $booking->horse?->name ?? '—' }}</td>
                             <td class="py-2 pr-3">{{ $rider->emergency_contact_name ?: '—' }}@if ($rider->emergency_contact_phone)<br>{{ $rider->emergency_contact_phone }}@endif</td>
+                            <td class="py-2 pr-3">{{ $booking->user->displayName() }}@if ($booking->user->whatsapp_phone)<br>{{ $booking->user->whatsapp_phone }}@endif</td>
                             <td class="py-2 pr-3">{{ RunSheetPayment::for($booking)->label() }}</td>
                             <td class="py-2 pr-3">{{ $rider->notes ?: '—' }}</td>
                             <td class="py-2">{{ $booking->status->label() }}</td>

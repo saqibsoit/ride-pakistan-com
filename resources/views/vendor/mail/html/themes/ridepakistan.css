@@ -296,3 +296,13 @@ img {
 .break-all {
     word-break: break-all;
 }
+
+/* "Not spam" line under the header (prompt 14): small, muted, above the content. */
+
+.spam-note {
+    border-bottom: 1px solid #e3d3a4;
+    color: #6b5434;
+    font-size: 13px;
+    margin: 0 0 20px;
+    padding-bottom: 12px;
+}

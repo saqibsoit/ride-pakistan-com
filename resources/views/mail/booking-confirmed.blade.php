@@ -21,6 +21,12 @@ The ticket images are also attached, and each ticket is in your account. To add 
 **Your package:** {{ $first->creditPack->creditsRemaining() }} {{ $first->creditPack->creditsRemaining() === 1 ? 'credit' : 'credits' }} left, valid until {{ $first->creditPack->expires_at->setTimezone($timezone)->format('j M Y') }}.
 @endif
 
+@if ($helmet !== '')
+## Before you come
+
+**{{ $helmet }}**
+@endif
+
 @if ($mapPin !== '')
 ## Where to find us
 

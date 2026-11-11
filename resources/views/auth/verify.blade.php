@@ -32,7 +32,10 @@
                 </div>
             </form>
 
-            <p class="text-sm text-sand-dim">No email? Check your spam folder, then request a new code.</p>
+            <div>
+                <x-spam-hint class="mt-0" />
+                <p class="text-sm text-sand-dim">Still nothing after a few minutes? Request a new code.</p>
+            </div>
         </div>
     </section>
 </x-layouts.app>

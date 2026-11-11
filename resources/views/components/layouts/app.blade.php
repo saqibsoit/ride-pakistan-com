@@ -81,6 +81,12 @@
 
     <x-site-footer :cookie-settings="$tracking->anyEnabled()" />
 
+    {{-- Public and customer pages only: staff run sheets and check-in share
+         this layout but are work screens (the admin panel has its own). --}}
+    @unless (request()->routeIs('team.*', 'checkin.*'))
+        <x-whatsapp-button />
+    @endunless
+
     @if ($tracking->anyEnabled())
         <x-consent-banner />
     @endif

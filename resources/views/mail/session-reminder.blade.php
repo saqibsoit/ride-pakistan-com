@@ -7,9 +7,12 @@ Your session is on **{{ $slot->label() }}** (Pakistan time).
 Please arrive by **{{ $arrivalAt->format('g:i a') }}** so there's time to meet the horses before you ride.
 @endif
 
-@if ($rules !== [])
+@if ($rules !== [] || $helmet !== '')
 ## Before you come
 
+@if ($helmet !== '')
+- **{{ $helmet }}**
+@endif
 @foreach ($rules as $rule)
 - {{ $rule }}
 @endforeach

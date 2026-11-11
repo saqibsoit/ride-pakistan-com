@@ -20,7 +20,7 @@
             @endif
 
             @if ($status === OrderStatus::Paid || $status === OrderStatus::PartiallyRefunded || $status === OrderStatus::Refunded)
-                <x-alert variant="success" title="Transfer confirmed. You're booked.">Your sessions and tickets are in your account.</x-alert>
+                <x-alert variant="success" title="Transfer confirmed. You're booked.">We've emailed your receipt. Your sessions and tickets are in your account.<x-spam-hint /></x-alert>
                 <x-button :href="route('account.orders.show', $order->reference)">See your order</x-button>
             @elseif ($status === OrderStatus::Rejected)
                 <x-alert variant="error" title="We couldn't confirm this transfer.">
@@ -34,6 +34,7 @@
                 @if (session('transfer_uploaded') || $status === OrderStatus::AwaitingVerification)
                     <x-alert variant="success" title="We've received your transfer proof.">
                         We'll check it and confirm shortly. Your {{ $slotItems->isNotEmpty() ? 'seats stay held' : 'order stays open' }} until then, and we'll email you once it's confirmed.
+                        <x-spam-hint />
                     </x-alert>
                 @elseif ($deadline)
                     <x-alert variant="info" title="Transfer by {{ $deadline->setTimezone($tz)->format('D j M, g:i a') }} (Pakistan time).">

@@ -24,6 +24,10 @@
             <div>
                 <dt class="text-sm text-sand-dim">Customer</dt>
                 <dd class="text-sand">{{ $user->displayName() }}</dd>
+                <dd class="text-sm text-sand-dim">{{ $user->email }}</dd>
+                @if ($user->whatsapp_phone)
+                    <dd class="text-sm text-sand-dim">WhatsApp {{ $user->whatsapp_phone }}</dd>
+                @endif
             </div>
             <div>
                 <dt class="text-sm text-sand-dim">Ordered</dt>

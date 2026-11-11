@@ -62,6 +62,7 @@ final class OrderConfirmed extends CustomerNotification
                 'bookings' => $bookings,
                 'viaTransfer' => $order->payment_method === PaymentMethod::BankTransfer,
                 'mapPin' => $settings->string(SettingKey::MapPinUrl),
+                'helmet' => $settings->string(SettingKey::HelmetNotice),
                 'brand' => self::BRAND_LINE,
                 'timezone' => (string) config('app.display_timezone'),
                 'qr' => $bookings->mapWithKeys(fn (Booking $b): array => [$b->id => TicketQr::png($b, 6)])->all(),

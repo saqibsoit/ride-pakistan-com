@@ -23,13 +23,24 @@
 
         <x-form.field
             name="phone"
-            label="Phone or WhatsApp"
+            label="Phone"
             type="tel"
             autocomplete="tel"
             inputmode="tel"
             maxlength="32"
             hint="Pakistani numbers as 0300 1234567; other countries with the country code, like +44 7700 900123."
             :value="$user->phone"
+        />
+
+        <x-form.field
+            name="whatsapp_phone"
+            label="WhatsApp number"
+            type="tel"
+            autocomplete="tel"
+            inputmode="tel"
+            maxlength="32"
+            hint="For quick messages about your sessions. We ask for it when you book if it’s empty."
+            :value="$user->whatsapp_phone"
         />
 
         <div class="flex items-start gap-3">

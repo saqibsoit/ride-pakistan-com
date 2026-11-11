@@ -371,4 +371,17 @@
             padding-bottom: calc(var(--spacing-bottom-bar) + env(safe-area-inset-bottom, 0px));
         }
     }
+
+    /* Floating WhatsApp button: bottom-right, clear of notches and the
+       home indicator. Sits above the mobile booking bar, never on it. */
+    .whatsapp-fab {
+        right: max(1rem, env(safe-area-inset-right, 0px));
+        bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+    }
+
+    @media (width < 64rem) {
+        body:has(.bottom-bar) .whatsapp-fab {
+            bottom: calc(var(--spacing-bottom-bar) + env(safe-area-inset-bottom, 0px) + 0.75rem);
+        }
+    }
 }

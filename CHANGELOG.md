@@ -5,6 +5,24 @@ All notable changes to this project are documented here. The format follows [Kee
 ## [Unreleased]
 
 ### Added
+- Site updates (prompt 14):
+  - **WhatsApp button.** A floating "Chat with us on WhatsApp" button, bottom-right on every public and customer page (not the admin panel, run sheets or check-in).
+    - It's a plain `wa.me` link, so there's no script and the CSP is unchanged. The number and pre-filled message are settings (`contact.whatsapp_number`, `contact.whatsapp_message`).
+    - It respects safe-area insets and sits above the mobile booking bar. A browser test checks it never overlaps the bar.
+    - A `Contact` event (Meta `Contact`, GA4 `contact`) is sent only after analytics consent.
+  - **WhatsApp number at booking.** `users.whatsapp_phone` (E.164) is required on the review step for guests and signed-in customers, credit bookings included.
+    - Pakistani numbers can be typed nationally; other countries need +country.
+    - "This is also my WhatsApp" is pre-filled from the profile phone. The number is saved to the profile, editable there and asked again only when it's missing.
+    - Shown on the run sheet (with a `wa.me` link), the admin and account order pages and in the orders and bookings exports. Included in "Download my data"; cleared on anonymisation.
+  - **Customers list.** The admin Customers screen shows sign-up date, WhatsApp, bookings, total paid, last booking and lead source (`CustomerStats`).
+    - Filters: sign-up date range, has booked or never booked, and source.
+    - "Export" downloads the filtered list as CSV or Excel (`ExportCustomers`): admins only, shared 10-an-hour exports limit, audit log `exports`.
+  - **Spam notices.** "Can't see it? Check your spam or promotions folder." (`<x-spam-hint>`) appears on every screen that says an email was sent: login code, payment and transfer confirmations, gift vouchers, waitlist, contact form.
+    - Every email has one line under its header (HTML and plain text) asking to mark the sender as not spam. It comes from published Markdown mail layouts.
+  - **Helmet notice.** Riders bring their own riding helmet (setting `policies.helmet_notice`).
+    - It opens "What to bring" on every session page and is in the FAQ "What should I wear?" (`{helmet}` token, added by migration), the booking confirmation emails and the 24-hour reminder.
+    - OPEN-QUESTIONS 2.1 is now decided.
+
 - Forced password change for team accounts:
   - `php artisan admin:create`, for a new or existing account, now marks the password as temporary (`users.must_change_password`).
   - Until it's replaced, the admin panel blocks everything else, including Livewire requests (`EnsurePasswordIsChanged`, persistent). The only things allowed are the "Change your temporary password" screen (`ChangeTemporaryPassword`, `ReplaceTemporaryPassword`) and signing out.
@@ -230,6 +248,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - README with local setup steps.
 
 ### Fixed
+- A customer could join the waitlist of a slot a private session had held or booked, where seats never free up. That's now refused (`BookingRejected::BOOKED_PRIVATELY`). New tests cover every booking path against a private hold or booking, and a private session against any booking or hold (prompt 14).
 - Hostinger cron: the scheduler ran nothing, so no emails were sent and holds never expired. Hostinger disables `proc_open`, which Laravel needs to start each scheduled task. The cron now runs `deploy/schedule-run.sh`, which re-enables only `proc_open`, for that one process. A script, because hPanel limits cron commands to 255 characters.
 - Images inside grid and flex layouts were misplaced on every page. `<x-img>` renders `<picture class="contents">`, so its `<source>` elements became layout items too: Chrome gave each one a grid cell and a flex gap. A base rule now takes `picture > source` out of layout. What it fixes:
   - The homepage photo band no longer shows two stacked photos of different widths with a gap on the left. It's now a full-width band as in `docs/reference/index.html`: 1.4fr / 1fr (`md:grid-cols-band`, token `--grid-template-columns-band`), equal height (`h-photo-band`, 320–680 px), and one photo on mobile. Focal points (`graze-focus`, `camp-focus`) keep the horse's face and the riders' faces in frame.

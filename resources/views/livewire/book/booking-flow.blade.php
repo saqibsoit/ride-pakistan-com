@@ -216,6 +216,36 @@
                 </div>
             </dl>
 
+            {{-- Contact for this booking (prompt 14): email from the account, WhatsApp asked here. --}}
+            <fieldset class="flex flex-col gap-4">
+                <legend class="mb-2 font-semibold">How we reach you</legend>
+                @if ($user)
+                    <p class="text-sm text-sand-dim">Email: <span class="font-semibold text-sand">{{ $user->email }}</span>. Your tickets and receipt go here.</p>
+                @else
+                    <p class="text-sm text-sand-dim">You’ll give your email when you sign in; your tickets and receipt go there.</p>
+                @endif
+
+                @if ($user?->phone)
+                    <label class="flex items-start gap-3">
+                        <input type="checkbox" wire:model.live="whatsappIsPhone" class="mt-1 size-5 shrink-0 rounded-sm border-line-strong bg-earth-2 accent-sand">
+                        <span>This is also my WhatsApp: <span class="font-semibold">{{ $user->phone }}</span></span>
+                    </label>
+                @endif
+
+                @unless ($user?->phone && $whatsappIsPhone)
+                    <x-form.field
+                        name="whatsapp"
+                        label="WhatsApp number"
+                        type="tel"
+                        required
+                        autocomplete="tel"
+                        maxlength="32"
+                        wire:model="whatsapp"
+                        hint="For quick messages about your session. Pakistani numbers like 0334 4554500, others with the country code (+44 …)."
+                    />
+                @endunless
+            </fieldset>
+
             @if ($user)
                 <div class="flex flex-col gap-3">
                     <div>

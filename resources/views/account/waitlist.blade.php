@@ -4,7 +4,7 @@
         'waitlist-left' => 'You’ve left the waitlist.',
     ][session('status')] ?? null)
     @if ($flash)
-        <x-alert variant="success">{{ $flash }}</x-alert>
+        <x-alert variant="success">{{ $flash }}@if (session('status') === 'waitlist-joined')<x-spam-hint />@endif</x-alert>
     @endif
     @if ($errors->has('waitlist'))
         <x-alert variant="error">{{ $errors->first('waitlist') }}</x-alert>

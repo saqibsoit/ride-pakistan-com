@@ -8,6 +8,8 @@
         <x-alert variant="success" title="Saved.">{{ session('status') }}</x-alert>
     @endif
 
+    <x-spam-hint class="mt-0" />
+
     <div><x-button :href="route('gift-vouchers.create')">Buy a gift voucher</x-button></div>
 
     @if ($orders->isEmpty())

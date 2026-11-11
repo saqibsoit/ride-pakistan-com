@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire\Book;
 
+use App\Actions\Account\SaveWhatsAppNumber;
 use App\Actions\Booking\BookWithCredit;
 use App\Actions\Booking\CreateOrder;
 use App\Actions\Booking\PriceQuote;
@@ -74,6 +75,12 @@ final class BookingFlow extends Component
 
     public string $newRiderName = '';
 
+    /** WhatsApp number, required for every booking (prompt 14); saved to the profile. */
+    public string $whatsapp = '';
+
+    /** "This is also my WhatsApp": use the profile phone instead of typing it again. */
+    public bool $whatsappIsPhone = false;
+
     #[Locked]
     public ?string $error = null;
 
@@ -90,6 +97,7 @@ final class BookingFlow extends Component
             $this->resume();
         }
 
+        $this->prefillWhatsApp();
         $this->normaliseStep();
     }
 
@@ -234,7 +242,10 @@ final class BookingFlow extends Component
     /** Guests: keep the draft in the session and sign in with a code. */
     public function signInToContinue(): mixed
     {
+        $this->validateWhatsApp();
+
         session()->put(self::DRAFT_KEY, [
+            'whatsapp' => $this->whatsapp,
             'product' => $this->productSlug,
             'use' => $this->use,
             'slot' => $this->slotId,
@@ -256,6 +267,7 @@ final class BookingFlow extends Component
         }
 
         $this->error = null;
+        app(SaveWhatsAppNumber::class)->handle($user, $this->validateWhatsApp());
 
         try {
             if ($this->use === self::CREDITS) {
@@ -499,6 +511,48 @@ final class BookingFlow extends Component
         }
     }
 
+    /**
+     * The number this booking uses: the profile phone when the customer
+     * ticked "This is also my WhatsApp", otherwise the one they typed.
+     */
+    private function validateWhatsApp(): string
+    {
+        $phone = $this->user()?->phone;
+
+        if ($this->whatsappIsPhone && $phone !== null) {
+            return $phone;
+        }
+
+        $this->validate(['whatsapp' => SaveWhatsAppNumber::rules()], [
+            'whatsapp.required' => 'Enter your WhatsApp number so we can reach you about your booking.',
+            'whatsapp' => SaveWhatsAppNumber::MESSAGE,
+        ]);
+
+        return $this->whatsapp;
+    }
+
+    /**
+     * Customers who gave a WhatsApp number before see it again; otherwise
+     * "This is also my WhatsApp" starts ticked when the profile has a phone.
+     */
+    private function prefillWhatsApp(): void
+    {
+        $user = $this->user();
+
+        if ($user === null || $this->whatsapp !== '') {
+            return;
+        }
+
+        if ($user->whatsapp_phone !== null) {
+            $this->whatsapp = $user->whatsapp_phone;
+            $this->whatsappIsPhone = $user->phone === $user->whatsapp_phone;
+
+            return;
+        }
+
+        $this->whatsappIsPhone = $user->phone !== null;
+    }
+
     /** Back from sign-in: save the guest riders and pick up where we left off. */
     private function resume(): void
     {
@@ -513,6 +567,7 @@ final class BookingFlow extends Component
         $this->use = ($draft['use'] ?? '') === self::CREDITS ? self::CREDITS : '';
         $this->slotId = is_int($draft['slot'] ?? null) ? $draft['slot'] : null;
         $this->later = (bool) ($draft['later'] ?? false);
+        $this->whatsapp = is_string($draft['whatsapp'] ?? null) ? $draft['whatsapp'] : '';
 
         $save = app(SaveRider::class);
         $existing = $user->riders()->get()->keyBy(fn ($rider): string => mb_strtolower(trim($rider->name)));

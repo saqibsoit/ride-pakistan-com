@@ -175,7 +175,7 @@ final class BusinessFacts
     }
 
     /**
-     * Fill FAQ/answer tokens: {schedule}, {location}, {trainer}, {cutoff},
+     * Fill FAQ/answer tokens: {schedule}, {location}, {trainer}, {cutoff}, {helmet},
      * {price:slug}, {per_session:slug}, {validity:slug}. Unknown tokens stay.
      */
     public function interpolate(string $text): string
@@ -185,6 +185,7 @@ final class BusinessFacts
             '{location}' => $this->location(),
             '{trainer}' => $this->trainer(),
             '{cutoff}' => (string) ($this->settings->int(SettingKey::CancellationCutoffHours) ?? ''),
+            '{helmet}' => $this->settings->string(SettingKey::HelmetNotice),
         ]);
 
         return (string) preg_replace_callback(

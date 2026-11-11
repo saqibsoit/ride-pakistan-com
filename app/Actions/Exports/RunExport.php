@@ -96,10 +96,10 @@ final class RunExport
     public static function headers(ExportDataset $dataset): array
     {
         return match ($dataset) {
-            ExportDataset::Orders => ['Reference', 'Created (Pakistan time)', 'Status', 'Payment method', 'Customer', 'Customer email', 'Product', 'Type', 'Amount (PKR)', 'Refunded (PKR)', 'Net (PKR)', 'Paid at (Pakistan time)', 'Subtotal (PKR)', 'Promo or referral (PKR)', 'Gift voucher (PKR)', 'Account credit (PKR)', 'Revenue (PKR)'],
+            ExportDataset::Orders => ['Reference', 'Created (Pakistan time)', 'Status', 'Payment method', 'Customer', 'Customer email', 'Product', 'Type', 'Amount (PKR)', 'Refunded (PKR)', 'Net (PKR)', 'Paid at (Pakistan time)', 'Subtotal (PKR)', 'Promo or referral (PKR)', 'Gift voucher (PKR)', 'Account credit (PKR)', 'Revenue (PKR)', 'Customer WhatsApp'],
             ExportDataset::Payments, ExportDataset::Refunds => ['Order reference', 'Date (Pakistan time)', 'Provider', 'Provider ID', 'Status', 'Amount (PKR)', 'Currency', 'Customer email', 'Bank transfer date (Pakistan)'],
             ExportDataset::VoucherSales => ['Purchase reference', 'Paid at (Pakistan time)', 'Status', 'Payment method', 'Payment reference', 'Buyer email', 'Voucher for', 'Received (PKR)', 'Refunded (PKR)', 'Net cash (PKR)', 'Refunded on', 'Refund references'],
-            ExportDataset::Bookings => ['Ticket', 'Session (Pakistan time)', 'Product', 'Rider', 'Customer email', 'Status', 'Private', 'Paid with', 'Order reference', 'Price (PKR)', 'Horse', 'Price after discounts (PKR)'],
+            ExportDataset::Bookings => ['Ticket', 'Session (Pakistan time)', 'Product', 'Rider', 'Customer email', 'Status', 'Private', 'Paid with', 'Order reference', 'Price (PKR)', 'Horse', 'Price after discounts (PKR)', 'Customer WhatsApp'],
             ExportDataset::Leads => ['Received (Pakistan time)', 'Name', 'Email', 'Phone', 'Instagram', 'Source', 'Status', 'Interest', 'UTM source', 'UTM medium', 'UTM campaign', 'Assigned to', 'Booked order reference'],
         };
     }
@@ -138,6 +138,7 @@ final class RunExport
                     Money::decimal(self::discount($order, DiscountKind::Voucher)),
                     Money::decimal(self::discount($order, DiscountKind::AccountCredit)),
                     $order->paid_at === null ? '' : Money::decimal(OrderRevenue::of($order)),
+                    $order->user->whatsapp_phone ?? '',
                 ]))),
 
             ExportDataset::Payments, ExportDataset::Refunds => Payment::query()
@@ -208,6 +209,7 @@ final class RunExport
                     self::bookingPrice($booking),
                     $booking->horse->name ?? '',
                     self::bookingNetPrice($booking),
+                    $booking->user->whatsapp_phone ?? '',
                 ]))),
 
             ExportDataset::Leads => Lead::query()

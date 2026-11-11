@@ -26,7 +26,8 @@ class OrderInfolist
                     TextEntry::make('status')->badge(),
                     TextEntry::make('payment_method')->label('Method')->placeholder('Not chosen'),
                     TextEntry::make('user.name')->label('Customer'),
-                    TextEntry::make('user.email')->label('Email'),
+                    TextEntry::make('user.email')->label('Email')->copyable(),
+                    TextEntry::make('user.whatsapp_phone')->label('WhatsApp')->placeholder('Not given yet')->copyable(),
                     TextEntry::make('product_name')->label('Product (as bought)'),
                     TextEntry::make('amount_minor')->label('Charged (after discounts)')
                         ->formatStateUsing(fn (Order $record): string => Money::format($record->amount_minor, $record->currency)),

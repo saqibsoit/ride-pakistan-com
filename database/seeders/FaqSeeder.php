@@ -21,7 +21,7 @@ class FaqSeeder extends Seeder
 
         $faqs = [
             ['Getting started', 'I’ve never been near a horse. Is that okay?', 'Yes. The sessions are made for complete beginners. You’ll spend time on the ground with your horse before you ever get in the saddle, and your trainer stays with you throughout.', true],
-            ['Getting started', 'What should I wear?', 'Full-length trousers and closed shoes or boots with a small heel are best. Avoid loose scarves and anything that could catch on the saddle.', true],
+            ['Getting started', 'What should I wear?', 'Full-length trousers and closed shoes or boots with a small heel are best. Avoid loose scarves and anything that could catch on the saddle. {helmet}', true],
             ['Booking and prices', 'Can I book a private session?', 'Yes. Private sessions are available for individuals, couples, families and small groups, at {price:private-session} per rider. The whole slot is yours.', true],
             ['On the day', 'Where exactly are you?', 'We’re in {location}. We share the exact location pin when we confirm your booking.', true],
             ['On the day', 'Do the timings ever change?', 'Our current slots are {schedule}. They shift slightly with the seasons, and we always confirm your slot in advance.', true],

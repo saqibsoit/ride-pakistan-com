@@ -31,6 +31,8 @@ return [
         'contact.instagram_dm_url' => env('SITE_INSTAGRAM_DM_URL', 'https://ig.me/m/ridepakistan'),
         'contact.google_review_url' => '',
         'contact.expeditions_url' => env('SITE_EXPEDITIONS_URL', 'https://ridepakistan.co'),
+        'contact.whatsapp_number' => env('SITE_WHATSAPP_NUMBER', '923344554500'),
+        'contact.whatsapp_message' => 'Hi Ride Pakistan, I’d like to ask about riding sessions.',
 
         // Booking rules (PLAN §2 open decisions)
         'booking.riders_per_slot' => 6,
@@ -48,9 +50,9 @@ return [
         'booking.map_pin_url' => env('BOOKING_MAP_PIN_URL', ''),
 
         // Policies. ":cutoff" and ":min_age" are replaced when shown.
-        // Only confirmed or neutral wording here: unconfirmed rules (helmets,
-        // arrival time, weather, minors, photography, transport) are listed
-        // in docs/OPEN-QUESTIONS.md until the business confirms them.
+        // Only confirmed or neutral wording here: unconfirmed rules (arrival
+        // time, weather, minors, photography, transport) are listed in
+        // docs/OPEN-QUESTIONS.md until the business confirms them.
         'policies.riding_rules' => [
             'Wear full-length trousers and closed shoes or boots with a small heel.',
             'Follow your trainer’s instructions around the horses at all times.',
@@ -60,6 +62,8 @@ return [
             'We send the exact location pin when your booking is confirmed.',
         ],
         'policies.refund' => '',
+        // Decided 2026-11-10 (prompt 14): riders bring their own helmet.
+        'policies.helmet_notice' => 'Please bring your own riding helmet. Riders without a helmet can’t ride.',
 
         // Bank transfer (shown only on the checkout transfer page, milestone 7)
         'bank.account_name' => env('BANK_ACCOUNT_NAME', ''),

@@ -111,6 +111,7 @@ it('sends a guest to sign in at review and resumes the booking afterwards', func
         ->call('confirmRiders')
         ->assertSet('step', 'review')
         ->assertSee('Sign in to continue')
+        ->set('whatsapp', '0334 4554500')
         ->call('signInToContinue')
         ->assertRedirect(route('login'));
 
@@ -129,7 +130,8 @@ it('sends a guest to sign in at review and resumes the booking afterwards', func
         ->call('placeOrder');
 
     expect($user->riders()->sole()->name)->toBe('Zara Malik')
-        ->and(Order::query()->sole()->user_id)->toBe($user->id);
+        ->and(Order::query()->sole()->user_id)->toBe($user->id)
+        ->and($user->refresh()->whatsapp_phone)->toBe('+923344554500');
 });
 
 it('validates guest rider details', function (): void {

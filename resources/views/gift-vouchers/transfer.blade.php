@@ -17,7 +17,7 @@
             @endif
 
             @if ($status === VoucherOrderStatus::Paid)
-                <x-alert variant="success" title="Transfer confirmed.">The voucher has been issued. See it in your account.</x-alert>
+                <x-alert variant="success" title="Transfer confirmed.">The voucher has been issued and emailed. See it in your account.<x-spam-hint /></x-alert>
                 <div><x-button :href="route('account.vouchers')">Your gift vouchers</x-button></div>
             @elseif ($status === VoucherOrderStatus::Rejected)
                 <x-alert variant="error" title="We couldn't confirm this transfer.">{{ $order->rejection_reason }}</x-alert>
@@ -25,7 +25,7 @@
                 <x-alert variant="warning" title="This purchase has {{ strtolower($status->label()) }}.">No transfer proof arrived before the deadline. <a href="{{ route('gift-vouchers.create') }}" class="underline underline-offset-4">Start again</a>.</x-alert>
             @else
                 @if (session('transfer_uploaded') || $status === VoucherOrderStatus::AwaitingVerification)
-                    <x-alert variant="success" title="We've received your transfer proof.">We'll check it shortly and email you once the voucher has been issued.</x-alert>
+                    <x-alert variant="success" title="We've received your transfer proof.">We'll check it shortly and email you once the voucher has been issued.<x-spam-hint /></x-alert>
                 @elseif ($order->expires_at)
                     <x-alert variant="info" title="Transfer by {{ $order->expires_at->setTimezone($tz)->format('D j M, g:i a') }} (Pakistan time).">Upload the proof before then, or the purchase expires.</x-alert>
                 @endif

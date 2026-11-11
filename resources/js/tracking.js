@@ -122,7 +122,7 @@ function startGa4(measurementId, nonce) {
     window.gtag('config', measurementId);
 }
 
-const GA4_NAMES = { Lead: 'generate_lead', InitiateCheckout: 'begin_checkout', Purchase: 'purchase' };
+const GA4_NAMES = { Lead: 'generate_lead', InitiateCheckout: 'begin_checkout', Purchase: 'purchase', Contact: 'contact' };
 
 const fired = new Set();
 
@@ -224,6 +224,15 @@ export function initTracking() {
             fire(detail);
         } else {
             pending.push(detail);
+        }
+    });
+
+    // Contact links (the WhatsApp button): counted only while tracking runs,
+    // which needs consent. A click before consent is never queued or sent.
+    document.addEventListener('click', (event) => {
+        const link = event.target instanceof Element ? event.target.closest('[data-track="contact"]') : null;
+        if (link && started) {
+            fire({ name: 'Contact', id: `contact-${Date.now()}-${Math.random().toString(36).slice(2, 10)}` });
         }
     });
 

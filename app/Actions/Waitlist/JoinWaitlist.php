@@ -15,8 +15,8 @@ use Illuminate\Support\Facades\DB;
 /**
  * A signed-in customer joins a full slot's waitlist with the number of
  * riders they want to bring (milestone 10d). Group sessions only (a
- * private session needs an empty slot); only while the slot can still be
- * booked; only when there aren't enough free seats to book now; one
+ * private session needs an empty slot, and a slot a private session holds
+ * or has booked never frees up); only while the slot can still be booked; only when there aren't enough free seats to book now; one
  * active entry per customer per slot. Checked under the slot lock.
  */
 final class JoinWaitlist
@@ -43,6 +43,11 @@ final class JoinWaitlist
 
             if ($slot->private_only) {
                 throw BookingRejected::privateOnly();
+            }
+
+            // A private hold or booking takes the whole slot: nothing will come free (prompt 14).
+            if ($locked->privatelyTaken) {
+                throw BookingRejected::bookedPrivately();
             }
 
             if ($seats < 1 || $seats > $slot->capacity) {

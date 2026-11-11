@@ -2,6 +2,7 @@
     @if ($state === 'paid')
         <x-alert variant="success" title="Payment received. Your voucher is issued.">
             {{ $order->send_on ? 'We\'ll email it to '.$order->recipient_name.' on '.$order->send_on->format('j F Y').' at 9 am (Pakistan time).' : 'We\'ve emailed it to '.$order->recipient_name.'.' }} You'll get a copy of the receipt.
+            <x-spam-hint />
         </x-alert>
         <div><x-button :href="route('account.vouchers')">Your gift vouchers</x-button></div>
     @elseif ($state === 'failed')
@@ -16,6 +17,7 @@
     @elseif ($timedOut)
         <x-alert variant="info" title="We're still confirming your payment.">
             This can take a few minutes. You don't need to pay again: we'll email you as soon as it's confirmed.
+            <x-spam-hint />
         </x-alert>
         <div><x-button variant="ghost" :href="route('account.vouchers')">Your gift vouchers</x-button></div>
     @else

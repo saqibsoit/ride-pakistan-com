@@ -30,6 +30,7 @@ use Illuminate\Notifications\Notifiable;
  * @property string $email
  * @property UserRole $role
  * @property string|null $phone E.164
+ * @property string|null $whatsapp_phone E.164, asked for at booking (prompt 14)
  * @property bool $marketing_consent
  * @property CarbonImmutable|null $marketing_consent_at
  * @property CarbonImmutable|null $email_verified_at
@@ -55,6 +56,7 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
         'email',
         'password',
         'phone',
+        'whatsapp_phone',
         'marketing_consent',
         'marketing_consent_at',
     ];
@@ -105,7 +107,7 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
      */
     protected function loggedActivityAttributes(): array
     {
-        return ['name', 'email', 'phone', 'marketing_consent'];
+        return ['name', 'email', 'phone', 'whatsapp_phone', 'marketing_consent'];
     }
 
     /**
@@ -113,7 +115,7 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
      */
     protected function redactedActivityAttributes(): array
     {
-        return ['email', 'phone'];
+        return ['email', 'phone', 'whatsapp_phone'];
     }
 
     public function canAccessPanel(Panel $panel): bool

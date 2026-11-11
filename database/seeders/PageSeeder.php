@@ -6,6 +6,7 @@ namespace Database\Seeders;
 
 use App\Enums\SettingKey;
 use App\Models\Page;
+use App\Support\LegalPages;
 use App\Support\Settings;
 use Illuminate\Database\Seeder;
 
@@ -49,19 +50,20 @@ class PageSeeder extends Seeder
             ],
         ]);
 
-        $legal = [
-            'privacy' => ['Privacy policy', ['Who we are', 'What we collect', 'How we use your data', 'Payments', 'Cookies and tracking', 'How long we keep data', 'Your rights', 'Contact']],
-            'terms' => ['Terms and conditions', ['Bookings', 'Payments', 'Packages and credits', 'Cancellations and rescheduling', 'Weather', 'Safety and riding rules', 'Minors', 'Photography', 'Liability', 'Contact']],
-            'refund-policy' => ['Refund policy', ['Single and private sessions', 'Packages', 'Cancellations by us', 'How refunds are paid', 'Contact']],
-        ];
+        // The approved legal texts (docs/legal, copied to database/data/legal), published.
+        foreach (LegalPages::SLUGS as $slug) {
+            $content = LegalPages::content($slug);
 
-        foreach ($legal as $slug => [$title, $headings]) {
             Page::query()->firstOrCreate(['slug' => $slug], [
-                'title' => $title,
-                'is_published' => false,
+                'title' => $content['title'],
+                'answer' => $content['answer'],
+                'meta_description' => $content['meta_description'],
+                'is_published' => true,
                 'is_indexable' => true,
-                'body' => array_map(fn (string $heading): array => ['type' => 'text', 'data' => ['heading' => $heading, 'content' => '']], $headings),
+                'body' => $content['body'],
             ]);
         }
+
+        LegalPages::fillRefundSetting();
     }
 }

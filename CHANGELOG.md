@@ -5,6 +5,17 @@ All notable changes to this project are documented here. The format follows [Kee
 ## [Unreleased]
 
 ### Added
+- Legal pages published (decided 2026-11-11) from the approved texts in `docs/legal/`:
+  - `/privacy`, `/terms` and `/refund-policy` now show the Privacy Policy, Terms and Conditions and Cancellation and Refund Policy, each as an introduction plus one section per heading.
+  - They appear in the footer and the sitemap.
+  - A migration fills only the empty seeded outlines, and leaves pages and settings an admin already wrote alone (with a log warning). Fresh installs get them from `PageSeeder`.
+  - The deployed copy is `database/data/legal/`, because `docs/` isn't deployed; a test keeps the two identical.
+- `policies.refund` holds the full refund policy:
+  - On `/prices` it sits folded away under "Read the full refund policy", rendered as Markdown with a link to the page.
+  - The settings field allows 10,000 characters (other long texts stay at 2,000) and has a new label and help text.
+- Checkout says "By paying you agree to our Terms and Conditions and Cancellation and Refund Policy" next to the payment buttons ("By confirming…" for orders paid by discounts). The links appear only while the pages are published.
+- OPEN-QUESTIONS 1.4, 2.3, 3.2, 3.3, 3.4 and 7.1 are decided by these texts.
+  - The terms say under-18 consent is "given at booking", which the booking flow doesn't ask for yet (noted at 3.3).
 - Bulk schedule editor (prompt 15A), admins only, under Bookings → Bulk schedule and from the Slots list:
   - Pick a Pakistan date range, weekdays and optionally a start time. Then create slots (time, capacity, trainer, group or private-only), change matching slots (time, capacity, trainer), close them or cancel them.
   - **Preview first:** every slot to create, change, close, cancel or skip, with riders booked, seats held and the reason for each skip. Nothing is saved until "Apply".

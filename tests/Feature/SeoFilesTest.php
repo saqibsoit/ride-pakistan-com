@@ -71,6 +71,7 @@ describe('sitemap', function (): void {
 
     it('excludes drafts, unpublished and noindex pages, inactive products and /book', function (): void {
         Page::query()->where('slug', 'contact')->update(['is_indexable' => false]);
+        Page::query()->where('slug', 'privacy')->update(['is_published' => false]);
         Product::query()->where('slug', 'private-session')->update(['is_active' => false]);
 
         $xml = app(GenerateSitemap::class)->handle()->render();

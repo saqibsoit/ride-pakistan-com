@@ -109,6 +109,7 @@
                         @csrf
                         <x-button type="submit">Confirm booking</x-button>
                     </form>
+                    <x-payment-terms verb="confirming" />
                 </section>
             @elseif ($order->status === \App\Enums\OrderStatus::PendingPayment)
                 <section aria-labelledby="pay-title" class="flex flex-col gap-5">
@@ -146,6 +147,8 @@
                             @endif
                         </div>
                     </div>
+
+                    <x-payment-terms />
 
                     <p class="text-sm text-sand-dim">Some Pakistani bank cards block international online payments. If your card is declined, ask your bank to allow it, or pay by bank transfer instead.</p>
                     <p class="text-sm text-sand-dim">Payments go to {{ \App\Actions\Payments\CreateStripeCheckout::BRAND_LINE }}.</p>

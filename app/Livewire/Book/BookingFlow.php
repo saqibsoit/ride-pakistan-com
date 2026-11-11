@@ -8,15 +8,20 @@ use App\Actions\Account\SaveWhatsAppNumber;
 use App\Actions\Booking\BookWithCredit;
 use App\Actions\Booking\CreateOrder;
 use App\Actions\Booking\PriceQuote;
+use App\Actions\PrivateRequests\PrivateRequestRules;
+use App\Actions\PrivateRequests\SubmitPrivateRequest;
 use App\Actions\Riders\SaveRider;
+use App\Actions\Slots\SlotOverlap;
 use App\Enums\AgeBracket;
 use App\Enums\CreditPackStatus;
 use App\Enums\ExperienceLevel;
 use App\Enums\ProductType;
 use App\Enums\SettingKey;
 use App\Exceptions\BookingRejected;
+use App\Exceptions\PrivateRequestRejected;
 use App\Http\Middleware\CaptureLeadReference;
 use App\Models\CreditPack;
+use App\Models\PrivateSessionRequest;
 use App\Models\Product;
 use App\Models\Slot;
 use App\Models\User;
@@ -24,6 +29,7 @@ use App\Models\WaitlistEntry;
 use App\Support\Availability;
 use App\Support\BusinessFacts;
 use App\Support\Settings;
+use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
@@ -41,6 +47,11 @@ use Livewire\Component;
  * Guests fill in rider details and sign in with a code at the review
  * step; the draft waits in their session and resumes at /book?resume=1.
  * Customers with package credits can book straight away ("use credits").
+ *
+ * Private sessions can also be requested for the customer's own date and
+ * time (prompt 15B): the slot step's request panel, then riders and
+ * review as usual; "Send request" hands over to SubmitPrivateRequest
+ * instead of creating an order. An admin approves it later.
  */
 final class BookingFlow extends Component
 {
@@ -74,6 +85,15 @@ final class BookingFlow extends Component
     public int $riderCount = 1;
 
     public string $newRiderName = '';
+
+    /** Private session request (prompt 15B): a date and start time of the customer's choice, Pakistan time. */
+    public bool $requesting = false;
+
+    public string $requestDate = '';
+
+    public string $requestTime = '';
+
+    public string $requestNote = '';
 
     /** WhatsApp number, required for every booking (prompt 14); saved to the profile. */
     public string $whatsapp = '';
@@ -133,6 +153,7 @@ final class BookingFlow extends Component
         }
 
         $this->later = false;
+        $this->requesting = false;
         $this->step = $this->slotId !== null ? 'riders' : 'slot';
     }
 
@@ -149,6 +170,44 @@ final class BookingFlow extends Component
         }
 
         $this->later = false;
+        $this->requesting = false;
+        $this->step = 'riders';
+    }
+
+    /** Private product: ask for this date and start time instead of a slot (prompt 15B). */
+    public function chooseRequestTime(): void
+    {
+        $this->error = null;
+
+        if ($this->product()?->type !== ProductType::Private) {
+            return;
+        }
+
+        $this->validate([
+            'requestDate' => ['required', 'date_format:Y-m-d'],
+            'requestTime' => ['required', 'date_format:H:i'],
+        ], [
+            'requestDate.*' => 'Choose a date.',
+            'requestTime.*' => 'Choose a start time.',
+        ]);
+
+        $start = $this->requestedStart();
+        $rules = app(PrivateRequestRules::class);
+        $problem = $start === null ? 'Choose a date and start time.' : $rules->problem($start);
+
+        if ($problem === null && $start !== null && app(SlotOverlap::class)->firstClash($start, $start->addMinutes($rules->durationMinutes())) !== null) {
+            $problem = 'That time isn’t free: there’s another session close to it. Please choose another time, or pick one of the slots above.';
+        }
+
+        if ($problem !== null) {
+            $this->addError('requestTime', $problem);
+
+            return;
+        }
+
+        $this->slotId = null;
+        $this->later = false;
+        $this->requesting = true;
         $this->step = 'riders';
     }
 
@@ -161,6 +220,7 @@ final class BookingFlow extends Component
 
         $this->slotId = null;
         $this->later = true;
+        $this->requesting = false;
         $this->riderIds = [];
         $this->step = 'review';
     }
@@ -251,6 +311,7 @@ final class BookingFlow extends Component
             'slot' => $this->slotId,
             'later' => $this->later,
             'riders' => $this->guestRiders,
+            'request' => $this->requesting ? ['date' => $this->requestDate, 'time' => $this->requestTime, 'note' => $this->requestNote] : null,
         ]);
 
         redirect()->setIntendedUrl(route('book', ['resume' => 1]));
@@ -268,6 +329,10 @@ final class BookingFlow extends Component
 
         $this->error = null;
         app(SaveWhatsAppNumber::class)->handle($user, $this->validateWhatsApp());
+
+        if ($this->requesting) {
+            return $this->sendRequest($user);
+        }
 
         try {
             if ($this->use === self::CREDITS) {
@@ -308,6 +373,45 @@ final class BookingFlow extends Component
         return $this->redirectRoute('checkout.show', ['reference' => $order->reference]);
     }
 
+    private function sendRequest(User $user): mixed
+    {
+        $this->validate(['requestNote' => ['nullable', 'string', 'max:'.PrivateSessionRequest::NOTE_MAX_LENGTH]], [
+            'requestNote.max' => 'Keep the note under '.PrivateSessionRequest::NOTE_MAX_LENGTH.' characters, please.',
+        ]);
+
+        $product = $this->product();
+        $start = $this->requestedStart();
+
+        if ($product === null || $start === null) {
+            $this->requesting = false;
+            $this->step = 'slot';
+
+            return null;
+        }
+
+        try {
+            app(SubmitPrivateRequest::class)->handle($user, $product, $start, array_map('intval', $this->riderIds), $this->requestNote);
+        } catch (PrivateRequestRejected $e) {
+            $this->error = $e->getMessage();
+
+            return null;
+        }
+
+        session()->flash('status', 'private-request-sent');
+
+        return $this->redirectRoute('account.private-requests');
+    }
+
+    /** The requested start in UTC, from the Pakistan date and time fields. */
+    private function requestedStart(): ?CarbonImmutable
+    {
+        if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $this->requestDate) || ! preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $this->requestTime)) {
+            return null;
+        }
+
+        return CarbonImmutable::parse($this->requestDate.' '.$this->requestTime, Slot::displayTimezone())->utc();
+    }
+
     /*
     |--------------------------------------------------------------------------
     | Render
@@ -337,7 +441,24 @@ final class BookingFlow extends Component
             'experienceLevels' => ExperienceLevel::cases(),
             'holdMinutes' => $settings->int(SettingKey::CardHoldMinutes) ?? 30,
             'usingCredits' => $this->use === self::CREDITS,
+            'requestRules' => app(PrivateRequestRules::class),
+            'requestLabel' => $this->requestLabel(),
         ]);
+    }
+
+    /** "Sat 14 Nov 2026, 10:00–12:00" for the requested time, or null. */
+    private function requestLabel(): ?string
+    {
+        $start = $this->requesting ? $this->requestedStart() : null;
+
+        if ($start === null) {
+            return null;
+        }
+
+        $tz = Slot::displayTimezone();
+        $end = $start->addMinutes(app(PrivateRequestRules::class)->durationMinutes());
+
+        return $start->setTimezone($tz)->format('D j M Y, H:i').'–'.$end->setTimezone($tz)->format('H:i');
     }
 
     /*
@@ -466,7 +587,7 @@ final class BookingFlow extends Component
         }
 
         if ($product?->type === ProductType::Private) {
-            return $this->selectedSlot()->capacity ?? $perSlot;
+            return $this->requesting ? $perSlot : ($this->selectedSlot()->capacity ?? $perSlot);
         }
 
         return $perSlot;
@@ -488,13 +609,18 @@ final class BookingFlow extends Component
             return;
         }
 
+        // A request is only for a private product, with its date and time filled in.
+        if ($this->requesting && ($this->product()?->type !== ProductType::Private || $this->requestedStart() === null)) {
+            $this->requesting = false;
+        }
+
         if ($this->step === 'product' && $this->slotId !== null && $this->selectedSlot() !== null) {
             $this->step = 'riders';
         } elseif ($this->step === 'product') {
             $this->step = 'slot';
         }
 
-        if (in_array($this->step, ['riders', 'review'], true) && ! $this->later && $this->selectedSlot() === null) {
+        if (in_array($this->step, ['riders', 'review'], true) && ! $this->later && ! $this->requesting && $this->selectedSlot() === null) {
             $this->step = 'slot';
         }
 
@@ -568,6 +694,15 @@ final class BookingFlow extends Component
         $this->slotId = is_int($draft['slot'] ?? null) ? $draft['slot'] : null;
         $this->later = (bool) ($draft['later'] ?? false);
         $this->whatsapp = is_string($draft['whatsapp'] ?? null) ? $draft['whatsapp'] : '';
+
+        $request = $draft['request'] ?? null;
+
+        if (is_array($request)) {
+            $this->requesting = true;
+            $this->requestDate = is_string($request['date'] ?? null) ? $request['date'] : '';
+            $this->requestTime = is_string($request['time'] ?? null) ? $request['time'] : '';
+            $this->requestNote = is_string($request['note'] ?? null) ? $request['note'] : '';
+        }
 
         $save = app(SaveRider::class);
         $existing = $user->riders()->get()->keyBy(fn ($rider): string => mb_strtolower(trim($rider->name)));

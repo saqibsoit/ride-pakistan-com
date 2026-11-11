@@ -5,6 +5,28 @@ All notable changes to this project are documented here. The format follows [Kee
 ## [Unreleased]
 
 ### Added
+- Private session requests (prompt 15B). Booking a private session on an existing admin slot is unchanged.
+  - **Asking.** Signed-in customers can request their own date and time from the private product's slot step in `/book`:
+    - 07:00–18:00 Pakistan time (the session must end by 18:00), on the quarter hour, at least 48 hours ahead, 2-hour sessions;
+    - 1 up to the riders-per-slot setting; WhatsApp number required (prompt 14); optional note;
+    - the time must not clash with a session on the schedule; one open request per customer.
+    - Settings, new group "Private session requests": `private.earliest_start_hour`, `private.latest_end_hour`, `private.min_notice_hours`, `private.duration_minutes`, `private.answer_hours`, `private.pay_hours`.
+  - **Admins are emailed at once** (`PrivateRequestToReview`). The Approve and Decline buttons open the admin request page; the panel sign-in and MFA still apply.
+  - Admin queue: Bookings → Private requests, with a badge for waiting requests and staff read-only. Requests nobody answers within 2 hours expire (`private-requests:expire`, every minute).
+  - **Approve:**
+    - Runs under a new schedule lock (`ScheduleLock`, also taken by the bulk editor).
+    - Refused on a clash within the 30-minute buffer (`SlotOverlap`) or when the horses can't take the riders that day.
+    - Creates a private-only slot (optional trainer) and an order priced from the product, holding the whole slot for 2 hours.
+    - Card payments started before the deadline may finish on Stripe. A bank transfer must be uploaded by the deadline (`TransferWindow` cap), then it's verified as usual. Fulfilment only through `FulfilOrder`.
+  - **Decline:** reason required, optional suggested times.
+  - **The request follows its order** (`SyncPrivateRequest` in `OrderStateMachine`):
+    - paid → booked, and the chosen trainer is emailed;
+    - expired, cancelled or rejected → "Not paid in time", the slot is released and the customer is emailed.
+  - **Customers** see every request at `/account/private-requests` with its status, Pay now and Withdraw, plus a card on `/account`. Every "we've emailed you" screen has the spam notice.
+  - Tests:
+    - feature tests for every rule and state, both 2-hour windows at their exact edges, overlap and horse refusals, the blocking of other booking paths, payments, emails, the admin screens and the email links;
+    - a concurrency test (two overlapping approvals at once: one wins);
+    - three browser journeys (request → approve → pay by card; request expiry; payment window expiry).
 - Legal pages published (decided 2026-11-11) from the approved texts in `docs/legal/`:
   - `/privacy`, `/terms` and `/refund-policy` now show the Privacy Policy, Terms and Conditions and Cancellation and Refund Policy, each as an introduction plus one section per heading.
   - They appear in the footer and the sitemap.

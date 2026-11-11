@@ -99,8 +99,26 @@
                     </ul>
                 </div>
             @empty
-                <p class="text-sand-dim">No slots are open for this in the next few weeks. <a href="{{ route('contact') }}" class="underline underline-offset-4">Message us</a> and we’ll help.</p>
+                @unless ($isPrivate)
+                    <p class="text-sand-dim">No slots are open for this in the next few weeks. <a href="{{ route('contact') }}" class="underline underline-offset-4">Message us</a> and we’ll help.</p>
+                @endunless
             @endforelse
+
+            {{-- Private session at the customer's own date and time (prompt 15B). --}}
+            @if ($isPrivate)
+                <form wire:submit="chooseRequestTime" class="flex flex-col gap-4 rounded-sm border border-line-strong p-5" aria-labelledby="request-title">
+                    <h3 id="request-title" class="font-display text-display-xs font-extrabold">Request another date and time</h3>
+                    <p class="text-sm text-sand-dim">
+                        Any day, starting between {{ $requestRules->earliestStart() }} and {{ $requestRules->latestStart() }} Pakistan time, at least {{ $requestRules->minNoticeHours() }} hours ahead. Sessions last {{ intdiv($requestRules->durationMinutes(), 60) }} hours.
+                        We answer within {{ $requestRules->answerHours() }} hours; once approved you have {{ $requestRules->payHours() }} hours to pay. Nothing is charged until then.
+                    </p>
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <x-form.field name="requestDate" label="Date" type="date" required wire:model="requestDate" min="{{ $requestRules->firstDate()->toDateString() }}" />
+                        <x-form.field name="requestTime" label="Start time" type="time" required wire:model="requestTime" step="900" min="{{ $requestRules->earliestStart() }}" max="{{ $requestRules->latestStart() }}" />
+                    </div>
+                    <div><x-button type="submit" variant="ghost">Request this time</x-button></div>
+                </form>
+            @endif
         </section>
     @endif
 
@@ -110,6 +128,8 @@
             <h2 id="step-riders" class="text-display-md">Who’s riding?</h2>
             @if ($chosenSlot)
                 <p class="text-sand-dim">{{ $chosenSlot->label() }} · up to {{ $maxRiders }} {{ $maxRiders === 1 ? 'rider' : 'riders' }}</p>
+            @elseif ($requestLabel)
+                <p class="text-sand-dim">Requested: {{ $requestLabel }} · up to {{ $maxRiders }} {{ $maxRiders === 1 ? 'rider' : 'riders' }}</p>
             @endif
 
             @if ($user)
@@ -187,7 +207,7 @@
                 </div>
                 <div>
                     <dt class="text-sm text-sand-dim">When (Pakistan time)</dt>
-                    <dd class="font-semibold">{{ $chosenSlot ? $chosenSlot->label() : 'You’ll choose your dates later' }}</dd>
+                    <dd class="font-semibold">{{ $chosenSlot ? $chosenSlot->label() : ($requestLabel ? $requestLabel.' (requested)' : 'You’ll choose your dates later') }}</dd>
                 </div>
                 @if (! $later)
                     <div class="sm:col-span-2">
@@ -215,6 +235,18 @@
                     </dd>
                 </div>
             </dl>
+
+            @if ($requestLabel)
+                <x-form.field
+                    name="requestNote"
+                    label="Anything we should know? (optional)"
+                    type="textarea"
+                    rows="3"
+                    maxlength="{{ \App\Models\PrivateSessionRequest::NOTE_MAX_LENGTH }}"
+                    wire:model="requestNote"
+                    hint="For example the occasion, or riders’ experience."
+                />
+            @endif
 
             {{-- Contact for this booking (prompt 14): email from the account, WhatsApp asked here. --}}
             <fieldset class="flex flex-col gap-4">
@@ -249,11 +281,13 @@
             @if ($user)
                 <div class="flex flex-col gap-3">
                     <div>
-                        <x-button wire:click="placeOrder" wire:loading.attr="disabled">{{ $usingCredits ? 'Book with my credits' : 'Continue to payment' }}</x-button>
+                        <x-button wire:click="placeOrder" wire:loading.attr="disabled">{{ $usingCredits ? 'Book with my credits' : ($requestLabel ? 'Send request' : 'Continue to payment') }}</x-button>
                     </div>
-                    @unless ($usingCredits)
+                    @if ($requestLabel)
+                        <p class="text-sm text-sand-dim">We’ll email you within {{ $requestRules->answerHours() }} hours. If we approve, you’ll have {{ $requestRules->payHours() }} hours to pay.</p>
+                    @elseif (! $usingCredits)
                         <p class="text-sm text-sand-dim">{{ $chosenSlot ? 'We hold your '.($isPrivate ? 'slot' : 'seats').' for '.$holdMinutes.' minutes while you pay.' : 'Credits are added to your account once payment is confirmed.' }}</p>
-                    @endunless
+                    @endif
                 </div>
             @else
                 <div class="flex flex-col gap-3">

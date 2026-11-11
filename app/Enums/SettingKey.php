@@ -53,6 +53,13 @@ enum SettingKey: string
 
     case LeadFollowUpDays = 'leads.follow_up_days';
 
+    case PrivateEarliestStartHour = 'private.earliest_start_hour';
+    case PrivateLatestEndHour = 'private.latest_end_hour';
+    case PrivateMinNoticeHours = 'private.min_notice_hours';
+    case PrivateDurationMinutes = 'private.duration_minutes';
+    case PrivateAnswerHours = 'private.answer_hours';
+    case PrivatePayHours = 'private.pay_hours';
+
     case VoucherValidityMonths = 'vouchers.validity_months';
     case VoucherMinAmountPkr = 'vouchers.min_amount_pkr';
     case VoucherMaxAmountPkr = 'vouchers.max_amount_pkr';
@@ -90,6 +97,8 @@ enum SettingKey: string
             self::RidersPerSlot, self::TransferHoldHours, self::TransferMinNoticeHours, self::CancellationCutoffHours,
             self::SellingFastThreshold, self::MinRiderAge, self::CheckinOpensMinutes, self::ArrivalMinutes, self::SlotHorizonWeeks,
             self::CardHoldMinutes, self::MinNoticeHours, self::WaitlistOfferHours, self::SlotBufferMinutes,
+            self::PrivateEarliestStartHour, self::PrivateLatestEndHour, self::PrivateMinNoticeHours,
+            self::PrivateDurationMinutes, self::PrivateAnswerHours, self::PrivatePayHours,
             self::DeletionGraceDays, self::OrderRetentionYears, self::TransferProofRetentionDays, self::LeadFollowUpDays,
             self::WeatherRainProbability, self::WeatherWindKmh, self::WeatherHeatC, self::WeatherColdC,
             self::VoucherValidityMonths, self::VoucherMinAmountPkr, self::VoucherMaxAmountPkr,
@@ -138,6 +147,12 @@ enum SettingKey: string
             self::MinNoticeHours => 'Stop booking a slot this many hours before it starts (0 = until it starts)',
             self::WaitlistOfferHours => 'Waitlist offer: hold freed seats for the next person this many hours',
             self::SlotBufferMinutes => 'Minimum gap between sessions (minutes)',
+            self::PrivateEarliestStartHour => 'Private requests: earliest start (hour, Pakistan time)',
+            self::PrivateLatestEndHour => 'Private requests: latest end (hour, Pakistan time)',
+            self::PrivateMinNoticeHours => 'Private requests: at least this many hours ahead',
+            self::PrivateDurationMinutes => 'Private requests: session length (minutes)',
+            self::PrivateAnswerHours => 'Private requests: expire unanswered after (hours)',
+            self::PrivatePayHours => 'Private requests: pay within (hours after approval)',
             self::MapPinUrl => 'Exact map pin URL (private, sent after confirmation)',
             self::RidingRules => 'Riding rules',
             self::BookingPolicies => 'Booking policies',
@@ -210,6 +225,12 @@ enum SettingKey: string
             self::MapPinUrl => 'Exact location link (e.g. Google Maps). Never shown on public pages; sent only in confirmation and reminder emails.',
             self::WaitlistOfferHours => 'When seats free up in a full slot, the first person on its waitlist who fits gets an email and the seats are held for them this long (never past the booking cutoff). If they do not book in time, the offer moves to the next person.',
             self::SlotBufferMinutes => 'The bulk schedule editor refuses to create a session, or move one, that starts or ends within this many minutes of another session that is not cancelled. Private session requests use the same gap.',
+            self::PrivateEarliestStartHour => 'A requested private session can start no earlier than this hour (0–23, Pakistan time). 7 = 07:00.',
+            self::PrivateLatestEndHour => 'A requested private session must end by this hour (1–24, Pakistan time). 18 = 18:00, so a 2-hour session starts at 16:00 at the latest.',
+            self::PrivateMinNoticeHours => 'Customers can request a private session only this many hours ahead or more.',
+            self::PrivateDurationMinutes => 'How long a requested private session lasts. The approved slot gets this length.',
+            self::PrivateAnswerHours => 'A request nobody approves or declines within this many hours expires, and the customer is told.',
+            self::PrivatePayHours => 'After approval the customer must pay (card, or upload the bank transfer) within this many hours, or the slot is released and they are told.',
             self::RidingRules => 'One rule per line (helmet, shoes, ...), shown on the prices page and in reminder emails.',
             self::BookingPolicies => 'One policy per line, shown on the prices and session pages. ":cutoff" becomes the cutoff hours; ":min_age" the minimum age.',
             self::HelmetNotice => 'Riders bring their own helmet. This sentence is the first item of "What to bring" on every session page, in the FAQ (token {helmet}), in booking confirmation emails and in the reminder before a session.',

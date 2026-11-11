@@ -15,6 +15,9 @@ use Carbon\CarbonImmutable;
  * (booking.transfer_hold_hours), but never later than the order's first
  * session. Transfer is not offered when that session starts within
  * booking.transfer_min_notice_hours.
+ *
+ * An approved private session request (prompt 15B) also caps it at its
+ * payment window (orders.meta.pay_by): the transfer must be uploaded by then.
  */
 final class TransferWindow
 {
@@ -26,7 +29,21 @@ final class TransferWindow
         $deadline = $now->addHours($this->settings->int(SettingKey::TransferHoldHours) ?? 24);
         $start = $this->firstSessionStart($order);
 
-        return $start !== null && $start->isBefore($deadline) ? $start : $deadline;
+        if ($start !== null && $start->isBefore($deadline)) {
+            $deadline = $start;
+        }
+
+        $payBy = self::payBy($order);
+
+        return $payBy !== null && $payBy->isBefore($deadline) ? $payBy : $deadline;
+    }
+
+    /** The payment window of an approved private request's order, if any. */
+    public static function payBy(Order $order): ?CarbonImmutable
+    {
+        $payBy = $order->meta['pay_by'] ?? null;
+
+        return is_string($payBy) && $payBy !== '' ? CarbonImmutable::parse($payBy)->utc() : null;
     }
 
     public function isOffered(Order $order, ?CarbonImmutable $now = null): bool

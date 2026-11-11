@@ -9,6 +9,7 @@ use App\Enums\CreditPackStatus;
 use App\Enums\OrderStatus;
 use App\Http\Controllers\Controller;
 use App\Models\CreditPack;
+use App\Models\PrivateSessionRequest;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
@@ -41,6 +42,8 @@ final class DashboardController extends Controller
             'packs' => $packs,
             'creditsLeft' => $packs->sum(fn (CreditPack $pack): int => $pack->creditsRemaining()),
             'openOrders' => $user->orders()->whereIn('status', OrderStatus::unpaidStatuses())->count(),
+            // An open private session request (prompt 15B).
+            'openRequest' => PrivateSessionRequest::query()->where('user_id', $user->id)->open()->with('order')->latest('id')->first(),
         ]);
     }
 }

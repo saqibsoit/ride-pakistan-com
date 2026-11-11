@@ -20,6 +20,10 @@ Schedule::command('model:prune', ['--model' => [LoginCode::class]])->dailyAt('04
 // Card seat holds that ran out (PLAN §3.1). Cheap when there is nothing to do.
 Schedule::command('holds:release')->everyMinute()->withoutOverlapping();
 
+// Private session requests nobody answered in time (prompt 15B). Unpaid
+// approved requests lapse through holds:release above.
+Schedule::command('private-requests:expire')->everyMinute()->withoutOverlapping();
+
 // Waitlist offers for freed seats, and offers that ran out (milestone 10d).
 Schedule::command('waitlist:process')->everyMinute()->withoutOverlapping();
 

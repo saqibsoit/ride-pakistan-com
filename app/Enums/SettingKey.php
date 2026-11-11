@@ -37,6 +37,7 @@ enum SettingKey: string
     case MinNoticeHours = 'booking.min_notice_hours';
     case MapPinUrl = 'booking.map_pin_url';
     case WaitlistOfferHours = 'booking.waitlist_offer_hours';
+    case SlotBufferMinutes = 'booking.slot_buffer_minutes';
 
     case RidingRules = 'policies.riding_rules';
     case BookingPolicies = 'policies.booking';
@@ -88,7 +89,7 @@ enum SettingKey: string
             self::InstagramUrl, self::InstagramDmUrl, self::GoogleReviewUrl, self::ExpeditionsUrl, self::MapPinUrl => SettingType::Url,
             self::RidersPerSlot, self::TransferHoldHours, self::TransferMinNoticeHours, self::CancellationCutoffHours,
             self::SellingFastThreshold, self::MinRiderAge, self::CheckinOpensMinutes, self::ArrivalMinutes, self::SlotHorizonWeeks,
-            self::CardHoldMinutes, self::MinNoticeHours, self::WaitlistOfferHours,
+            self::CardHoldMinutes, self::MinNoticeHours, self::WaitlistOfferHours, self::SlotBufferMinutes,
             self::DeletionGraceDays, self::OrderRetentionYears, self::TransferProofRetentionDays, self::LeadFollowUpDays,
             self::WeatherRainProbability, self::WeatherWindKmh, self::WeatherHeatC, self::WeatherColdC,
             self::VoucherValidityMonths, self::VoucherMinAmountPkr, self::VoucherMaxAmountPkr,
@@ -136,6 +137,7 @@ enum SettingKey: string
             self::CardHoldMinutes => 'Hold seats for card payment (minutes)',
             self::MinNoticeHours => 'Stop booking a slot this many hours before it starts (0 = until it starts)',
             self::WaitlistOfferHours => 'Waitlist offer: hold freed seats for the next person this many hours',
+            self::SlotBufferMinutes => 'Minimum gap between sessions (minutes)',
             self::MapPinUrl => 'Exact map pin URL (private, sent after confirmation)',
             self::RidingRules => 'Riding rules',
             self::BookingPolicies => 'Booking policies',
@@ -207,6 +209,7 @@ enum SettingKey: string
             self::MinNoticeHours => 'Online booking for a slot closes this many hours before it starts. 0 keeps it open until the start.',
             self::MapPinUrl => 'Exact location link (e.g. Google Maps). Never shown on public pages; sent only in confirmation and reminder emails.',
             self::WaitlistOfferHours => 'When seats free up in a full slot, the first person on its waitlist who fits gets an email and the seats are held for them this long (never past the booking cutoff). If they do not book in time, the offer moves to the next person.',
+            self::SlotBufferMinutes => 'The bulk schedule editor refuses to create a session, or move one, that starts or ends within this many minutes of another session that is not cancelled. Private session requests use the same gap.',
             self::RidingRules => 'One rule per line (helmet, shoes, ...), shown on the prices page and in reminder emails.',
             self::BookingPolicies => 'One policy per line, shown on the prices and session pages. ":cutoff" becomes the cutoff hours; ":min_age" the minimum age.',
             self::HelmetNotice => 'Riders bring their own helmet. This sentence is the first item of "What to bring" on every session page, in the FAQ (token {helmet}), in booking confirmation emails and in the reminder before a session.',

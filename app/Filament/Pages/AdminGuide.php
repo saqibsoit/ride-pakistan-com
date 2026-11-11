@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Pages;
 
+use App\Actions\Slots\SlotOverlap;
 use App\Filament\Resources\Products\ProductResource;
 use App\Filament\Resources\ScheduleRules\ScheduleRuleResource;
 use App\Filament\Resources\Slots\SlotResource;
@@ -38,7 +39,7 @@ class AdminGuide extends Page
     }
 
     /**
-     * @return array<string, bool|string|null>
+     * @return array<string, bool|int|string|null>
      */
     protected function getViewData(): array
     {
@@ -50,6 +51,8 @@ class AdminGuide extends Page
             'productsUrl' => $admin ? ProductResource::getUrl('index') : null,
             'newProductUrl' => $admin ? ProductResource::getUrl('create') : null,
             'rulesUrl' => $admin ? ScheduleRuleResource::getUrl('index') : null,
+            'bulkUrl' => BulkSchedule::canAccess() ? BulkSchedule::getUrl() : null,
+            'bufferMinutes' => app(SlotOverlap::class)->bufferMinutes(),
             'slotsUrl' => SlotResource::getUrl('index'),
             'settingsUrl' => $admin ? ManageSettings::getUrl() : null,
         ];

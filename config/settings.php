@@ -44,6 +44,7 @@ return [
         'booking.card_hold_minutes' => 30,
         'booking.min_notice_hours' => 0,
         'booking.waitlist_offer_hours' => 2,
+        'booking.slot_buffer_minutes' => 30,
         'booking.min_rider_age' => null,
         'booking.checkin_opens_minutes' => 120,
         'booking.arrival_minutes' => null,

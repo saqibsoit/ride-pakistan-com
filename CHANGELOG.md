@@ -5,6 +5,25 @@ All notable changes to this project are documented here. The format follows [Kee
 ## [Unreleased]
 
 ### Added
+- Bulk schedule editor (prompt 15A), admins only, under Bookings → Bulk schedule and from the Slots list:
+  - Pick a Pakistan date range, weekdays and optionally a start time. Then create slots (time, capacity, trainer, group or private-only), change matching slots (time, capacity, trainer), close them or cancel them.
+  - **Preview first:** every slot to create, change, close, cancel or skip, with riders booked, seats held and the reason for each skip. Nothing is saved until "Apply".
+  - **Apply** re-checks every confirmed row under the slot's row lock. Rows that changed since the preview are reported and the rest still apply. A summary shows the counts, customers and trainers emailed, and the failures.
+  - **Rules:**
+    - Capacity never goes below the seats taken.
+    - New and moved slots stay at least `booking.slot_buffer_minutes` [30] from any other session (`SlotOverlap`, reused by private session requests).
+    - Slots with an active hold keep their time; their capacity and trainer still change.
+    - Changed rule slots become manual. Moved ones remember the rule start they replaced (`slots.replaces_starts_at`), so the generator doesn't refill it.
+    - Every change is audit-logged under one batch id.
+  - **Booked sessions that move:** each customer gets one email (`SlotTimeChanged`, with the updated `.ics`). It has signed links that work until the new start (`/schedule-change/{notice}`, no sign-in):
+    - keep the new time;
+    - move every booking to another session with room (any booking kind, whatever the cutoff);
+    - or cancel: the credit comes back for package bookings, no-charge bookings are cancelled, and paid bookings stay booked with the order flagged "Needs review" for a refund.
+    - With no answer, the booking stays at the new time. Trainers get one summary email (`ScheduleChangedSummary`). Cancelling slots uses the existing slot cancellation.
+  - Tests:
+    - feature tests for the preview against what is applied, overlap and buffer, holds, capacity, rule detaching, drift, close and cancel, emails and every link outcome;
+    - a concurrency test (bulk capacity cut against a hold for the last seat);
+    - a browser journey (admin bulk move, then the customer moves from the link).
 - Site updates (prompt 14):
   - **WhatsApp button.** A floating "Chat with us on WhatsApp" button, bottom-right on every public and customer page (not the admin panel, run sheets or check-in).
     - It's a plain `wa.me` link, so there's no script and the CSP is unchanged. The number and pre-filled message are settings (`contact.whatsapp_number`, `contact.whatsapp_message`).

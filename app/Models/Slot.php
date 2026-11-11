@@ -39,6 +39,7 @@ use Illuminate\Database\Query\Builder as QueryBuilder;
  * @property int|null $seats_held from withSeatCounts()
  * @property bool|null $has_private from withSeatCounts(): a private booking or hold blocks the slot
  * @property int|null $trainer_id who runs the session (milestone 10b); trainers see only their own
+ * @property CarbonImmutable|null $replaces_starts_at a rule start this slot replaced when the bulk editor moved it (prompt 15A)
  * @property-read ScheduleRule|null $scheduleRule
  * @property-read User|null $trainer
  * @property-read SlotWeather|null $weather
@@ -66,6 +67,7 @@ class Slot extends Model
         'capacity',
         'private_only',
         'trainer_id',
+        'replaces_starts_at',
     ];
 
     /** @var array<string, mixed> */
@@ -303,6 +305,7 @@ class Slot extends Model
             'status' => SlotStatus::class,
             'source' => SlotSource::class,
             'cancelled_at' => 'immutable_datetime',
+            'replaces_starts_at' => 'immutable_datetime',
             // Subquery columns from withSeatCounts().
             'seats_booked' => 'integer',
             'seats_held' => 'integer',

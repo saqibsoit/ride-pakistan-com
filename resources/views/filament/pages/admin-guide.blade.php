@@ -27,6 +27,17 @@
         <p>Slots are created {{ $admin ? 'as far ahead as the “Create bookable slots this many weeks ahead” setting' : 'a few weeks ahead' }}.@if ($settingsUrl) Change it in {!! $link($settingsUrl, 'Settings') !!}.@endif</p>
     </x-filament::section>
 
+    <x-filament::section heading="Change many sessions at once" :collapsible="true">
+        <ol>
+            <li>Open {!! $link($bulkUrl, 'Bulk schedule') !!} (also under Slots). Choose the action: create slots, change matching slots (time, capacity, trainer), close or cancel them.</li>
+            <li>Pick the dates, the days of the week and, to change only one session a day, “Only slots starting at”. All times are Pakistan time.</li>
+            <li>Press <strong>Preview</strong>. Nothing is saved yet. The preview lists every slot with its riders booked and why any slot is skipped: capacity below the seats taken, a time that is taken or within {{ $bufferMinutes }} minutes of another session, or a hold (unpaid order, transfer waiting, waitlist offer) that keeps the slot at its time.</li>
+            <li>Press <strong>Apply</strong>. Each slot is checked again; anything that changed since the preview is listed under “Not applied”.</li>
+        </ol>
+        <p><strong>Moving a booked session</strong> emails each customer once with the old and new time and three choices, until the session starts: keep the new time, move to another session, or cancel (package credit back; a paid booking is flagged “Needs review” for you to refund, and stays booked until you do). With no answer the booking stays at the new time. Trainers get one summary email.</p>
+        <p>A rule slot you change here stops following its schedule rule. Cancelling here works like cancelling one slot: credits back, paid bookings flagged, one email per customer.</p>
+    </x-filament::section>
+
     <x-filament::section heading="Add a one-off session" :collapsible="true">
         <ol>
             <li>Open {!! $link($slotsUrl, 'Slots') !!} and choose <strong>Add manual slot</strong>. Any date works, weekdays included.</li>

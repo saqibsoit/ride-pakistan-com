@@ -17,6 +17,7 @@ All notable changes to this project are documented here. The format follows [Kee
     - Runs under a new schedule lock (`ScheduleLock`, also taken by the bulk editor).
     - Refused on a clash within the 30-minute buffer (`SlotOverlap`) or when the horses can't take the riders that day.
     - Creates a private-only slot (optional trainer) and an order priced from the product, holding the whole slot for 2 hours.
+    - A cancelled slot at the requested start, with no booking or active hold left on it, is reopened as that private-only slot instead of refusing (`ChangeSlotStatus::reopenForPrivateRequest`, audit `reopened_for_private_request`). This also lets a time that lapsed unpaid be approved again. An open or closed slot at that start still refuses.
     - Card payments started before the deadline may finish on Stripe. A bank transfer must be uploaded by the deadline (`TransferWindow` cap), then it's verified as usual. Fulfilment only through `FulfilOrder`.
   - **Decline:** reason required, optional suggested times.
   - **The request follows its order** (`SyncPrivateRequest` in `OrderStateMachine`):

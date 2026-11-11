@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace App\Actions\PrivateRequests;
 
 use App\Actions\Booking\CreateOrder;
+use App\Actions\Slots\ChangeSlotStatus;
 use App\Actions\Slots\CreateManualSlot;
 use App\Actions\Slots\ScheduleLock;
 use App\Actions\Slots\SlotOverlap;
 use App\Enums\PrivateRequestStatus;
 use App\Enums\SettingKey;
+use App\Enums\SlotStatus;
 use App\Exceptions\BookingRejected;
+use App\Exceptions\InvalidStatusTransition;
 use App\Exceptions\PrivateRequestRejected;
 use App\Exceptions\SlotNotCreated;
 use App\Models\PrivateSessionRequest;
@@ -31,7 +34,10 @@ use Illuminate\Support\Facades\DB;
  * 2. refused when the time clashes with any session that isn't cancelled
  *    (SlotOverlap, with the booking.slot_buffer_minutes buffer) or the
  *    horses can't take the riders that day (HorseDayCapacity);
- * 3. a private-only manual slot is created at that time (optional trainer);
+ * 3. a private-only manual slot is created at that time (optional trainer).
+ *    If a cancelled slot with nothing left on it already starts then, it is
+ *    reopened as that private-only slot instead (starts are unique); an
+ *    open or closed slot at that start refuses the approval;
  * 4. an order is created for the riders, priced from the private product,
  *    with a private hold on the whole slot until the payment window ends
  *    (private.pay_hours); every other booking path is blocked by it;
@@ -46,6 +52,7 @@ final class ApprovePrivateRequest
         private readonly SlotOverlap $overlap,
         private readonly HorseDayCapacity $horses,
         private readonly CreateManualSlot $createSlot,
+        private readonly ChangeSlotStatus $slotStatus,
         private readonly CreateOrder $createOrder,
         private readonly PrivateRequestStateMachine $states,
         private readonly PrivateRequestRules $rules,
@@ -82,18 +89,14 @@ final class ApprovePrivateRequest
                 throw PrivateRequestRejected::because('The requested time has passed.');
             }
 
-            $this->assertFree($locked, lock: true);
+            $reusable = $this->assertFree($locked, lock: true);
+            $capacity = max($locked->riders, $this->settings->int(SettingKey::RidersPerSlot) ?? 6);
 
             try {
-                $slot = $this->createSlot->handle(
-                    $locked->starts_at,
-                    $locked->ends_at,
-                    max($locked->riders, $this->settings->int(SettingKey::RidersPerSlot) ?? 6),
-                    $admin,
-                    privateOnly: true,
-                    trainer: $trainer,
-                );
-            } catch (SlotNotCreated $e) {
+                $slot = $reusable !== null
+                    ? $this->slotStatus->reopenForPrivateRequest($reusable, $locked->ends_at, $capacity, $trainer, $admin, $locked->reference)
+                    : $this->createSlot->handle($locked->starts_at, $locked->ends_at, $capacity, $admin, privateOnly: true, trainer: $trainer);
+            } catch (SlotNotCreated|InvalidStatusTransition $e) {
                 throw PrivateRequestRejected::because($e->getMessage());
             }
 
@@ -119,6 +122,7 @@ final class ApprovePrivateRequest
 
             return $this->states->transition($locked, PrivateRequestStatus::Approved, $admin, context: [
                 'slot_id' => $slot->id,
+                'reused_cancelled_slot' => $reusable !== null,
                 'order_id' => $order->id,
                 'pay_by' => $payBy->toIso8601String(),
             ]);
@@ -147,12 +151,30 @@ final class ApprovePrivateRequest
     }
 
     /**
+     * Refuses a time that isn't free. Returns the cancelled slot at the
+     * same start to reuse, if there is one with nothing left on it.
+     *
      * @throws PrivateRequestRejected
      */
-    private function assertFree(PrivateSessionRequest $request, bool $lock): void
+    private function assertFree(PrivateSessionRequest $request, bool $lock): ?Slot
     {
-        if (Slot::query()->where('starts_at', $request->starts_at)->exists()) {
-            throw PrivateRequestRejected::because('A slot already starts at '.PrivateSessionRequest::localTime($request->starts_at).' (it may be cancelled). Decline and suggest another time.');
+        $sameStart = Slot::query()
+            ->withSeatCounts()
+            ->where('slots.starts_at', $request->starts_at)
+            ->when($lock, fn ($q) => $q->lockForUpdate())
+            ->first();
+        $reusable = null;
+
+        if ($sameStart !== null) {
+            if ($sameStart->status !== SlotStatus::Cancelled) {
+                throw PrivateRequestRejected::because(sprintf('A %s slot already starts at %s. Decline and suggest another time.', mb_strtolower($sameStart->status->label()), PrivateSessionRequest::localTime($request->starts_at)));
+            }
+
+            if ($sameStart->seatsBooked() > 0 || $sameStart->seatsHeld() > 0 || $sameStart->isPrivatelyBooked()) {
+                throw PrivateRequestRejected::because('A cancelled slot at '.PrivateSessionRequest::localTime($request->starts_at).' still has bookings or holds on it. Decline and suggest another time.');
+            }
+
+            $reusable = $sameStart;
         }
 
         $clash = $this->overlap->firstClash($request->starts_at, $request->ends_at, lock: $lock);
@@ -166,5 +188,7 @@ final class ApprovePrivateRequest
         if ($horses !== null) {
             throw PrivateRequestRejected::because($horses);
         }
+
+        return $reusable;
     }
 }

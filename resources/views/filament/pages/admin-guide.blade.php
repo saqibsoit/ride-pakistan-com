@@ -35,7 +35,7 @@
             <li>The customer must pay within the payment window (default 2 hours): card, or a bank transfer uploaded in time (you verify it as usual). Unpaid, the slot is released and the customer is told.</li>
             <li><strong>Decline</strong> needs a reason (the customer sees it); you can suggest other times.</li>
         </ol>
-        <p>A cancelled slot keeps its start time, so a request at exactly that start can’t be approved: decline and suggest a time 15 minutes either side.</p>
+        <p><strong>A cancelled slot at the requested time</strong> is reused: approving reopens it as the private-only slot (its old cancellation stays in the audit log), as long as nothing is left on it. An <strong>open or closed</strong> slot at that start still blocks the approval: decline and suggest another time.</p>
     </x-filament::section>
 
     <x-filament::section heading="Change many sessions at once" :collapsible="true">

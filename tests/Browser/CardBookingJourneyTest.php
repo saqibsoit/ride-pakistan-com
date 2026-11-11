@@ -18,7 +18,9 @@ use Illuminate\Support\Facades\Notification;
  * goes from a public page through /book and checkout to "Pay by card"; the
  * fake Stripe sends them back to the status page, Stripe's signed webhook
  * confirms the payment (FulfilOrder), and the status page's own poll shows
- * the booking. Every step waits for its own result (see tests/Pest.php).
+ * the booking. Every step waits for its own result (see tests/Pest.php), and
+ * after each full page load for Livewire to start (waitForLivewire) before
+ * the first wire:click or wire:model.
  */
 
 beforeEach(function (): void {
@@ -47,6 +49,7 @@ it('books and pays a single session by card, from the product page to the ticket
     // The product page's "Book now" opens /book with the product chosen.
     $browser->locator('a[href*="/book?product=single-session"]:visible')->first()->click(['timeout' => E2E_WAIT_MS]);
     waitForText($browser, 'Choose a date.');
+    waitForLivewire($browser); // the slot buttons are wire:click; the text alone shows before they work
 
     $browser->locator('button[wire\\:click="chooseSlot('.$slot->id.')"]')->click(['timeout' => E2E_WAIT_MS]);
     waitForText($browser, 'Who’s riding?');
@@ -94,6 +97,7 @@ it('books a private session by card and blocks the whole slot', function (): voi
         ->assertSee('Who’s riding?');
     $browser = $page->page();
     $page->assertNoJavaScriptErrors();
+    waitForLivewire($browser); // a box ticked before Livewire boots is reset to the server state
 
     $browser->getByLabel('Bilal Ahmed')->check();
     $browser->getByLabel('Sana Ahmed')->check();
@@ -130,6 +134,7 @@ it('buys an 8-class package by card, then books a session with its credits', fun
         ->assertSee('Book your first session?');
     $browser = $page->page();
     $page->assertNoJavaScriptErrors();
+    waitForLivewire($browser);
 
     // Buy the pack without a date.
     pressOnce($browser, 'I’ll choose my dates later');
@@ -153,6 +158,7 @@ it('buys an 8-class package by card, then books a session with its credits', fun
 
     pressOnce($browser, 'Book a session with credits', 'link');
     waitForText($browser, 'Choose a date.');
+    waitForLivewire($browser);
 
     $browser->locator('button[wire\\:click="chooseSlot('.$slot->id.')"]')->click(['timeout' => E2E_WAIT_MS]);
     waitForText($browser, 'Who’s riding?');

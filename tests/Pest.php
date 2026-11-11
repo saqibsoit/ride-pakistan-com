@@ -191,6 +191,32 @@ function waitForText(Page $page, string $text): void
 }
 
 /**
+ * After a full page load, wait until Livewire has started on it.
+ *
+ * Livewire is a deferred module script, so a page's server-rendered HTML
+ * (and any text waitForText() looks for) is visible before its wire:
+ * directives are bound. Under load, a click in that gap does nothing and
+ * the next wait times out; a box ticked in that gap is reset to the
+ * server state when Livewire boots. Livewire sets
+ * initialRenderIsFinished once Alpine has started and every directive is
+ * bound, so wait for that before the first wire:click or wire:model.
+ */
+function waitForLivewire(Page $page): void
+{
+    $deadline = microtime(true) + E2E_WAIT_MS / 1000;
+
+    while (microtime(true) < $deadline) {
+        if ($page->evaluate('() => window.Livewire?.initialRenderIsFinished === true') === true) {
+            return;
+        }
+
+        usleep(100_000);
+    }
+
+    throw new RuntimeException('Livewire did not start within '.E2E_WAIT_MS.' ms on '.$page->url());
+}
+
+/**
  * Click a button or link once by its accessible name. $exact = false
  * matches names that carry extra screen-reader text (e.g. "Cancel Sat 14 Nov").
  */

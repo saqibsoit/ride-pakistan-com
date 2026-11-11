@@ -24,6 +24,11 @@ use Illuminate\Support\Facades\DB;
  * covers. Admins can move any booking at any time with a reason. A
  * private session moves as a group (every booking of its order in that
  * slot) and needs an empty target. Both slots are locked, in id order.
+ *
+ * Slot time changes (prompt 15A, $forSlotChange): after the bulk editor
+ * moved a session, the customer may move every booking of theirs in it
+ * (any kind, paid or credit) together, whatever the cutoff, to a slot that
+ * has room. Packages must still cover the new slot.
  */
 final class RescheduleBooking
 {
@@ -40,11 +45,15 @@ final class RescheduleBooking
      *
      * @throws BookingRejected
      */
-    public function handle(Booking $booking, int $targetSlotId, User $actor, ?string $reason = null, bool $asAdmin = false): Collection
+    public function handle(Booking $booking, int $targetSlotId, User $actor, ?string $reason = null, bool $asAdmin = false, bool $forSlotChange = false): Collection
     {
         $reason = trim((string) $reason);
 
-        if ($asAdmin) {
+        if ($forSlotChange && ! $asAdmin) {
+            if ($booking->user_id !== $actor->id) {
+                throw BookingRejected::notAllowed('Please contact us to change this booking.');
+            }
+        } elseif ($asAdmin) {
             if (! $actor->isAdmin()) {
                 throw BookingRejected::notAllowed('Only admins can move this booking.');
             }
@@ -62,16 +71,23 @@ final class RescheduleBooking
 
         $fromSlot = null;
 
-        $moved = DB::transaction(function () use ($booking, $targetSlotId, $actor, $reason, $asAdmin, &$fromSlot): Collection {
+        $moved = DB::transaction(function () use ($booking, $targetSlotId, $actor, $reason, $asAdmin, $forSlotChange, &$fromSlot): Collection {
             $booking->refresh();
 
-            $moving = $booking->is_private && $booking->order_id !== null
+            $moving = $forSlotChange
+                ? Booking::query()
+                    ->where('user_id', $booking->user_id)
+                    ->where('slot_id', $booking->slot_id)
+                    ->where('status', BookingStatus::Confirmed)
+                    ->orderBy('id')
+                    ->get()
+                : ($booking->is_private && $booking->order_id !== null
                 ? Booking::query()
                     ->where('order_id', $booking->order_id)
                     ->where('slot_id', $booking->slot_id)
                     ->where('status', BookingStatus::Confirmed)
                     ->get()
-                : new Collection([$booking]);
+                : new Collection([$booking]));
 
             $ids = [$booking->slot_id, $targetSlotId];
             sort($ids);
@@ -97,7 +113,7 @@ final class RescheduleBooking
                 throw BookingRejected::notAllowed('This booking is not active.');
             }
 
-            if (! $asAdmin && ! $this->cutoff->isBefore($from->slot)) {
+            if (! $asAdmin && ! $forSlotChange && ! $this->cutoff->isBefore($from->slot)) {
                 throw BookingRejected::pastCutoff($this->cutoff->hours());
             }
 

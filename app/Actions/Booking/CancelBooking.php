@@ -23,6 +23,11 @@ use Illuminate\Support\Facades\DB;
  * cancelled before the cutoff and the pack has not expired; after the
  * cutoff it is used up. Admins must give a reason and may override the
  * credit decision (for example for bad weather).
+ *
+ * Slot time changes (prompt 15A): after the bulk editor moved a session,
+ * the customer may cancel their own credit or no-charge bookings in it
+ * from the email link ($forSlotChange). The credit comes back whatever the
+ * cutoff, as long as the pack is still usable.
  */
 final class CancelBooking
 {
@@ -40,11 +45,17 @@ final class CancelBooking
      *
      * @throws BookingRejected
      */
-    public function handle(Booking $booking, User $actor, ?string $reason = null, bool $asAdmin = false, ?bool $returnCredit = null): bool
+    public function handle(Booking $booking, User $actor, ?string $reason = null, bool $asAdmin = false, ?bool $returnCredit = null, bool $forSlotChange = false): bool
     {
         $reason = trim((string) $reason);
 
-        if ($asAdmin) {
+        if ($forSlotChange && ! $asAdmin) {
+            if ($booking->user_id !== $actor->id || (! $booking->usesCredit() && $booking->order_id !== null)) {
+                throw BookingRejected::notAllowed('Please contact us to change this booking.');
+            }
+
+            $returnCredit = null;
+        } elseif ($asAdmin) {
             if (! $actor->isAdmin()) {
                 throw BookingRejected::notAllowed('Only admins can cancel this booking.');
             }
@@ -60,7 +71,7 @@ final class CancelBooking
             $returnCredit = null;
         }
 
-        $returned = DB::transaction(function () use ($booking, $actor, $reason, $asAdmin, $returnCredit): bool {
+        $returned = DB::transaction(function () use ($booking, $actor, $reason, $asAdmin, $returnCredit, $forSlotChange): bool {
             $this->slotLock->acquire($booking->slot_id);
             $booking->refresh();
 
@@ -77,12 +88,12 @@ final class CancelBooking
             if ($booking->credit_pack_id !== null) {
                 $pack = CreditPack::query()->whereKey($booking->credit_pack_id)->lockForUpdate()->firstOrFail();
 
-                $byRule = $this->cutoff->isBefore($booking->slot)
+                $byRule = ($forSlotChange || $this->cutoff->isBefore($booking->slot))
                     && $pack->expires_at->isFuture()
                     && $pack->status !== CreditPackStatus::Revoked;
 
                 if ($returnCredit ?? $byRule) {
-                    $this->credits->giveBack($pack, $booking, $actor, $asAdmin ? $reason : 'Cancelled before the cutoff');
+                    $this->credits->giveBack($pack, $booking, $actor, $asAdmin ? $reason : ($forSlotChange ? 'Cancelled after the session time changed' : 'Cancelled before the cutoff'));
                     $returned = true;
                 }
             }

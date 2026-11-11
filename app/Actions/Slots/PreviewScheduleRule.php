@@ -68,6 +68,8 @@ final class PreviewScheduleRule
 
         $inUse = array_flip(Slot::query()->whereKey($slots->modelKeys())->inUse()->pluck('id')->all());
 
+        $replaced = GenerateSlots::replacedKeys($now, $until);
+
         $preview = new SchedulePreview($weeks);
 
         sort($changedKeys);
@@ -79,6 +81,10 @@ final class PreviewScheduleRule
             $startsAt = ($new ?? $old)['starts_at'] ?? CarbonImmutable::parse($key, 'UTC');
 
             if ($slot === null) {
+                if (isset($replaced[$key])) {
+                    continue; // moved by the bulk editor; the rule won't refill it (prompt 15A)
+                }
+
                 if ($new !== null) {
                     $preview->new[] = SchedulePreviewItem::make($startsAt, $new['ends_at'], $new['capacity']);
                 }

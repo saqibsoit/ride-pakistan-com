@@ -47,6 +47,12 @@ final class SlotPolicy
         return $user->isAdmin();
     }
 
+    /** The bulk schedule editor (prompt 15A). */
+    public function bulkSchedule(User $user): bool
+    {
+        return $user->isAdmin();
+    }
+
     /** Edit a manual slot's time, capacity or private-only flag (UpdateManualSlot). */
     public function update(User $user, Slot $slot): bool
     {

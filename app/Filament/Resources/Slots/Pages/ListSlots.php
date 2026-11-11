@@ -8,6 +8,7 @@ use App\Actions\Slots\CreateManualSlot;
 use App\Actions\Slots\GenerateSlots;
 use App\Enums\SettingKey;
 use App\Exceptions\SlotNotCreated;
+use App\Filament\Pages\BulkSchedule;
 use App\Filament\Resources\Slots\SlotResource;
 use App\Filament\Support\TrainerOptions;
 use App\Models\Slot;
@@ -37,6 +38,12 @@ class ListSlots extends ListRecords
                 ->color('gray')
                 ->url(SlotResource::getUrl('calendar')),
             $this->createManualAction(),
+            Action::make('bulk')
+                ->label('Bulk schedule')
+                ->icon(Heroicon::OutlinedCalendarDateRange)
+                ->color('gray')
+                ->visible(fn (): bool => BulkSchedule::canAccess())
+                ->url(fn (): string => BulkSchedule::getUrl()),
             Action::make('generate')
                 ->label('Generate slots now')
                 ->icon(Heroicon::OutlinedArrowPath)

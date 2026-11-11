@@ -38,6 +38,7 @@ use App\Http\Controllers\Public\SeoFileController;
 use App\Http\Controllers\Public\SessionController;
 use App\Http\Controllers\ReferralLinkController;
 use App\Http\Controllers\ReviewController;
+use App\Http\Controllers\SlotChangeController;
 use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\Team\RiderHistoryController;
 use App\Http\Controllers\Team\RiderProgressController;
@@ -188,6 +189,17 @@ Route::get('/sitemap.xml', [SeoFileController::class, 'sitemap'])->name('sitemap
 Route::middleware(['signed', 'cache.headers:private;no_store'])->prefix('reviews/{ticket}')->name('reviews.')->group(function (): void {
     Route::get('/', [ReviewController::class, 'create'])->name('create');
     Route::post('/', [ReviewController::class, 'store'])->middleware('throttle:account-actions')->name('store');
+});
+
+// After the bulk schedule editor moved a booked session (prompt 15A): keep,
+// move or cancel from the signed email link (no sign-in; the controller
+// checks the signature so an expired link gets a clear page). Never cached.
+Route::middleware(['cache.headers:private;no_store'])->prefix('schedule-change/{notice}')->name('slot-change.')->group(function (): void {
+    Route::get('/', [SlotChangeController::class, 'show'])->name('show');
+    Route::post('keep', [SlotChangeController::class, 'accept'])->middleware('throttle:account-actions')->name('accept');
+    Route::get('move', [SlotChangeController::class, 'moveForm'])->name('move');
+    Route::post('move', [SlotChangeController::class, 'move'])->middleware('throttle:account-actions')->name('move.store');
+    Route::post('cancel', [SlotChangeController::class, 'cancel'])->middleware('throttle:account-actions')->name('cancel');
 });
 
 // Contact form: CSRF token, flash status and per-visit attribution.

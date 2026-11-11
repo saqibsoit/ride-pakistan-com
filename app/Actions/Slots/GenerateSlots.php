@@ -29,6 +29,9 @@ use Illuminate\Support\Facades\DB;
  * - Manual slots (added by an admin through CreateManualSlot) are never
  *   changed or removed. If a rule produces a start time a manual slot
  *   already holds, the manual slot wins and no rule slot is created.
+ * - A rule slot the bulk schedule editor moved (prompt 15A) became manual
+ *   and keeps the start it replaced (replaces_starts_at): no rule slot is
+ *   created there again.
  */
 final class GenerateSlots
 {
@@ -66,12 +69,21 @@ final class GenerateSlots
                 ->pluck('id')
                 ->all());
 
+            $replaced = self::replacedKeys($now, $until);
+
             $result = new SlotGenerationResult;
 
             foreach ($desired as $key => $wanted) {
                 $slot = $existing[$key] ?? null;
 
                 if ($slot === null) {
+                    // The bulk editor moved this rule slot elsewhere (prompt 15A).
+                    if (isset($replaced[$key])) {
+                        $result->kept++;
+
+                        continue;
+                    }
+
                     $created = new Slot($wanted);
                     $created->source = SlotSource::Rule;
                     $created->trainer_id = $trainers[$wanted['schedule_rule_id'] ?? 0] ?? null;
@@ -150,6 +162,26 @@ final class GenerateSlots
         }
 
         return $desired;
+    }
+
+    /**
+     * Rule starts that a moved slot replaced (prompt 15A), as keys.
+     *
+     * @return array<string, true>
+     */
+    public static function replacedKeys(CarbonImmutable $from, CarbonImmutable $until): array
+    {
+        $keys = [];
+
+        foreach (Slot::query()
+            ->whereNotNull('replaces_starts_at')
+            ->where('replaces_starts_at', '>', $from->utc())
+            ->where('replaces_starts_at', '<', $until->utc())
+            ->pluck('replaces_starts_at') as $startsAt) {
+            $keys[self::key($startsAt instanceof CarbonImmutable ? $startsAt : CarbonImmutable::parse((string) $startsAt, 'UTC'))] = true;
+        }
+
+        return $keys;
     }
 
     public static function key(CarbonImmutable $startsAt): string

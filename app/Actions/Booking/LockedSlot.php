@@ -59,6 +59,20 @@ final class LockedSlot
     }
 
     /**
+     * Still taking bookings: open, not closed or cancelled. Unlike
+     * assertBookable() it ignores the start time, for a payment that
+     * arrives after the hold ran out (FulfilOrder).
+     *
+     * @throws BookingRejected
+     */
+    public function assertOpen(): void
+    {
+        if ($this->slot->status !== SlotStatus::Open) {
+            throw BookingRejected::slotNotBookable();
+        }
+    }
+
+    /**
      * Room for these riders: a private session needs the slot empty; a
      * group booking needs one free seat per rider. No rider twice.
      *

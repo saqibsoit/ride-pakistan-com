@@ -248,6 +248,9 @@ All notable changes to this project are documented here. The format follows [Kee
 - README with local setup steps.
 
 ### Fixed
+- A payment that arrived after its seat hold ran out could still be confirmed on a slot that had since been closed or cancelled. `FulfilOrder` now re-checks the slot under its row lock: it must be open, have room and not be blocked by a private session.
+  - If it isn't, no booking is made. A card payment is refunded automatically (as for seats gone). A bank transfer approval is rolled back and the order flagged "Needs review".
+  - Either way the customer gets one email (`OrderNotFulfilled`), which now also goes out for the existing automatic refunds (expired or cancelled orders, full slots).
 - A customer could join the waitlist of a slot a private session had held or booked, where seats never free up. That's now refused (`BookingRejected::BOOKED_PRIVATELY`). New tests cover every booking path against a private hold or booking, and a private session against any booking or hold (prompt 14).
 - Hostinger cron: the scheduler ran nothing, so no emails were sent and holds never expired. Hostinger disables `proc_open`, which Laravel needs to start each scheduled task. The cron now runs `deploy/schedule-run.sh`, which re-enables only `proc_open`, for that one process. A script, because hPanel limits cron commands to 255 characters.
 - Images inside grid and flex layouts were misplaced on every page. `<x-img>` renders `<picture class="contents">`, so its `<source>` elements became layout items too: Chrome gave each one a grid cell and a flex gap. A base rule now takes `picture > source` out of layout. What it fixes:

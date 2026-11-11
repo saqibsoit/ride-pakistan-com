@@ -15,6 +15,8 @@ use App\Exceptions\BookingRejected;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Models\StripeEvent;
+use App\Notifications\OrderNotFulfilled;
+use App\Support\Notifier;
 use App\Support\Stripe\StripeGateway;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -60,6 +62,7 @@ final class HandleStripeEvent
         private readonly StripeGateway $stripe,
         private readonly HandleVoucherStripeEvent $vouchers,
         private readonly RestoreOrderDiscounts $restore,
+        private readonly Notifier $notifier,
     ) {}
 
     /** @return bool false when the event had already been processed */
@@ -316,6 +319,7 @@ final class HandleStripeEvent
             ], 'refund:auto:'.$order->id.':'.$intent);
         } catch (Throwable $e) {
             $this->flag->handle($order, 'refund_failed', 'Paid but could not be fulfilled ('.$why.'), and the automatic refund failed: '.$e->getMessage(), $context);
+            $this->tellCustomer($order, refunded: false);
 
             return;
         }
@@ -326,6 +330,13 @@ final class HandleStripeEvent
         ], context: $context);
 
         $this->flag->handle($order, 'payment_refunded_unfulfillable', 'Paid but could not be fulfilled ('.$why.'). Refunded automatically.', [...$context, 'stripe_refund' => $refund->id]);
+        $this->tellCustomer($order, refunded: true);
+    }
+
+    /** Once per order: a retried webhook or a second payment doesn't email again. */
+    private function tellCustomer(Order $order, bool $refunded): void
+    {
+        $this->notifier->send($order->user, new OrderNotFulfilled($order, $refunded), Notifier::key(OrderNotFulfilled::type(), $order, $order->user));
     }
 
     private static function str(mixed $value): string

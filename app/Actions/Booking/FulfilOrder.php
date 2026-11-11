@@ -27,9 +27,12 @@ use Illuminate\Support\Facades\DB;
  * each held slot locked, holds turned into bookings with unique ticket
  * codes, a credit pack created for packages (valid from now, for the
  * product's validity) with ledger entries, and the holds removed. If a
- * hold ran out before payment arrived, the seat is taken again only if
- * the slot still has room; otherwise BookingRejected is thrown and
- * nothing is written (the caller refunds).
+ * hold ran out before payment arrived, the slot is re-checked under its
+ * row lock: it must still be open (not closed or cancelled), have room and
+ * not be blocked by a private session. Otherwise BookingRejected is thrown
+ * and nothing is written: the Stripe webhook refunds automatically, a bank
+ * transfer approval flags the order for review, and both email the
+ * customer (OrderNotFulfilled).
  */
 final class FulfilOrder
 {
@@ -87,6 +90,7 @@ final class FulfilOrder
                     ->first();
 
                 if ($hold === null) {
+                    $slot->assertOpen();
                     $slot->assertRoomFor(array_map(fn (OrderItem $i): int => (int) $i->rider_id, $items), $private);
                 }
             }

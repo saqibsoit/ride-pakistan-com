@@ -267,6 +267,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - README with local setup steps.
 
 ### Fixed
+- CI (also used by deploys): Playwright's Chromium is installed without `--with-deps`, so nothing comes from the runner's apt mirror, whose DNS outage failed every run on 2026-11-11. The browser is cached per Playwright version, the install is tried up to 3 times, and a final failure stops the job with a clear "Chromium not installed" error. A launch check fails clearly if a system library is missing.
 - A payment that arrived after its seat hold ran out could still be confirmed on a slot that had since been closed or cancelled. `FulfilOrder` now re-checks the slot under its row lock: it must be open, have room and not be blocked by a private session.
   - If it isn't, no booking is made. A card payment is refunded automatically (as for seats gone). A bank transfer approval is rolled back and the order flagged "Needs review".
   - Either way the customer gets one email (`OrderNotFulfilled`), which now also goes out for the existing automatic refunds (expired or cancelled orders, full slots).

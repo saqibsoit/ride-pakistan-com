@@ -19,7 +19,9 @@ use Illuminate\Support\Facades\Notification;
  * Private session requests end to end (prompt 15B): a customer requests a
  * date and time on a phone, an admin approves it in the panel and the
  * customer pays by card; and both 2-hour windows run out (no answer, then
- * no payment). Every step waits for its own result (see tests/Pest.php).
+ * no payment). Every step waits for its own result (see tests/Pest.php), and
+ * after each full page load for Livewire to start (waitForLivewire) before
+ * the first wire:click, wire:model or Filament action.
  */
 
 beforeEach(function (): void {
@@ -53,6 +55,7 @@ it('takes a private request from the booking flow to approval and card payment',
         ->assertSee('Request another date and time');
     $page->assertNoJavaScriptErrors();
     $customer = $page->page();
+    waitForLivewire($customer); // the date and time fields are wire:model; typed too early, they're reset
 
     fillOnce($customer, 'Date', $date);
     fillOnce($customer, 'Start time', '10:00');
@@ -71,6 +74,7 @@ it('takes a private request from the booking flow to approval and card payment',
     test()->actingAs(User::factory()->admin()->withMfa()->create());
     $admin = visit(PrivateRequestResource::getUrl('view', ['record' => $request->id], panel: 'admin'))->page();
     waitForText($admin, 'Private request '.$request->reference);
+    waitForLivewire($admin); // Approve is a Filament (Livewire) action
     pressOnce($admin, 'Approve');
     waitForText($admin, 'Approve this private session?');
     $admin->getByRole('button', ['name' => 'Approve', 'exact' => true])->last()->click(['timeout' => E2E_WAIT_MS]);

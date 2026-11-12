@@ -27,7 +27,7 @@ All notable changes to this project are documented here. The format follows [Kee
   - Tests:
     - feature tests for every rule and state, both 2-hour windows at their exact edges, overlap and horse refusals, the blocking of other booking paths, payments, emails, the admin screens and the email links;
     - a concurrency test (two overlapping approvals at once: one wins);
-    - three browser journeys (request → approve → pay by card; request expiry; payment window expiry).
+    - three browser journeys (request → approve → pay by card; request expiry; payment window expiry), waiting for Livewire to start on `/book` and the admin request page before the first click.
 - Legal pages published (decided 2026-11-11) from the approved texts in `docs/legal/`:
   - `/privacy`, `/terms` and `/refund-policy` now show the Privacy Policy, Terms and Conditions and Cancellation and Refund Policy, each as an introduction plus one section per heading.
   - They appear in the footer and the sitemap.

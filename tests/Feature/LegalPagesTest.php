@@ -203,3 +203,51 @@ describe('at checkout', function (): void {
             ->assertDontSee('href="'.route('legal.terms').'"', false);
     });
 });
+
+describe('the guest checkout wording (2026-11-12)', function (): void {
+    /** The page as published on 11 November: today's text with the new sentences put back to the old ones. */
+    function legalOldBody(string $slug): array
+    {
+        $reflection = new ReflectionClass(legalGuestMigration());
+        $c = $reflection->getConstants();
+        $back = $slug === 'terms'
+            ? [$c['DATE_NEW'] => $c['DATE_OLD'], $c['TERMS_NEW'] => $c['TERMS_OLD']]
+            : [$c['DATE_NEW'] => $c['DATE_OLD'], $c['PRIVACY_NEW_2'] => $c['PRIVACY_OLD_2'], $c['PRIVACY_NEW_1'] => $c['PRIVACY_OLD_1']];
+
+        return array_map(fn (array $block): array => ['type' => $block['type'], 'data' => [...$block['data'], 'content' => strtr($block['data']['content'], $back)]], LegalPages::content($slug)['body']);
+    }
+
+    function legalGuestMigration(): object
+    {
+        return require database_path('migrations/2026_11_24_100100_update_legal_pages_for_guest_checkout.php');
+    }
+
+    it('updates the published terms and privacy pages that still hold the old wording', function (): void {
+        foreach (['terms', 'privacy'] as $slug) {
+            Page::factory()->create(['slug' => $slug, 'is_published' => true, 'body' => legalOldBody($slug)]);
+            expect(Page::query()->where('slug', $slug)->sole()->body)->not->toBe(LegalPages::content($slug)['body']);
+        }
+
+        legalGuestMigration()->up();
+
+        foreach (['terms', 'privacy'] as $slug) {
+            expect(Page::query()->where('slug', $slug)->sole()->body)->toBe(LegalPages::content($slug)['body']);
+        }
+
+        expect(json_encode(Page::query()->where('slug', 'terms')->sole()->body))->toContain('book as a guest');
+    });
+
+    it('leaves an edited page alone with a warning, and the new wording without one', function (): void {
+        Log::spy();
+        Page::factory()->create(['slug' => 'terms', 'is_published' => true, 'body' => [['type' => 'text', 'data' => ['content' => 'Our own terms']]]]);
+        Page::factory()->create(['slug' => 'privacy', 'is_published' => true, 'body' => LegalPages::content('privacy')['body']]);
+
+        legalGuestMigration()->up();
+
+        expect(Page::query()->where('slug', 'terms')->sole()->body[0]['data']['content'])->toBe('Our own terms')
+            ->and(Page::query()->where('slug', 'privacy')->sole()->body)->toBe(LegalPages::content('privacy')['body']);
+
+        Log::shouldHaveReceived('warning')->withArgs(fn (string $message): bool => str_contains($message, '/terms'))->once();
+        Log::shouldNotHaveReceived('warning', [Mockery::on(fn (string $message): bool => str_contains($message, '/privacy'))]);
+    });
+});

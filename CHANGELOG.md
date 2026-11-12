@@ -5,6 +5,27 @@ All notable changes to this project are documented here. The format follows [Kee
 ## [Unreleased]
 
 ### Added
+- Guest checkout (decided 2026-11-12): book, pay, buy gift vouchers and request private sessions without signing in. "My account" still uses the email code.
+  - **Booking.** `/book`'s review step offers "Continue as guest". `/book/details` asks for name, email twice, WhatsApp and the Turnstile check. Then the usual checkout by card or bank transfer. "Sign in instead" keeps the old draft-and-resume.
+  - **The account behind the email** is created if there is none, otherwise reused and never changed (only an empty name or WhatsApp number is filled). The typed name and number are stored on the order, and typed riders are always new riders. Team accounts, accounts scheduled for deletion and anonymised ones get one neutral refusal.
+  - **No leaks.** A guest never sees the account's name, riders, packs, orders or credit, and never gets a different answer because an account exists:
+    - no merging with the account's held order;
+    - no waitlist claim;
+    - no welcome discount or account credit;
+    - history-based promo codes say "Sign in";
+    - an account's open private request is told to its owner by email instead.
+  - **"Manage your booking" links** in every booking email (`/manage/{reference}`). See the tickets and calendar files, pay or upload the transfer, move or cancel credit bookings within the cutoff, and book with the order's package credits. They work until 7 days after the last session and can be revoked by an admin (reason) or the customer, which emails a new link. `/manage` sends a new link and answers the same either way.
+  - Guest bank transfers get the bank details and the link by email. Private requests have a signed follow page (`/requests/{reference}`). Gift voucher buyers have a signed purchase link. The voucher shows the buyer's typed name.
+  - **The team** sees "Booked as (guest)" and the WhatsApp number typed for the booking on the order page, the run sheets and the exports. New "Revoke manage links" action on the order page.
+  - **Legal.** Terms §2 and the Privacy Policy explain guest booking and the manage links (last updated 12 November 2026). A migration updates the published pages only where they still hold the 11 November wording.
+  - **Tests:**
+    - each flow;
+    - email reuse without leaks (an existing account with name, credit, pack, riders and a held order for the same slot);
+    - neutral refusals;
+    - link expiry at its edge, revocation and tampering;
+    - the per-email limit and Turnstile;
+    - every email's link;
+    - browser journeys on a phone (guest card booking; guest bank transfer through upload).
 - Private session requests (prompt 15B). Booking a private session on an existing admin slot is unchanged.
   - **Asking.** Signed-in customers can request their own date and time from the private product's slot step in `/book`:
     - 07:00–18:00 Pakistan time (the session must end by 18:00), on the quarter hour, at least 48 hours ahead, 2-hour sessions;

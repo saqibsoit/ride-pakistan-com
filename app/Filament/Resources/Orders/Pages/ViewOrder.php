@@ -20,6 +20,7 @@ class ViewOrder extends ViewRecord
             OrderActions::refund(),
             OrderActions::transferRefund(),
             OrderActions::refundCovered(),
+            OrderActions::revokeManageLinks(),
         ];
     }
 }

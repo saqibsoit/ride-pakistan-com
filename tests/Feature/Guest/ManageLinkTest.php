@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Actions\Guest\RevokeManageLinks;
 use App\Enums\BookingStatus;
 use App\Enums\OrderStatus;
+use App\Filament\Resources\Orders\Pages\ViewOrder;
 use App\Livewire\Manage\PackBooking;
 use App\Models\Booking;
 use App\Models\CreditPack;
@@ -221,4 +222,37 @@ it('emails a new link only when the email and reference match, with the same ans
 
     Notification::assertSentToTimes($order->user, ManageLinkReissued::class, 1);
     $this->get(route('manage.link'))->assertSee('If that email and reference match a booking');
+});
+
+it('lets an admin revoke the links from the order page with a reason', function (): void {
+    $order = mlPaidOrder();
+    $admin = User::factory()->admin()->withMfa()->create();
+
+    Livewire::actingAs($admin)->test(ViewOrder::class, ['record' => $order->reference])
+        ->assertSee('Booked as (guest)')
+        ->callAction('revoke_manage_links', data: ['reason' => 'Email forwarded to the wrong person']);
+
+    expect($order->refresh()->manage_link_version)->toBe(2);
+    Notification::assertSentTo($order->user, ManageLinkReissued::class);
+    // Staff can't open orders at all; RevokeManageLinks refuses non-admins (tested above).
+});
+
+it('lets the signed-in customer stop the links from their account order page', function (): void {
+    $order = mlPaidOrder();
+
+    $this->actingAs($order->user)->get(route('account.orders.show', $order->reference))->assertSee('Stop the links for '.$order->reference);
+    $this->actingAs($order->user)->post(route('manage.revoke', $order->reference))->assertRedirect(route('manage.link'));
+
+    expect($order->refresh()->manage_link_version)->toBe(2);
+});
+
+it('shows the WhatsApp number typed for a guest booking on the run sheet', function (): void {
+    $order = mlPaidOrder();
+    $order->forceFill(['contact_whatsapp' => '+923001112233'])->save();
+    $booking = $order->bookings()->sole();
+
+    $this->actingAs(User::factory()->staff()->withMfa()->create())
+        ->get(route('team.sessions.show', $booking->slot_id))
+        ->assertOk()
+        ->assertSee('+923001112233');
 });

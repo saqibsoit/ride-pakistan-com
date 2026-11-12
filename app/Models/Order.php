@@ -240,6 +240,16 @@ class Order extends Model
     /**
      * @return array<string, string>
      */
+    /**
+     * The WhatsApp number for this booking: the one typed at a guest
+     * checkout (guest checkout keeps an existing account's profile as it
+     * is), otherwise the account's.
+     */
+    public function contactWhatsApp(): ?string
+    {
+        return $this->contact_whatsapp ?? $this->user->whatsapp_phone ?? null;
+    }
+
     protected function casts(): array
     {
         return [

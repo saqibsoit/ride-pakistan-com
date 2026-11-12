@@ -99,10 +99,10 @@
                                 <dt class="text-sm text-sand-dim">Booked by</dt>
                                 <dd>
                                     {{ $booking->user->displayName() }}
-                                    @php($whatsappLink = \App\Support\WhatsAppLink::to($booking->user->whatsapp_phone))
+                                    @php($whatsappLink = \App\Support\WhatsAppLink::to($booking->contactWhatsApp()))
                                     @if ($whatsappLink)
                                         <a href="{{ $whatsappLink }}" target="_blank" rel="noopener" class="mt-1 flex min-h-11 items-center font-semibold underline underline-offset-4 hover:text-sand-dim">
-                                            WhatsApp {{ $booking->user->whatsapp_phone }}<span class="sr-only"> ({{ $booking->user->displayName() }}, opens in a new tab)</span>
+                                            WhatsApp {{ $booking->contactWhatsApp() }}<span class="sr-only"> ({{ $booking->user->displayName() }}, opens in a new tab)</span>
                                         </a>
                                     @else
                                         <span class="block text-sm text-sand-dim">No WhatsApp number yet</span>

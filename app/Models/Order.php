@@ -40,6 +40,10 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property ProductType|null $product_type snapshot at order time
  * @property int|null $sessions_count snapshot at order time
  * @property int|null $validity_days snapshot at order time
+ * @property string|null $contact_name guest checkout: the name typed for this record
+ * @property string|null $contact_whatsapp guest checkout: the WhatsApp number typed (E.164)
+ * @property bool $placed_as_guest placed signed out (guest checkout)
+ * @property int $manage_link_version part of every signed manage link; raised to revoke them
  * @property-read User $user
  * @property-read Product $product
  * @property-read Collection<int, OrderDiscount> $discounts
@@ -63,6 +67,9 @@ class Order extends Model
         'stripe_payment_intent_id',
         'expires_at',
         'meta',
+        'contact_name',
+        'contact_whatsapp',
+        'placed_as_guest',
     ];
 
     /** @var array<string, mixed> */
@@ -70,6 +77,8 @@ class Order extends Model
         'status' => 'pending_payment',
         'currency' => 'PKR',
         'amount_refunded_minor' => 0,
+        'placed_as_guest' => false,
+        'manage_link_version' => 1,
     ];
 
     /**
@@ -234,6 +243,8 @@ class Order extends Model
     protected function casts(): array
     {
         return [
+            'placed_as_guest' => 'boolean',
+            'manage_link_version' => 'integer',
             'status' => OrderStatus::class,
             'payment_method' => PaymentMethod::class,
             'product_type' => ProductType::class,

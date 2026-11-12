@@ -40,6 +40,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property CarbonImmutable|null $pay_by
  * @property CarbonImmutable|null $closed_at
  * @property CarbonImmutable $created_at
+ * @property string|null $contact_name guest checkout: the name typed for this record
+ * @property string|null $contact_whatsapp guest checkout: the WhatsApp number typed (E.164)
+ * @property bool $placed_as_guest placed signed out (guest checkout)
+ * @property int $manage_link_version part of every signed manage link; raised to revoke them
  * @property-read User $user
  * @property-read Product $product
  * @property-read Slot|null $slot
@@ -70,11 +74,16 @@ class PrivateSessionRequest extends Model
         'rider_ids',
         'note',
         'answer_by',
+        'contact_name',
+        'contact_whatsapp',
+        'placed_as_guest',
     ];
 
     /** @var array<string, mixed> */
     protected $attributes = [
         'status' => 'requested',
+        'placed_as_guest' => false,
+        'manage_link_version' => 1,
     ];
 
     /**
@@ -166,6 +175,8 @@ class PrivateSessionRequest extends Model
     protected function casts(): array
     {
         return [
+            'placed_as_guest' => 'boolean',
+            'manage_link_version' => 'integer',
             'starts_at' => 'immutable_datetime',
             'ends_at' => 'immutable_datetime',
             'riders' => 'integer',

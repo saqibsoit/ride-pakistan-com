@@ -17,9 +17,10 @@ use Illuminate\Validation\Rule;
  */
 final class StoreVoucherOrderRequest extends FormRequest
 {
+    /** Signed in or not (guest checkout, decided 2026-11-12): guests give their own name and email. */
     public function authorize(): bool
     {
-        return $this->user() !== null;
+        return true;
     }
 
     /**
@@ -39,6 +40,10 @@ final class StoreVoucherOrderRequest extends FormRequest
             'message' => ['nullable', 'string', 'max:'.VoucherRules::MAX_MESSAGE_LENGTH],
             'send' => ['required', Rule::in(['now', 'later'])],
             'send_on' => ['exclude_unless:send,later', 'required', 'date_format:Y-m-d', 'after_or_equal:'.$today->format('Y-m-d'), 'before_or_equal:'.$today->addDays(VoucherRules::MAX_SEND_AHEAD_DAYS)->format('Y-m-d')],
+            ...($this->user() === null ? [
+                'buyer_name' => ['required', 'string', 'max:120'],
+                'buyer_email' => ['required', 'string', 'email:rfc', 'max:190', 'confirmed'],
+            ] : []),
         ];
     }
 
@@ -56,6 +61,10 @@ final class StoreVoucherOrderRequest extends FormRequest
             'send_on.required' => 'Choose the date to send the voucher.',
             'send_on.after_or_equal' => 'Choose a date from today.',
             'send_on.before_or_equal' => 'Choose a date up to '.VoucherRules::MAX_SEND_AHEAD_DAYS.' days ahead.',
+            'buyer_name.required' => 'Enter your name.',
+            'buyer_email.required' => 'Enter your email address.',
+            'buyer_email.email' => 'Enter a valid email address.',
+            'buyer_email.confirmed' => 'The two email addresses don’t match.',
         ];
     }
 

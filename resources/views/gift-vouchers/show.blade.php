@@ -83,7 +83,11 @@
                 </section>
             @endif
 
-            <p class="text-sm text-sand-dim"><a href="{{ route('account.vouchers') }}" class="underline underline-offset-4 hover:text-sand">Your gift vouchers</a></p>
+            @if ($guest)
+                <p class="text-sm text-sand-dim">We email you a link to this page with every update. Anyone with it can open the purchase, so please don’t share it.</p>
+            @else
+                <p class="text-sm text-sand-dim"><a href="{{ route('account.vouchers') }}" class="underline underline-offset-4 hover:text-sand">Your gift vouchers</a></p>
+            @endif
         </div>
     </section>
 </x-layouts.app>

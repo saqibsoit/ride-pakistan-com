@@ -17,8 +17,10 @@
             @endif
 
             @if ($status === VoucherOrderStatus::Paid)
-                <x-alert variant="success" title="Transfer confirmed.">The voucher has been issued and emailed. See it in your account.<x-spam-hint /></x-alert>
-                <div><x-button :href="route('account.vouchers')">Your gift vouchers</x-button></div>
+                <x-alert variant="success" title="Transfer confirmed.">The voucher has been issued and emailed.{{ $guest ? '' : ' See it in your account.' }}<x-spam-hint /></x-alert>
+                @unless ($guest)
+                    <div><x-button :href="route('account.vouchers')">Your gift vouchers</x-button></div>
+                @endunless
             @elseif ($status === VoucherOrderStatus::Rejected)
                 <x-alert variant="error" title="We couldn't confirm this transfer.">{{ $order->rejection_reason }}</x-alert>
             @elseif (! $status->isUnpaid())
@@ -97,7 +99,9 @@
                 @endif
             @endif
 
-            <p class="text-sm text-sand-dim"><a href="{{ route('account.vouchers') }}" class="underline underline-offset-4 hover:text-sand">Your gift vouchers</a></p>
+            @unless ($guest)
+                <p class="text-sm text-sand-dim"><a href="{{ route('account.vouchers') }}" class="underline underline-offset-4 hover:text-sand">Your gift vouchers</a></p>
+            @endunless
         </div>
     </section>
 </x-layouts.app>

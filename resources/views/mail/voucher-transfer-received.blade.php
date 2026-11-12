@@ -5,9 +5,11 @@ Thank you. We've received the proof of your bank transfer for gift voucher **{{ 
 
 We'll check it against our account shortly. As soon as it's confirmed we'll {{ $order->send_on ? 'send the voucher to '.$order->recipient_name.' on the date you chose' : 'email the voucher to '.$order->recipient_name }}, and let you know.
 
-<x-mail::button :url="route('account.vouchers')">
-See your gift vouchers
+<x-mail::button :url="\App\Support\VoucherOrderLink::for($order)">
+See your purchase
 </x-mail::button>
+
+No sign-in needed. Anyone with the link can see the purchase, so please don't share it.
 
 Ride Pakistan
 </x-mail::message>

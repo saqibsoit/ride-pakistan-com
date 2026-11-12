@@ -96,6 +96,17 @@ class VoucherOrder extends Model
         return 'reference';
     }
 
+    /**
+     * Who the voucher is from: the name typed at a guest purchase (guest
+     * checkout), never the name of an account that already used the email.
+     */
+    public function buyerName(): ?string
+    {
+        $name = $this->placed_as_guest ? $this->contact_name : ($this->user->name ?? null);
+
+        return $name === null || trim($name) === '' ? null : $name;
+    }
+
     public function label(): string
     {
         return $this->product_name !== null ? 'Gift voucher: '.$this->product_name : 'Gift voucher';

@@ -6,6 +6,12 @@
 @endphp
 
 <x-layouts.app title="Buy a gift voucher" robots="noindex, nofollow">
+    @if ($turnstileSiteKey)
+        <x-slot:head>
+            <script src="{{ \App\Support\Turnstile::SCRIPT_URL }}" async defer @nonce></script>
+        </x-slot:head>
+    @endif
+
     <section class="wrap max-w-narrow pt-12 pb-section md:pt-16" aria-labelledby="buy-title">
         <p class="text-xs font-semibold uppercase tracking-label text-sand-dim">Gift voucher</p>
         <h1 id="buy-title" class="mt-3 text-display-xl">Give a ride.</h1>
@@ -47,6 +53,17 @@
                 @error('kind')<p class="text-sm text-error"><span class="sr-only">Error: </span>{{ $message }}</p>@enderror
             </fieldset>
 
+            @guest
+                {{-- Guest checkout: the buyer's details, no account needed. Refusals about the email are one neutral message. --}}
+                <fieldset class="flex flex-col gap-5">
+                    <legend class="mb-4 text-display-xs">About you</legend>
+                    <x-form.field name="buyer_name" label="Your name" hint="Shown on the voucher as who it’s from." required autocomplete="name" maxlength="120" />
+                    <x-form.field name="buyer_email" label="Your email" type="email" hint="Your receipt and a link to follow the purchase go here." required autocomplete="email" inputmode="email" maxlength="190" />
+                    <x-form.field name="buyer_email_confirmation" label="Your email again" type="email" required autocomplete="email" inputmode="email" maxlength="190" />
+                    <p class="text-sm text-sand-dim">Already bought from us? <a href="{{ route('login') }}" class="underline underline-offset-4">Sign in</a> to keep your vouchers in one place.</p>
+                </fieldset>
+            @endguest
+
             <fieldset class="flex flex-col gap-5">
                 <legend class="mb-4 text-display-xs">Who is it for?</legend>
                 <x-form.field name="recipient_name" label="Their name" required autocomplete="off" maxlength="120" />
@@ -70,6 +87,10 @@
                         :min="$today->format('Y-m-d')" :max="$today->addDays($maxDays)->format('Y-m-d')" required />
                 </div>
             </fieldset>
+
+            @if ($turnstileSiteKey)
+                <div class="cf-turnstile" data-sitekey="{{ $turnstileSiteKey }}" data-theme="dark" data-size="flexible"></div>
+            @endif
 
             <div><x-button type="submit">Continue to payment</x-button></div>
         </form>

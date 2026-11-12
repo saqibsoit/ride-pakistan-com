@@ -2,7 +2,7 @@
 @php
     use App\Enums\VoucherStatus;
     $tz = config('app.display_timezone');
-    $from = $voucher->voucherOrder?->user->name;
+    $from = $voucher->voucherOrder?->buyerName();
     $message = $voucher->voucherOrder?->message;
     $usable = $voucher->isUsable();
 @endphp

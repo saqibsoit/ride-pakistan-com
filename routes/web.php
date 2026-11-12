@@ -54,6 +54,7 @@ use App\Http\Middleware\AddStatelessSecurityHeaders;
 use App\Http\Middleware\EnsureCheckInAccess;
 use App\Http\Middleware\EnsureOrderAccess;
 use App\Http\Middleware\EnsureTeamAreaAccess;
+use App\Http\Middleware\EnsureVoucherOrderAccess;
 use App\Support\PageCache;
 use Illuminate\Support\Facades\Route;
 use Spatie\ResponseCache\Middlewares\CacheResponse;
@@ -151,13 +152,17 @@ Route::middleware('cache.headers:private;no_store')->prefix('requests/{reference
     Route::post('/withdraw', [PrivateRequestTrackingController::class, 'withdraw'])->middleware('throttle:account-actions')->name('withdraw');
 });
 
-// Gift vouchers (milestone 10e): bought by a signed-in customer, paid by
-// card or bank transfer like an order, issued only once payment is confirmed.
-Route::middleware(['auth', 'cache.headers:private;no_store'])->prefix('gift-vouchers')->name('gift-vouchers.')->group(function (): void {
+// Gift vouchers (milestone 10e): paid by card or bank transfer like an
+// order, issued only once payment is confirmed. Signed in or as a guest
+// (guest checkout, decided 2026-11-12); a purchase's pages open for its
+// buyer or a browser with access to it (EnsureVoucherOrderAccess).
+Route::middleware('cache.headers:private;no_store')->prefix('gift-vouchers')->name('gift-vouchers.')->group(function (): void {
     Route::get('/buy', [GiftVoucherController::class, 'create'])->name('create');
-    Route::post('/buy', [GiftVoucherController::class, 'store'])->middleware('throttle:checkout')->name('store');
+    Route::post('/buy', [GiftVoucherController::class, 'store'])->middleware(['throttle:checkout', 'throttle:guest-checkout'])->name('store');
 
-    Route::prefix('{reference}')->where(['reference' => 'GV-[A-Z0-9]{6}'])->group(function (): void {
+    Route::get('/{reference}/open', [VoucherCheckoutController::class, 'open'])->where(['reference' => 'GV-[A-Z0-9]{6}'])->middleware('throttle:manage-link')->name('open');
+
+    Route::prefix('{reference}')->where(['reference' => 'GV-[A-Z0-9]{6}'])->middleware(EnsureVoucherOrderAccess::class)->group(function (): void {
         Route::get('/', [VoucherCheckoutController::class, 'show'])->name('show');
         Route::post('/card', [VoucherCheckoutController::class, 'card'])->middleware('throttle:checkout')->name('card');
         Route::get('/status', [VoucherCheckoutController::class, 'status'])->name('status');

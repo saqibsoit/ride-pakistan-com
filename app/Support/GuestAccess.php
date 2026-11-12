@@ -60,7 +60,19 @@ final class GuestAccess
 
     public function allowsVoucherOrder(VoucherOrder $order): bool
     {
-        return $this->has('vouchers', $order->reference, $order->manage_link_version);
+        return $this->has('vouchers', $order->reference, $order->manage_link_version) && VoucherOrderLink::isOpen($order);
+    }
+
+    /** The gift voucher purchase for $reference if this visitor may open it: its own signed-in buyer, or a current grant. */
+    public function findVoucherOrder(?User $user, string $reference): ?VoucherOrder
+    {
+        $order = VoucherOrder::query()->where('reference', $reference)->first();
+
+        if ($order === null) {
+            return null;
+        }
+
+        return ($user !== null && $order->user_id === $user->id) || $this->allowsVoucherOrder($order) ? $order : null;
     }
 
     public function grantRequest(PrivateSessionRequest $request): void

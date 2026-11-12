@@ -160,8 +160,8 @@ describe('creating a purchase', function (): void {
         ])->assertSessionHasErrors(['recipient_name', 'recipient_email', 'send_on']);
     });
 
-    it('asks guests to sign in before buying', function (): void {
-        $this->get(route('gift-vouchers.create'))->assertRedirect(route('login'));
+    it('lets guests buy with their own name and email (guest checkout)', function (): void {
+        $this->get(route('gift-vouchers.create'))->assertOk()->assertSee('About you')->assertSee('Your email again');
         $this->get(route('gift-vouchers'))->assertOk()->assertSee('Gift vouchers.');
     });
 });

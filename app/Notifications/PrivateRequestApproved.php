@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Notifications;
 
 use App\Models\PrivateSessionRequest;
+use App\Support\ManageLink;
+use App\Support\PrivateRequestLink;
 use Illuminate\Notifications\Messages\MailMessage;
 
 /**
@@ -30,6 +32,6 @@ final class PrivateRequestApproved extends PrivateRequestNotification
 
         return (new MailMessage)
             ->subject('Approved: pay by '.PrivateSessionRequest::localTime($request->pay_by).' to book '.$request->label())
-            ->markdown('mail.private-request-approved', ['request' => $request, 'order' => $request->order, 'payUrl' => $request->order === null ? route('account.private-requests') : route('checkout.show', $request->order->reference)]);
+            ->markdown('mail.private-request-approved', ['request' => $request, 'order' => $request->order, 'payUrl' => $request->order === null ? PrivateRequestLink::for($request) : ManageLink::forOrder($request->order)]);
     }
 }

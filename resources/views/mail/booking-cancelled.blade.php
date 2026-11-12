@@ -17,6 +17,8 @@ The attached .ics file removes the session from Apple Calendar or Outlook. If yo
 Book another session
 </x-mail::button>
 
+@include('mail.partials.manage-link', ['for' => $booking])
+
 If this wasn't expected, reply to this email or [contact us]({{ route('contact') }}).
 
 Ride Pakistan

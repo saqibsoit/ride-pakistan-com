@@ -13,5 +13,7 @@ Pay by card, or by bank transfer with the screenshot uploaded before the deadlin
 Pay now
 </x-mail::button>
 
+The button opens your booking without signing in. Anyone with the link can open it, so please don't share it.
+
 Ride Pakistan
 </x-mail::message>

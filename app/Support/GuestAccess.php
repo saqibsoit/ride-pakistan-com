@@ -70,7 +70,19 @@ final class GuestAccess
 
     public function allowsRequest(PrivateSessionRequest $request): bool
     {
-        return $this->has('requests', $request->reference, $request->manage_link_version);
+        return $this->has('requests', $request->reference, $request->manage_link_version) && PrivateRequestLink::isOpen($request);
+    }
+
+    /** The request for $reference if this visitor may open it: its own signed-in customer, or a current grant. */
+    public function findRequest(?User $user, string $reference): ?PrivateSessionRequest
+    {
+        $request = PrivateSessionRequest::query()->where('reference', $reference)->first();
+
+        if ($request === null) {
+            return null;
+        }
+
+        return ($user !== null && $request->user_id === $user->id) || $this->allowsRequest($request) ? $request : null;
     }
 
     private function grant(string $kind, string $reference, int $version): void

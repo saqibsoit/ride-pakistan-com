@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Notifications;
 
+use App\Support\PrivateRequestLink;
 use Illuminate\Notifications\Messages\MailMessage;
 
 /**
@@ -28,6 +29,7 @@ final class PrivateRequestReceived extends PrivateRequestNotification
 
         return (new MailMessage)
             ->subject('We’ve got your private session request ('.$request->reference.')')
-            ->markdown('mail.private-request-received', ['request' => $request, 'account' => route('account.private-requests')]);
+            // Signed, no sign-in needed (guest checkout): status and Withdraw for this request.
+            ->markdown('mail.private-request-received', ['request' => $request, 'account' => PrivateRequestLink::for($request)]);
     }
 }

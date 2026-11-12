@@ -53,6 +53,8 @@ final class ThankYou extends CustomerNotification
                 'reviewUrl' => app(Settings::class)->string(SettingKey::GoogleReviewUrl),
                 // Signed, no sign-in needed (milestone 10d). One review per customer per session.
                 'siteReviewUrl' => ($first = $this->bookings->first()) === null ? null : ReviewLink::for($first),
+                // The manage link (guest checkout), for the package's remaining sessions and receipts.
+                'bookings' => $this->bookings,
             ]);
     }
 }

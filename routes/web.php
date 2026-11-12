@@ -27,6 +27,7 @@ use App\Http\Controllers\CspReportController;
 use App\Http\Controllers\GiftVoucherController;
 use App\Http\Controllers\ManageOrderController;
 use App\Http\Controllers\PrintableVoucherController;
+use App\Http\Controllers\PrivateRequestTrackingController;
 use App\Http\Controllers\Public\BookController;
 use App\Http\Controllers\Public\ContactController;
 use App\Http\Controllers\Public\ContentPageController;
@@ -141,6 +142,14 @@ Route::middleware([EnsureOrderAccess::class.':manage', 'cache.headers:private;no
         Route::get('/bookings/{ticket}/reschedule', [ManageOrderController::class, 'editReschedule'])->name('reschedule');
         Route::post('/bookings/{ticket}/reschedule', [ManageOrderController::class, 'reschedule'])->middleware('throttle:account-actions')->name('reschedule.store');
     });
+
+// A private session request without signing in (guest checkout): the
+// signed link from the request emails, then the plain page.
+Route::middleware('cache.headers:private;no_store')->prefix('requests/{reference}')->where(['reference' => 'RQ-[A-Z0-9]{6}'])->name('requests.')->group(function (): void {
+    Route::get('/open', [PrivateRequestTrackingController::class, 'open'])->middleware('throttle:manage-link')->name('open');
+    Route::get('/', [PrivateRequestTrackingController::class, 'show'])->name('show');
+    Route::post('/withdraw', [PrivateRequestTrackingController::class, 'withdraw'])->middleware('throttle:account-actions')->name('withdraw');
+});
 
 // Gift vouchers (milestone 10e): bought by a signed-in customer, paid by
 // card or bank transfer like an order, issued only once payment is confirmed.

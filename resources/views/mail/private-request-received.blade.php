@@ -8,8 +8,10 @@ We'll answer by **{{ \App\Models\PrivateSessionRequest::localTime($request->answ
 Reference: **{{ $request->reference }}**
 
 <x-mail::button :url="$account" color="primary">
-See your request
+Follow your request
 </x-mail::button>
+
+No sign-in needed. Anyone with the link can see the request, so please don't share it.
 
 Ride Pakistan
 </x-mail::message>

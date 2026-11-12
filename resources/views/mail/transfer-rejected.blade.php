@@ -11,5 +11,7 @@ If you think this is a mistake, or the money has left your account, email us at 
 Book again
 </x-mail::button>
 
+@include('mail.partials.manage-link', ['for' => $order])
+
 Ride Pakistan
 </x-mail::message>

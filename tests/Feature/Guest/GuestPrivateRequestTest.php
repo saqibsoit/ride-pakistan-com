@@ -10,6 +10,7 @@ use App\Models\Rider;
 use App\Models\User;
 use App\Notifications\PrivateRequestNotSent;
 use App\Notifications\PrivateRequestReceived;
+use App\Support\PrivateRequestLink;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Notification;
 
@@ -96,3 +97,31 @@ it('shows a time that isn’t free to every guest the same way', function (strin
 
     expect(PrivateSessionRequest::query()->count())->toBe(0);
 })->with(['known@example.com', 'new@example.com']);
+
+it('follows and withdraws a request from its signed link, and nothing else', function (): void {
+    $request = PrivateSessionRequest::factory()->create(['product_id' => $this->private->id]);
+    $link = PrivateRequestLink::for($request);
+
+    $this->get(route('requests.show', $request->reference))->assertForbidden();
+    $this->get($link)->assertRedirect(route('requests.show', $request->reference));
+    $this->get(route('requests.show', $request->reference))->assertOk()->assertSee($request->reference)->assertSee('Withdraw this request');
+
+    $this->post(route('requests.withdraw', $request->reference))->assertRedirect(route('requests.show', $request->reference));
+    expect($request->refresh()->status)->toBe(PrivateRequestStatus::Withdrawn);
+
+    $other = PrivateSessionRequest::factory()->create(['product_id' => $this->private->id]);
+    $this->get(route('requests.show', $other->reference))->assertForbidden();
+    $this->get(str_replace($request->reference, $other->reference, $link))->assertForbidden();
+});
+
+it('stops a request link 7 days after the request closed', function (): void {
+    $request = PrivateSessionRequest::factory()->create(['product_id' => $this->private->id, 'status' => PrivateRequestStatus::Declined, 'closed_at' => now(), 'decline_reason' => 'Fully booked']);
+    $link = PrivateRequestLink::for($request);
+
+    $this->get($link)->assertRedirect();
+    $this->get(route('requests.show', $request->reference))->assertOk()->assertSee('Fully booked');
+
+    $this->travel(7)->days();
+    $this->get(route('requests.show', $request->reference))->assertForbidden();
+    $this->get($link)->assertForbidden();
+});

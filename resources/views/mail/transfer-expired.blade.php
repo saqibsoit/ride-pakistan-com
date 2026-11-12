@@ -9,5 +9,7 @@ If you've already transferred the money, email us at {{ app(\App\Support\Setting
 Book again
 </x-mail::button>
 
+@include('mail.partials.manage-link', ['for' => $order])
+
 Ride Pakistan
 </x-mail::message>

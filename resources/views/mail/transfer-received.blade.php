@@ -5,9 +5,7 @@ Thank you. We've received the proof of your bank transfer for order **{{ $order-
 
 We'll check it against our account and confirm shortly. Your {{ $order->holds()->exists() ? 'seats stay held' : 'order stays open' }} until then, and you'll get another email once your booking is confirmed.
 
-<x-mail::button :url="route('account.orders.show', $order->reference)">
-See your order
-</x-mail::button>
+@include('mail.partials.manage-link', ['for' => $order, 'payable' => true])
 
 Ride Pakistan
 </x-mail::message>

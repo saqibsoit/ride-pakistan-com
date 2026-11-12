@@ -49,6 +49,35 @@ final class ManageLink
         return $order === null ? null : self::forOrder($order);
     }
 
+    /**
+     * The manage links an email shows, one per order: for an order, a
+     * booking, a package, or several bookings (one customer's bookings in
+     * a session, possibly from different orders).
+     *
+     * @param  Order|Booking|CreditPack|iterable<Booking>|null  $subject
+     * @return array<string, string> order reference => link
+     */
+    public static function linksFor(mixed $subject): array
+    {
+        $orders = match (true) {
+            $subject instanceof Order => [$subject],
+            $subject instanceof CreditPack => [$subject->order],
+            $subject instanceof Booking => [self::orderFor($subject)],
+            is_iterable($subject) => array_map(fn (Booking $b): ?Order => self::orderFor($b), [...$subject]),
+            default => [],
+        };
+
+        $links = [];
+
+        foreach ($orders as $order) {
+            if ($order instanceof Order && ! isset($links[$order->reference])) {
+                $links[$order->reference] = self::forOrder($order);
+            }
+        }
+
+        return $links;
+    }
+
     public static function orderFor(Booking $booking): ?Order
     {
         if ($booking->order_id !== null) {

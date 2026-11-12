@@ -12,7 +12,13 @@
         <h1 id="checkout-title" class="mt-3 text-display-xl">{{ $isUnpaid ? 'Almost there.' : 'Your order.' }}</h1>
 
         <div class="mt-10 flex flex-col gap-6">
-            @if ($order->status === \App\Enums\OrderStatus::PendingPayment && $heldUntil && $slotItems->isNotEmpty())
+            @php($payBy = \App\Actions\Payments\TransferWindow::payBy($order))
+            @if ($order->status === \App\Enums\OrderStatus::PendingPayment && $payBy)
+                {{-- Approved private session request (prompt 15B). --}}
+                <x-alert variant="info" title="Pay by {{ $payBy->setTimezone($tz)->format('D j M, g:i a') }} (Pakistan time).">
+                    Your private session is approved and held for you until then. Pay by card, or choose bank transfer and upload the screenshot before then. After that the slot is released.
+                </x-alert>
+            @elseif ($order->status === \App\Enums\OrderStatus::PendingPayment && $heldUntil && $slotItems->isNotEmpty())
                 <x-alert variant="info" title="Your {{ $order->isPrivate() ? 'slot is' : 'seats are' }} held.">
                     We keep them for you until <time datetime="{{ $heldUntil->toIso8601String() }}">{{ $heldUntil->setTimezone($tz)->format('g:i a') }}</time> (Pakistan time). After that they go back on sale.
                 </x-alert>

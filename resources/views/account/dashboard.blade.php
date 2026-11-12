@@ -13,6 +13,12 @@
         </x-alert>
     @endif
 
+    @if ($openRequest)
+        <x-alert variant="info" title="Private session request: {{ $openRequest->label() }}">
+            {{ $openRequest->statusLine() }}. <a href="{{ route('account.private-requests') }}" class="underline underline-offset-4">See your request</a>
+        </x-alert>
+    @endif
+
     <div class="grid gap-6 md:grid-cols-2">
         <section aria-labelledby="next-session" class="flex flex-col gap-4 rounded-sm border border-line bg-earth-2 p-6">
             <h2 id="next-session" class="text-display-xs">Next session</h2>

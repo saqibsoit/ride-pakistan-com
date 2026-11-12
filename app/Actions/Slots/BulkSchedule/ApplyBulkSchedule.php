@@ -7,6 +7,7 @@ namespace App\Actions\Slots\BulkSchedule;
 use App\Actions\Booking\SlotLock;
 use App\Actions\Slots\ChangeSlotStatus;
 use App\Actions\Slots\CreateManualSlot;
+use App\Actions\Slots\ScheduleLock;
 use App\Actions\Slots\SlotOverlap;
 use App\Actions\Waitlist\OfferWaitlistSeats;
 use App\Enums\BookingStatus;
@@ -58,6 +59,7 @@ final class ApplyBulkSchedule
         private readonly ChangeSlotStatus $status,
         private readonly OfferWaitlistSeats $waitlist,
         private readonly Notifier $notifier,
+        private readonly ScheduleLock $scheduleLock,
     ) {}
 
     /**
@@ -135,7 +137,8 @@ final class ApplyBulkSchedule
     {
         $trainer = $item->newTrainerId !== null ? User::query()->find($item->newTrainerId) : null;
 
-        $slot = DB::transaction(function () use ($item, $criteria, $actor, $trainer): Slot {
+        // The schedule lock keeps private request approvals from taking the same time (prompt 15B).
+        $slot = $this->scheduleLock->run(fn (): Slot => DB::transaction(function () use ($item, $criteria, $actor, $trainer): Slot {
             $clash = $this->overlap->firstClash($item->startsAt, $item->endsAt, lock: true);
 
             if ($clash !== null) {
@@ -143,7 +146,7 @@ final class ApplyBulkSchedule
             }
 
             return $this->createSlot->handle($item->startsAt, $item->endsAt, $item->capacity, $actor, $criteria->type === 'private', $trainer);
-        });
+        }));
 
         activity('slots')->performedOn($slot)->causedBy($actor)->event('bulk_created')
             ->withProperties(['batch' => $result->batch])
@@ -163,108 +166,111 @@ final class ApplyBulkSchedule
         $notices = [];
         $capacityUp = false;
 
-        $line = DB::transaction(function () use ($wanted, $criteria, $actor, $result, $planned, &$notices, &$capacityUp): string {
-            $locked = $this->lock->acquire((int) $wanted->slotId);
-            $slot = $locked->slot;
+        // A plain closure, not fn(): the inner transaction writes $notices and $capacityUp by reference.
+        $line = $this->scheduleLock->run(function () use ($wanted, $criteria, $actor, $result, $planned, &$notices, &$capacityUp): string {
+            return DB::transaction(function () use ($wanted, $criteria, $actor, $result, $planned, &$notices, &$capacityUp): string {
+                $locked = $this->lock->acquire((int) $wanted->slotId);
+                $slot = $locked->slot;
 
-            if ($slot->status !== SlotStatus::Open || ! $slot->starts_at->isAfter(CarbonImmutable::now())) {
-                throw new DomainException('no longer open or already started');
-            }
-
-            $check = $this->preview->planUpdate($criteria, $slot, $locked->seatsBooked, $locked->seatsHeld, $planned, lock: true);
-
-            if ($check->kind !== BulkScheduleItem::UPDATE || ! self::sameChange($wanted, $check)) {
-                throw new DomainException('changed since the preview ('.($check->note ?? 'seats or times moved').'). Preview again.');
-            }
-
-            $before = [
-                'starts_at' => $slot->starts_at->toIso8601String(),
-                'ends_at' => $slot->ends_at->toIso8601String(),
-                'capacity' => $slot->capacity,
-                'trainer_id' => $slot->trainer_id,
-                'source' => $slot->source->value,
-            ];
-            $oldStart = $slot->starts_at;
-            $oldEnd = $slot->ends_at;
-            $oldLabel = $slot->label();
-            $moved = $check->changesTime() && $check->newStartsAt !== null && $check->newEndsAt !== null;
-
-            if ($slot->source === SlotSource::Rule) {
-                // Detach from the rule so GenerateSlots stops resetting it.
-                if ($moved) {
-                    $slot->replaces_starts_at ??= $slot->starts_at;
+                if ($slot->status !== SlotStatus::Open || ! $slot->starts_at->isAfter(CarbonImmutable::now())) {
+                    throw new DomainException('no longer open or already started');
                 }
 
-                $slot->source = SlotSource::Manual;
-                $slot->schedule_rule_id = null;
-            }
+                $check = $this->preview->planUpdate($criteria, $slot, $locked->seatsBooked, $locked->seatsHeld, $planned, lock: true);
 
-            if ($moved) {
-                $slot->starts_at = $check->newStartsAt;
-                $slot->ends_at = $check->newEndsAt;
-            }
-
-            if ($check->newCapacity !== null) {
-                $capacityUp = $check->newCapacity > $slot->capacity;
-                $slot->capacity = $check->newCapacity;
-            }
-
-            if ($check->newTrainerId !== null) {
-                $slot->trainer_id = $check->newTrainerId;
-            }
-
-            $slot->save();
-
-            if ($moved) {
-                $bookings = Booking::query()
-                    ->where('slot_id', $slot->id)
-                    ->where('status', BookingStatus::Confirmed)
-                    ->lockForUpdate()
-                    ->get();
-
-                foreach ($bookings as $booking) {
-                    $booking->calendar_sequence++; // the updated .ics replaces the old entry
-                    $booking->save();
+                if ($check->kind !== BulkScheduleItem::UPDATE || ! self::sameChange($wanted, $check)) {
+                    throw new DomainException('changed since the preview ('.($check->note ?? 'seats or times moved').'). Preview again.');
                 }
 
-                foreach ($bookings->pluck('user_id')->unique() as $userId) {
-                    $notices[] = SlotChangeNotice::query()->create([
-                        'batch' => $result->batch,
-                        'slot_id' => $slot->id,
-                        'user_id' => (int) $userId,
-                        'old_starts_at' => $oldStart,
-                        'old_ends_at' => $oldEnd,
-                        'new_starts_at' => $slot->starts_at,
-                        'new_ends_at' => $slot->ends_at,
-                    ]);
-                }
-            }
-
-            activity('slots')->performedOn($slot)->causedBy($actor)->event('bulk_updated')
-                ->withProperties(['batch' => $result->batch, 'old' => $before, 'attributes' => [
+                $before = [
                     'starts_at' => $slot->starts_at->toIso8601String(),
                     'ends_at' => $slot->ends_at->toIso8601String(),
                     'capacity' => $slot->capacity,
                     'trainer_id' => $slot->trainer_id,
                     'source' => $slot->source->value,
-                ], 'customers_notified' => count($notices)])
-                ->log('Bulk schedule: slot changed '.$oldLabel.($moved ? ' → '.$slot->label() : ''));
+                ];
+                $oldStart = $slot->starts_at;
+                $oldEnd = $slot->ends_at;
+                $oldLabel = $slot->label();
+                $moved = $check->changesTime() && $check->newStartsAt !== null && $check->newEndsAt !== null;
 
-            $changes = [];
+                if ($slot->source === SlotSource::Rule) {
+                    // Detach from the rule so GenerateSlots stops resetting it.
+                    if ($moved) {
+                        $slot->replaces_starts_at ??= $slot->starts_at;
+                    }
 
-            if ($moved) {
-                $changes[] = 'moved to '.$slot->label();
-            }
+                    $slot->source = SlotSource::Manual;
+                    $slot->schedule_rule_id = null;
+                }
 
-            if ($check->newCapacity !== null) {
-                $changes[] = 'capacity '.$slot->capacity;
-            }
+                if ($moved) {
+                    $slot->starts_at = $check->newStartsAt;
+                    $slot->ends_at = $check->newEndsAt;
+                }
 
-            if ($check->newTrainerId !== null) {
-                $changes[] = 'trainer changed';
-            }
+                if ($check->newCapacity !== null) {
+                    $capacityUp = $check->newCapacity > $slot->capacity;
+                    $slot->capacity = $check->newCapacity;
+                }
 
-            return sprintf('%s: %s (%d booked)', $oldLabel, implode(', ', $changes), $locked->seatsBooked);
+                if ($check->newTrainerId !== null) {
+                    $slot->trainer_id = $check->newTrainerId;
+                }
+
+                $slot->save();
+
+                if ($moved) {
+                    $bookings = Booking::query()
+                        ->where('slot_id', $slot->id)
+                        ->where('status', BookingStatus::Confirmed)
+                        ->lockForUpdate()
+                        ->get();
+
+                    foreach ($bookings as $booking) {
+                        $booking->calendar_sequence++; // the updated .ics replaces the old entry
+                        $booking->save();
+                    }
+
+                    foreach ($bookings->pluck('user_id')->unique() as $userId) {
+                        $notices[] = SlotChangeNotice::query()->create([
+                            'batch' => $result->batch,
+                            'slot_id' => $slot->id,
+                            'user_id' => (int) $userId,
+                            'old_starts_at' => $oldStart,
+                            'old_ends_at' => $oldEnd,
+                            'new_starts_at' => $slot->starts_at,
+                            'new_ends_at' => $slot->ends_at,
+                        ]);
+                    }
+                }
+
+                activity('slots')->performedOn($slot)->causedBy($actor)->event('bulk_updated')
+                    ->withProperties(['batch' => $result->batch, 'old' => $before, 'attributes' => [
+                        'starts_at' => $slot->starts_at->toIso8601String(),
+                        'ends_at' => $slot->ends_at->toIso8601String(),
+                        'capacity' => $slot->capacity,
+                        'trainer_id' => $slot->trainer_id,
+                        'source' => $slot->source->value,
+                    ], 'customers_notified' => count($notices)])
+                    ->log('Bulk schedule: slot changed '.$oldLabel.($moved ? ' → '.$slot->label() : ''));
+
+                $changes = [];
+
+                if ($moved) {
+                    $changes[] = 'moved to '.$slot->label();
+                }
+
+                if ($check->newCapacity !== null) {
+                    $changes[] = 'capacity '.$slot->capacity;
+                }
+
+                if ($check->newTrainerId !== null) {
+                    $changes[] = 'trainer changed';
+                }
+
+                return sprintf('%s: %s (%d booked)', $oldLabel, implode(', ', $changes), $locked->seatsBooked);
+            });
         });
 
         if ($wanted->changesTime() && $wanted->newStartsAt !== null && $wanted->newEndsAt !== null) {

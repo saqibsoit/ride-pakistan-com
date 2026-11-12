@@ -28,6 +28,10 @@ use Illuminate\Support\Facades\DB;
  * for one or more riders (paid with credits from the new pack on
  * fulfilment). Re-submitting the same booking while its order is still
  * held returns that order instead of holding seats twice.
+ *
+ * An approved private session request (prompt 15B) passes $holdUntil (the
+ * payment window) and $meta (the request link); its order is never merged
+ * with a draft.
  */
 final class CreateOrder
 {
@@ -42,10 +46,11 @@ final class CreateOrder
 
     /**
      * @param  list<int>  $riderIds  the customer's riders taking a seat in $slotId
+     * @param  array<string, scalar>  $meta  extra order meta (private request link)
      *
      * @throws BookingRejected
      */
-    public function handle(User $user, Product $product, ?int $slotId, array $riderIds, ?int $leadId = null): Order
+    public function handle(User $user, Product $product, ?int $slotId, array $riderIds, ?int $leadId = null, ?CarbonImmutable $holdUntil = null, array $meta = []): Order
     {
         // Re-read: prices and type come from the database, never from a
         // model that a form or component may have filled in.
@@ -58,7 +63,7 @@ final class CreateOrder
 
         $draftKey = hash('sha256', implode('|', [$product->id, $slotId ?? '-', implode(',', $riderIds)]));
 
-        $existing = $user->orders()
+        $existing = $holdUntil !== null ? null : $user->orders()
             ->where('status', OrderStatus::PendingPayment)
             ->where('expires_at', '>', now())
             ->where('meta->draft', $draftKey)
@@ -69,13 +74,13 @@ final class CreateOrder
             return $existing;
         }
 
-        $expiresAt = CarbonImmutable::now()->addMinutes($this->settings->int(SettingKey::CardHoldMinutes) ?? 30);
+        $expiresAt = $holdUntil ?? CarbonImmutable::now()->addMinutes($this->settings->int(SettingKey::CardHoldMinutes) ?? 30);
         $private = $product->type === ProductType::Private;
         $package = $product->type === ProductType::Package;
 
         $amount = PriceQuote::for($product, count($riderIds))->totalMinor;
 
-        return DB::transaction(function () use ($user, $product, $slotId, $riderIds, $draftKey, $expiresAt, $private, $package, $amount, $leadId): Order {
+        return DB::transaction(function () use ($user, $product, $slotId, $riderIds, $draftKey, $expiresAt, $private, $package, $amount, $leadId, $meta): Order {
             // Slot lock first. Inserting order items checks the slot_id
             // foreign key, which takes a shared lock on the slot row; two
             // orders holding that and then both asking for the exclusive
@@ -93,7 +98,7 @@ final class CreateOrder
                 'currency' => 'PKR',
                 'expires_at' => $expiresAt,
                 // The lead a tracked DM link came from (milestone 10c, MarkLeadsBooked).
-                'meta' => $leadId === null ? ['draft' => $draftKey] : ['draft' => $draftKey, 'lead_id' => $leadId],
+                'meta' => [...($leadId === null ? ['draft' => $draftKey] : ['draft' => $draftKey, 'lead_id' => $leadId]), ...$meta],
             ]);
 
             if ($package) {

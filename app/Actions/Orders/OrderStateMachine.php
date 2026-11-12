@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions\Orders;
 
 use App\Actions\Discounts\ReleaseOrderDiscounts;
+use App\Actions\PrivateRequests\SyncPrivateRequest;
 use App\Enums\OrderStatus;
 use App\Exceptions\InvalidStatusTransition;
 use App\Models\Order;
@@ -56,6 +57,11 @@ final class OrderStateMachine
             // credit and promo use (milestone 10e Part B).
             if ($from->isUnpaid() && in_array($to, [OrderStatus::Expired, OrderStatus::Cancelled, OrderStatus::Rejected], true)) {
                 app(ReleaseOrderDiscounts::class)->handle($locked, $actor, 'Order '.mb_strtolower($to->label()));
+            }
+
+            // An approved private session request follows its order (prompt 15B).
+            if (isset($locked->meta['private_request_id'])) {
+                app(SyncPrivateRequest::class)->handle($locked, $to, $actor);
             }
 
             activity('orders')

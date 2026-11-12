@@ -48,6 +48,7 @@ class ManageSettings extends Page
         'booking' => 'Booking rules',
         'policies' => 'Policies',
         'bank' => 'Bank transfer details',
+        'private' => 'Private session requests',
         'leads' => 'Leads',
         'vouchers' => 'Gift vouchers',
         'referrals' => 'Referrals',

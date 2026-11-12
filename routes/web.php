@@ -9,6 +9,7 @@ use App\Http\Controllers\Account\CreditController;
 use App\Http\Controllers\Account\DashboardController;
 use App\Http\Controllers\Account\OrderController;
 use App\Http\Controllers\Account\PrivacyController;
+use App\Http\Controllers\Account\PrivateRequestController as AccountPrivateRequestController;
 use App\Http\Controllers\Account\ProfileController;
 use App\Http\Controllers\Account\ProgressController;
 use App\Http\Controllers\Account\ReferralController as AccountReferralController;
@@ -240,6 +241,9 @@ Route::middleware(['auth', 'cache.headers:private;no_store'])->prefix('account')
     Route::get('/waitlist/join/{slot}', [WaitlistController::class, 'create'])->name('waitlist.create');
     Route::post('/waitlist/join/{slot}', [WaitlistController::class, 'store'])->middleware('throttle:account-actions')->name('waitlist.store');
     Route::delete('/waitlist/{entry}', [WaitlistController::class, 'destroy'])->whereNumber('entry')->middleware('throttle:account-actions')->name('waitlist.destroy');
+    // Private session requests at the customer's own date and time (prompt 15B).
+    Route::get('/private-requests', [AccountPrivateRequestController::class, 'index'])->name('private-requests');
+    Route::post('/private-requests/{reference}/withdraw', [AccountPrivateRequestController::class, 'withdraw'])->middleware('throttle:account-actions')->name('private-requests.withdraw');
     Route::get('/tickets', [TicketController::class, 'index'])->name('tickets');
     Route::get('/tickets/{code}', [TicketController::class, 'show'])->name('tickets.show');
     Route::get('/credits', CreditController::class)->name('credits');

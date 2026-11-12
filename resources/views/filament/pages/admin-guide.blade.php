@@ -27,6 +27,17 @@
         <p>Slots are created {{ $admin ? 'as far ahead as the “Create bookable slots this many weeks ahead” setting' : 'a few weeks ahead' }}.@if ($settingsUrl) Change it in {!! $link($settingsUrl, 'Settings') !!}.@endif</p>
     </x-filament::section>
 
+    <x-filament::section heading="Private session requests" :collapsible="true">
+        <p>Customers can ask for a private session at their own date and time (Bookings → Private requests). You get an email straight away; its Approve and Decline buttons open the request here.</p>
+        <ol>
+            <li><strong>Answer within the answer window</strong> (Settings → Private session requests, default 2 hours), or the request expires and the customer is told.</li>
+            <li><strong>Approve</strong> checks the time again: it is refused if another session is within the minimum gap or the horses can’t take the riders that day. Approving creates a private-only slot, holds it, and emails the customer the payment link. Pick the trainer if you know who runs it; they are emailed once it’s paid.</li>
+            <li>The customer must pay within the payment window (default 2 hours): card, or a bank transfer uploaded in time (you verify it as usual). Unpaid, the slot is released and the customer is told.</li>
+            <li><strong>Decline</strong> needs a reason (the customer sees it); you can suggest other times.</li>
+        </ol>
+        <p><strong>A cancelled slot at the requested time</strong> is reused: approving reopens it as the private-only slot (its old cancellation stays in the audit log), as long as nothing is left on it. An <strong>open or closed</strong> slot at that start still blocks the approval: decline and suggest another time.</p>
+    </x-filament::section>
+
     <x-filament::section heading="Change many sessions at once" :collapsible="true">
         <ol>
             <li>Open {!! $link($bulkUrl, 'Bulk schedule') !!} (also under Slots). Choose the action: create slots, change matching slots (time, capacity, trainer), close or cancel them.</li>

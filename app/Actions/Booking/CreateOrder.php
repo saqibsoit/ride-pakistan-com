@@ -32,6 +32,12 @@ use Illuminate\Support\Facades\DB;
  * An approved private session request (prompt 15B) passes $holdUntil (the
  * payment window) and $meta (the request link); its order is never merged
  * with a draft.
+ *
+ * A guest checkout (decided 2026-11-12) passes $guest, the name and
+ * WhatsApp number typed for this booking. Its order is placed_as_guest:
+ * it is never merged with a held order of the account behind the email
+ * (that would hand a guest someone else's order), the account's waitlist
+ * offer isn't claimed and no referral welcome discount is applied.
  */
 final class CreateOrder
 {
@@ -47,10 +53,11 @@ final class CreateOrder
     /**
      * @param  list<int>  $riderIds  the customer's riders taking a seat in $slotId
      * @param  array<string, scalar>  $meta  extra order meta (private request link)
+     * @param  array{name: string, whatsapp: string|null}|null  $guest  guest checkout contact
      *
      * @throws BookingRejected
      */
-    public function handle(User $user, Product $product, ?int $slotId, array $riderIds, ?int $leadId = null, ?CarbonImmutable $holdUntil = null, array $meta = []): Order
+    public function handle(User $user, Product $product, ?int $slotId, array $riderIds, ?int $leadId = null, ?CarbonImmutable $holdUntil = null, array $meta = [], ?array $guest = null): Order
     {
         // Re-read: prices and type come from the database, never from a
         // model that a form or component may have filled in.
@@ -63,7 +70,7 @@ final class CreateOrder
 
         $draftKey = hash('sha256', implode('|', [$product->id, $slotId ?? '-', implode(',', $riderIds)]));
 
-        $existing = $holdUntil !== null ? null : $user->orders()
+        $existing = $holdUntil !== null || $guest !== null ? null : $user->orders()
             ->where('status', OrderStatus::PendingPayment)
             ->where('expires_at', '>', now())
             ->where('meta->draft', $draftKey)
@@ -80,7 +87,7 @@ final class CreateOrder
 
         $amount = PriceQuote::for($product, count($riderIds))->totalMinor;
 
-        return DB::transaction(function () use ($user, $product, $slotId, $riderIds, $draftKey, $expiresAt, $private, $package, $amount, $leadId, $meta): Order {
+        return DB::transaction(function () use ($user, $product, $slotId, $riderIds, $draftKey, $expiresAt, $private, $package, $amount, $leadId, $meta, $guest): Order {
             // Slot lock first. Inserting order items checks the slot_id
             // foreign key, which takes a shared lock on the slot row; two
             // orders holding that and then both asking for the exclusive
@@ -99,6 +106,9 @@ final class CreateOrder
                 'expires_at' => $expiresAt,
                 // The lead a tracked DM link came from (milestone 10c, MarkLeadsBooked).
                 'meta' => [...($leadId === null ? ['draft' => $draftKey] : ['draft' => $draftKey, 'lead_id' => $leadId]), ...$meta],
+                'placed_as_guest' => $guest !== null,
+                'contact_name' => $guest['name'] ?? null,
+                'contact_whatsapp' => $guest['whatsapp'] ?? null,
             ]);
 
             if ($package) {
@@ -122,11 +132,11 @@ final class CreateOrder
                 ->performedOn($order)
                 ->causedBy($user)
                 ->event('created')
-                ->withProperties(['product' => $product->slug, 'slot_id' => $slotId, 'riders' => count($riderIds), 'amount_minor' => $amount])
+                ->withProperties(['product' => $product->slug, 'slot_id' => $slotId, 'riders' => count($riderIds), 'amount_minor' => $amount, 'guest' => $guest !== null])
                 ->log('Order '.$order->reference.' created');
 
             // A friend's welcome discount applies by itself (milestone 10e Part B).
-            if ($this->referrals->referralFor($user, $order) !== null) {
+            if ($guest === null && $this->referrals->referralFor($user, $order) !== null) {
                 $this->reprice->handle($order, null, $user);
             }
 

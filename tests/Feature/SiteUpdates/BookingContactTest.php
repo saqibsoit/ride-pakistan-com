@@ -122,22 +122,23 @@ it('needs the number for credit bookings too', function (): void {
     expect($user->refresh()->whatsapp_phone)->toBe('+923344554500');
 });
 
-it('asks guests before they sign in and keeps the number in the draft', function (): void {
+it('asks guests for their WhatsApp number on the details step (guest checkout)', function (): void {
     $slot = nearSlot();
 
-    $component = Livewire::test(BookingFlow::class)
+    Livewire::test(BookingFlow::class)
         ->call('chooseProduct', 'single-session')
         ->call('chooseSlot', $slot->id)
         ->set('guestRiders.0.name', 'Zara Malik')
         ->call('confirmRiders')
-        ->assertSee('WhatsApp number')
-        ->call('signInToContinue')
-        ->assertHasErrors(['whatsapp' => 'required'])
-        ->assertNoRedirect();
+        ->assertDontSee('name="whatsapp"', false)
+        ->call('continueAsGuest')
+        ->assertRedirect(route('book.details'));
 
-    $component->set('whatsapp', '0334 4554500')->call('signInToContinue')->assertRedirect(route('login'));
+    $this->get(route('book.details'))->assertOk()->assertSee('WhatsApp number');
 
-    expect(session(BookingFlow::DRAFT_KEY)['whatsapp'])->toBe('0334 4554500');
+    $hash = hash_hmac('sha256', (string) json_encode(session(BookingFlow::DRAFT_KEY)), (string) config('app.key'));
+    $this->post(route('book.details.store'), ['name' => 'Zara’s parent', 'email' => 'p@example.com', 'email_confirmation' => 'p@example.com', 'whatsapp' => '', 'draft' => $hash])
+        ->assertSessionHasErrors(['whatsapp']);
 });
 
 it('stores E.164 and keeps an unchanged number as it is', function (): void {

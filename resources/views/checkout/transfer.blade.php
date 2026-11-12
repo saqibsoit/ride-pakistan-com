@@ -20,7 +20,7 @@
             @endif
 
             @if ($status === OrderStatus::Paid || $status === OrderStatus::PartiallyRefunded || $status === OrderStatus::Refunded)
-                <x-alert variant="success" title="Transfer confirmed. You're booked.">We've emailed your receipt. Your sessions and tickets are in your account.<x-spam-hint /></x-alert>
+                <x-alert variant="success" title="Transfer confirmed. You're booked.">We've emailed your receipt{{ $guest ? ' and tickets, with a link to manage this booking' : '. Your sessions and tickets are in your account' }}.<x-spam-hint /></x-alert>
                 <x-button :href="route('account.orders.show', $order->reference)">See your order</x-button>
             @elseif ($status === OrderStatus::Rejected)
                 <x-alert variant="error" title="We couldn't confirm this transfer.">

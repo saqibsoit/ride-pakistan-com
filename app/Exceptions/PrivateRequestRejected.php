@@ -13,9 +13,20 @@ use DomainException;
  */
 final class PrivateRequestRejected extends DomainException
 {
+    /** The account already has an open request: never shown to a guest (guest checkout). */
+    public bool $alreadyOpen = false;
+
     public static function because(string $message): self
     {
         return new self($message);
+    }
+
+    public static function alreadyOpen(): self
+    {
+        $e = new self('You already have a private session request open. You can withdraw it from your account first.');
+        $e->alreadyOpen = true;
+
+        return $e;
     }
 
     public static function clash(string $label, int $buffer): self

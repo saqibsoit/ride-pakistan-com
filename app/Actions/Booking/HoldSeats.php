@@ -38,8 +38,12 @@ final class HoldSeats
         }
 
         return DB::transaction(function () use ($order, $slotId, $riderIds, $private, $expiresAt): BookingHold {
-            // The customer's own waitlist offer counts as free seats for them (milestone 10d).
-            $slot = $this->lock->acquire($slotId, claimFor: $order->user_id);
+            // The customer's own waitlist offer counts as free seats for them
+            // (milestone 10d). Not for a guest order: whether the account
+            // behind the email has an offer must not change what a guest
+            // sees, and a stranger mustn't use up someone's offer.
+            $guest = $order->placed_as_guest;
+            $slot = $this->lock->acquire($slotId, claimFor: $guest ? null : $order->user_id);
 
             $slot->assertBookable($this->settings->int(SettingKey::MinNoticeHours) ?? 0);
             $slot->assertRoomFor($riderIds, $private);
@@ -52,7 +56,9 @@ final class HoldSeats
                 'expires_at' => $expiresAt,
             ]);
 
-            $this->waitlist->handle($slot, $order->user);
+            if (! $guest) {
+                $this->waitlist->handle($slot, $order->user);
+            }
 
             return $hold;
         });

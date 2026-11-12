@@ -7,6 +7,7 @@ namespace App\Livewire\Checkout;
 use App\Enums\OrderStatus;
 use App\Models\Order;
 use App\Models\User;
+use App\Support\GuestAccess;
 use App\Support\Tracking\BrowserEvents;
 use App\Support\Tracking\TrackingConfig;
 use Illuminate\Contracts\View\View;
@@ -68,17 +69,22 @@ final class PaymentStatus extends Component
 
         return view('livewire.checkout.payment-status', [
             'order' => $order,
+            // Signed out, or someone else's account: point to the manage page, not "My account".
+            'guest' => Auth::id() !== $order->user_id,
             'state' => $state,
             'polling' => $state === 'waiting' && $this->polls < self::MAX_POLLS,
             'timedOut' => $state === 'waiting' && $this->polls >= self::MAX_POLLS,
         ]);
     }
 
+    /** The owner's order or one this guest may open (GuestAccess); a 404 for anyone else. */
     private function order(): Order
     {
-        /** @var User $user */
         $user = Auth::user();
+        $order = app(GuestAccess::class)->findOrder($user instanceof User ? $user : null, $this->reference);
 
-        return $user->orders()->where('reference', $this->reference)->with('product')->firstOrFail();
+        abort_if($order === null, 404);
+
+        return $order->load('product');
     }
 }

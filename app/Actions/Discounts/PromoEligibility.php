@@ -22,6 +22,8 @@ use Carbon\CarbonImmutable;
  */
 final class PromoEligibility
 {
+    public const SIGN_IN = 'Sign in to use this code: it depends on your earlier bookings.';
+
     public function reason(PromoCode $promo, User $customer, Order $order, ?CarbonImmutable $now = null): ?string
     {
         $now ??= CarbonImmutable::now();
@@ -37,6 +39,13 @@ final class PromoEligibility
 
         if ($promo->ends_at !== null && ! $promo->ends_at->isAfter($now)) {
             return 'This code ended on '.$promo->ends_at->setTimezone($tz)->format('j M Y').'.';
+        }
+
+        // A guest order (decided 2026-11-12): codes that depend on the
+        // account's history need sign-in, said the same way to every
+        // guest so it tells nothing about the account behind the email.
+        if ($order->placed_as_guest && ($promo->first_booking_only || $promo->max_uses_per_customer !== null)) {
+            return self::SIGN_IN;
         }
 
         $uses = PromoRedemption::query()->where('promo_code_id', $promo->id)->where('order_id', '!=', $order->id);

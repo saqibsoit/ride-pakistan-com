@@ -25,12 +25,14 @@ use App\Http\Controllers\CheckInController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\CspReportController;
 use App\Http\Controllers\GiftVoucherController;
+use App\Http\Controllers\ManageOrderController;
 use App\Http\Controllers\PrintableVoucherController;
 use App\Http\Controllers\Public\BookController;
 use App\Http\Controllers\Public\ContactController;
 use App\Http\Controllers\Public\ContentPageController;
 use App\Http\Controllers\Public\ExperienceController;
 use App\Http\Controllers\Public\FaqController;
+use App\Http\Controllers\Public\GuestBookingController;
 use App\Http\Controllers\Public\GuideController;
 use App\Http\Controllers\Public\HomeController;
 use App\Http\Controllers\Public\PriceController;
@@ -49,6 +51,7 @@ use App\Http\Controllers\VoucherCheckoutController;
 use App\Http\Controllers\VoucherTransferProofController;
 use App\Http\Middleware\AddStatelessSecurityHeaders;
 use App\Http\Middleware\EnsureCheckInAccess;
+use App\Http\Middleware\EnsureOrderAccess;
 use App\Http\Middleware\EnsureTeamAreaAccess;
 use App\Support\PageCache;
 use Illuminate\Support\Facades\Route;
@@ -90,7 +93,17 @@ Route::middleware(['cache.headers:private;no_cache', CacheResponse::class])->gro
 // Booking flow (Livewire, per-visitor state): never response-cached.
 Route::get('/book', BookController::class)->middleware('cache.headers:private;no_store')->name('book');
 
-Route::middleware(['auth', 'cache.headers:private;no_store'])->prefix('checkout/{reference}')->name('checkout.')->group(function (): void {
+// Guest checkout (decided 2026-11-12): the signed-out visitor's details step.
+Route::middleware('cache.headers:private;no_store')->prefix('book')->name('book.')->group(function (): void {
+    Route::get('/details', [GuestBookingController::class, 'show'])->name('details');
+    Route::post('/details', [GuestBookingController::class, 'store'])->middleware('throttle:guest-checkout')->name('details.store');
+    Route::get('/request-sent', [GuestBookingController::class, 'requestSent'])->name('request-sent');
+});
+
+// Checkout: the signed-in owner, or a guest with access to this one order
+// (guest checkout, decided 2026-11-12: placed in this browser or opened
+// from its manage link). EnsureOrderAccess answers alike for any reference.
+Route::middleware([EnsureOrderAccess::class, 'cache.headers:private;no_store'])->prefix('checkout/{reference}')->name('checkout.')->group(function (): void {
     Route::get('/', [CheckoutController::class, 'show'])->name('show');
     Route::post('/card', [CheckoutController::class, 'card'])->middleware('throttle:checkout')->name('card');
     Route::get('/status', [CheckoutController::class, 'status'])->name('status');
@@ -106,6 +119,28 @@ Route::middleware(['auth', 'cache.headers:private;no_store'])->prefix('checkout/
     Route::get('/transfer', [BankTransferController::class, 'show'])->name('transfer');
     Route::post('/transfer/proof', [BankTransferController::class, 'upload'])->middleware('throttle:transfer-upload')->name('transfer.upload');
 });
+
+// "Manage your booking" (guest checkout): the signed link from every
+// booking email opens one order for this browser, then the plain pages.
+// A link that doesn't work, or no access, shows "ask for a new link".
+Route::get('/manage', [ManageOrderController::class, 'linkForm'])->middleware('cache.headers:private;no_store')->name('manage.link');
+Route::post('/manage', [ManageOrderController::class, 'sendLink'])->middleware('throttle:manage-link-request')->name('manage.link.send');
+Route::get('/manage/{reference}/open', [ManageOrderController::class, 'open'])
+    ->where('reference', 'RP-[A-Z0-9]{6}')
+    ->middleware(['cache.headers:private;no_store', 'throttle:manage-link'])
+    ->name('manage.open');
+
+Route::middleware([EnsureOrderAccess::class.':manage', 'cache.headers:private;no_store'])
+    ->prefix('manage/{reference}')->where(['reference' => 'RP-[A-Z0-9]{6}'])->name('manage.')->group(function (): void {
+        Route::get('/', [ManageOrderController::class, 'show'])->name('show');
+        Route::post('/revoke', [ManageOrderController::class, 'revoke'])->middleware('throttle:account-actions')->name('revoke');
+        Route::get('/book', [ManageOrderController::class, 'book'])->name('book');
+        Route::get('/bookings/{ticket}/calendar.ics', [ManageOrderController::class, 'calendar'])->name('calendar');
+        Route::get('/bookings/{ticket}/cancel', [ManageOrderController::class, 'confirmCancel'])->name('cancel');
+        Route::post('/bookings/{ticket}/cancel', [ManageOrderController::class, 'cancel'])->middleware('throttle:account-actions')->name('cancel.store');
+        Route::get('/bookings/{ticket}/reschedule', [ManageOrderController::class, 'editReschedule'])->name('reschedule');
+        Route::post('/bookings/{ticket}/reschedule', [ManageOrderController::class, 'reschedule'])->middleware('throttle:account-actions')->name('reschedule.store');
+    });
 
 // Gift vouchers (milestone 10e): bought by a signed-in customer, paid by
 // card or bank transfer like an order, issued only once payment is confirmed.

@@ -15,33 +15,29 @@ use App\Enums\DiscountKind;
 use App\Exceptions\BookingRejected;
 use App\Exceptions\CheckoutUnavailable;
 use App\Exceptions\DiscountRejected;
-use App\Models\Order;
+use App\Http\Middleware\EnsureOrderAccess;
 use App\Models\User;
 use App\Support\Money;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Gate;
 
 /**
  * /checkout/{reference} (PLAN §6): order summary, seat hold and the two
  * ways to pay. Card payment hands over to Stripe Checkout; the status page
- * only shows what the webhook has recorded. Scoped to the signed-in
- * customer: another customer's reference is a 404.
+ * only shows what the webhook has recorded. EnsureOrderAccess lets in the
+ * signed-in owner or a guest with access to this order (guest checkout,
+ * decided 2026-11-12); anyone else gets the same answer for every
+ * reference. A guest order offers no account credit.
  */
 final class CheckoutController extends Controller
 {
     public function show(Request $request, string $reference, TransferWindow $window, RecordCheckoutTracking $tracking, AccountCredit $credit): View
     {
-        $order = $this->order($request, $reference);
-
-        Gate::authorize('view', $order);
+        $order = EnsureOrderAccess::order($request);
 
         $order->load(['product', 'items.slot', 'items.rider', 'holds', 'discounts']);
         $tracking->handle($order, $request);
-
-        /** @var User $user */
-        $user = $request->user();
 
         return view('checkout.show', [
             'order' => $order,
@@ -49,7 +45,9 @@ final class CheckoutController extends Controller
             'transferOffered' => $window->isOffered($order),
             // Discounts at checkout (milestone 10e Part B).
             'choices' => RepriceOrder::choices($order),
-            'creditAvailable' => $credit->balance($user) + AccountCredit::heldBy($order),
+            // Never on a guest order (decided 2026-11-12): it's the account's money.
+            'creditAvailable' => $order->placed_as_guest ? 0 : $credit->balance($order->user) + AccountCredit::heldBy($order),
+            'guest' => $request->user()?->id !== $order->user_id,
             'cardOffered' => $order->amount_minor >= (int) config('services.stripe.min_charge_pkr', 200) * Money::MINOR_PER_MAJOR,
         ]);
     }
@@ -57,7 +55,7 @@ final class CheckoutController extends Controller
     /** A gift voucher or promo code (milestone 10e Part B). */
     public function discount(Request $request, string $reference, ChangeOrderDiscounts $change): RedirectResponse
     {
-        $order = $this->order($request, $reference);
+        $order = EnsureOrderAccess::order($request);
         $code = $request->validate(['code' => ['required', 'string', 'max:60']], ['code.required' => 'Enter a gift voucher or promo code.'])['code'];
 
         try {
@@ -71,7 +69,7 @@ final class CheckoutController extends Controller
 
     public function removeDiscount(Request $request, string $reference, string $kind, ChangeOrderDiscounts $change): RedirectResponse
     {
-        $order = $this->order($request, $reference);
+        $order = EnsureOrderAccess::order($request);
         $kind = DiscountKind::tryFrom($kind) ?? abort(404);
 
         try {
@@ -85,7 +83,7 @@ final class CheckoutController extends Controller
 
     public function credit(Request $request, string $reference, ChangeOrderDiscounts $change): RedirectResponse
     {
-        $order = $this->order($request, $reference);
+        $order = EnsureOrderAccess::order($request);
         $use = $request->boolean('use');
 
         try {
@@ -100,7 +98,7 @@ final class CheckoutController extends Controller
     /** Nothing left to pay: confirm the booking (CompleteCoveredOrder). */
     public function confirm(Request $request, string $reference, CompleteCoveredOrder $complete): RedirectResponse
     {
-        $order = $this->order($request, $reference);
+        $order = EnsureOrderAccess::order($request);
 
         try {
             $complete->handle($order, $this->customer($request));
@@ -111,19 +109,15 @@ final class CheckoutController extends Controller
         return redirect()->route('checkout.status', $order->reference);
     }
 
+    /** The order's own customer: the signed-in owner, or the account behind a guest order. */
     private function customer(Request $request): User
     {
-        /** @var User $user */
-        $user = $request->user();
-
-        return $user;
+        return EnsureOrderAccess::order($request)->user;
     }
 
     public function card(Request $request, string $reference, CreateStripeCheckout $checkout): RedirectResponse
     {
-        $order = $this->order($request, $reference);
-
-        Gate::authorize('pay', $order);
+        $order = EnsureOrderAccess::order($request);
 
         try {
             $url = $checkout->handle($order);
@@ -136,18 +130,8 @@ final class CheckoutController extends Controller
 
     public function status(Request $request, string $reference): View
     {
-        $order = $this->order($request, $reference);
-
-        Gate::authorize('view', $order);
+        $order = EnsureOrderAccess::order($request);
 
         return view('checkout.status', ['order' => $order, 'cancelled' => $request->boolean('cancelled')]);
-    }
-
-    private function order(Request $request, string $reference): Order
-    {
-        /** @var User $user */
-        $user = $request->user();
-
-        return $user->orders()->where('reference', $reference)->firstOrFail();
     }
 }

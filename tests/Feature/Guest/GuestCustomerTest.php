@@ -70,21 +70,21 @@ it('refuses team, deleted and anonymised accounts with one neutral message and l
     'anonymised' => fn (): User => tap(User::factory()->create(), fn (User $u) => $u->forceFill(['anonymised_at' => now()])->save()),
 ]);
 
-it('adds the typed riders to the account and reuses a rider with the same name', function (): void {
+it('adds the typed riders as new riders and never reuses the account’s saved ones', function (): void {
     $user = User::factory()->create();
-    $kept = Rider::factory()->for($user)->create(['name' => 'Zara Malik', 'notes' => 'Allergic to hay']);
+    $saved = Rider::factory()->for($user)->create(['name' => 'Zara Malik', 'notes' => 'Allergic to hay']);
 
     $ids = app(CreateGuestRiders::class)->handle($user, [
-        ['name' => '  zara   MALIK '],
+        ['name' => 'Zara Malik'],
         ['name' => 'Omar Malik', 'age_bracket' => null, 'experience_level' => null],
-        ['name' => 'Omar Malik'],
+        ['name' => '  omar   MALIK '],
         ['name' => '   '],
     ]);
 
-    $omar = Rider::query()->where('name', 'Omar Malik')->sole();
-    expect($ids)->toBe([$kept->id, $omar->id])
-        ->and($kept->refresh()->name)->toBe('Zara Malik')
-        ->and($kept->notes)->toBe('Allergic to hay')
-        ->and($omar->user_id)->toBe($user->id)
-        ->and($user->riders()->count())->toBe(2);
+    expect($ids)->toHaveCount(2)
+        ->and($ids)->not->toContain($saved->id)
+        ->and(Rider::query()->whereKey($ids)->pluck('name')->all())->toBe(['Zara Malik', 'Omar Malik'])
+        ->and(Rider::query()->whereKey($ids)->pluck('notes')->filter()->all())->toBe([])
+        ->and($saved->refresh()->notes)->toBe('Allergic to hay')
+        ->and($user->riders()->count())->toBe(3);
 });

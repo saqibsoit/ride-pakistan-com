@@ -5,16 +5,15 @@ declare(strict_types=1);
 namespace App\Actions\Guest;
 
 use App\Actions\Riders\SaveRider;
-use App\Models\Rider;
 use App\Models\User;
 use Illuminate\Support\Str;
 
 /**
- * The riders a guest typed, as riders of the account behind the email
- * (guest checkout, decided 2026-11-12). A rider of that account with the
- * same name (case and spacing ignored) is reused, and its saved details
- * are never changed or shown: the guest only ever sees the names they
- * typed. Everyone else is added as a new rider.
+ * The riders a guest typed, added as new riders of the account behind the
+ * email (guest checkout, decided 2026-11-12). Riders the account already
+ * has are never reused: a saved rider could already be booked in the slot
+ * or hold a waitlist place, and the refusal would tell a guest about
+ * someone else's bookings. A name typed twice is added once.
  */
 final class CreateGuestRiders
 {
@@ -22,39 +21,26 @@ final class CreateGuestRiders
 
     /**
      * @param  list<array{name: string, age_bracket?: string|null, experience_level?: string|null}>  $riders
-     * @return list<int> rider ids, in the order typed, without duplicates
+     * @return list<int> rider ids, in the order typed
      */
     public function handle(User $user, array $riders): array
     {
-        $existing = $user->riders()->get()->keyBy(fn (Rider $rider): string => self::key($rider->name));
         $ids = [];
 
         foreach ($riders as $data) {
-            $key = self::key($data['name']);
+            $key = Str::lower((string) preg_replace('/\s+/u', ' ', trim($data['name'])));
 
-            if ($key === '') {
+            if ($key === '' || isset($ids[$key])) {
                 continue;
             }
 
-            $rider = $existing->get($key);
-
-            if ($rider === null) {
-                $rider = $this->save->handle($user, [
-                    'name' => $data['name'],
-                    'age_bracket' => $data['age_bracket'] ?? null,
-                    'experience_level' => $data['experience_level'] ?? null,
-                ]);
-                $existing->put($key, $rider);
-            }
-
-            $ids[] = $rider->id;
+            $ids[$key] = $this->save->handle($user, [
+                'name' => $data['name'],
+                'age_bracket' => $data['age_bracket'] ?? null,
+                'experience_level' => $data['experience_level'] ?? null,
+            ])->id;
         }
 
-        return array_values(array_unique($ids));
-    }
-
-    private static function key(string $name): string
-    {
-        return Str::lower((string) preg_replace('/\s+/u', ' ', trim($name)));
+        return array_values($ids);
     }
 }

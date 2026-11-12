@@ -17,7 +17,7 @@ final class UploadTransferProofRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user() !== null; // ownership: the controller scopes the order to the user
+        return true; // access to the order: EnsureOrderAccess on the route (owner or guest grant)
     }
 
     /**

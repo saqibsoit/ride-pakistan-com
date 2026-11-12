@@ -11,6 +11,8 @@ use App\Enums\PaymentMethod;
 use App\Exceptions\CheckoutUnavailable;
 use App\Models\BookingHold;
 use App\Models\Order;
+use App\Notifications\TransferInstructions;
+use App\Support\Notifier;
 use App\Support\Stripe\StripeGateway;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -34,6 +36,7 @@ final class ChooseBankTransfer
         private readonly SlotLock $slotLock,
         private readonly OrderStateMachine $orders,
         private readonly TransferWindow $window,
+        private readonly Notifier $notifier,
     ) {}
 
     /** @throws CheckoutUnavailable */
@@ -53,7 +56,7 @@ final class ChooseBankTransfer
 
         $this->closeStripeSession($order);
 
-        return DB::transaction(function () use ($order): Order {
+        $order = DB::transaction(function () use ($order): Order {
             $locked = Order::query()->whereKey($order->id)->lockForUpdate()->firstOrFail();
             $now = CarbonImmutable::now();
 
@@ -97,6 +100,14 @@ final class ChooseBankTransfer
 
             return $order;
         });
+
+        // A guest (guest checkout) leaves to make the transfer: email the
+        // bank details and the link to come back and upload it. Once.
+        if ($order->placed_as_guest && $order->status === OrderStatus::AwaitingTransfer) {
+            $this->notifier->send($order->user, new TransferInstructions($order), Notifier::key(TransferInstructions::type(), $order, $order->user));
+        }
+
+        return $order;
     }
 
     /** @throws CheckoutUnavailable */

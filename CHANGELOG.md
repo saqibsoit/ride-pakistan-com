@@ -301,6 +301,10 @@ All notable changes to this project are documented here. The format follows [Kee
 - README with local setup steps.
 
 ### Fixed
+- **Nightly backups never ran on production** (every night from 2026-11-10 to 2026-11-13 failed, and no archive was written). Two causes:
+  - `deploy/schedule-run.sh` gave `proc_open` back only to the `schedule:run` process, through `php -d`. The scheduler starts each task as a new `php artisan …` process, which got Hostinger's full list again, so `backup:run` couldn't start `mysqldump`. The script now writes a small ini file (`storage/framework/php-cli/zz-proc-open.ini`, Hostinger's list minus `proc_open`, rewritten each run) and points `PHP_INI_SCAN_DIR` at it, which every process cron starts inherits. The website never loads it.
+  - `config/backup.php` left the "successful" notifications out to keep successful runs quiet, but the package reads a key for every notification it sends, so `backup:clean` crashed with `Undefined array key CleanupWasSuccessfulNotification` (and `backup:run` would have too). Both are now listed with no channels: still no email on success, no crash.
+  - Tests: every notification the package can send has a key, success events send nothing, failures still email; the script is run with a stub PHP on Linux CI.
 - CI (also used by deploys): Playwright's Chromium is installed without `--with-deps`, so nothing comes from the runner's apt mirror, whose DNS outage failed every run on 2026-11-11. The browser is cached per Playwright version, the install is tried up to 3 times, and a final failure stops the job with a clear "Chromium not installed" error. A launch check fails clearly if a system library is missing.
 - A payment that arrived after its seat hold ran out could still be confirmed on a slot that had since been closed or cancelled. `FulfilOrder` now re-checks the slot under its row lock: it must be open, have room and not be blocked by a private session.
   - If it isn't, no booking is made. A card payment is refunded automatically (as for seats gone). A bank transfer approval is rolled back and the order flagged "Needs review".

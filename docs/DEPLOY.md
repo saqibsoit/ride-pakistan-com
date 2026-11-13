@@ -160,7 +160,9 @@ One job per environment, **every minute**:
 
 (Set `PHP_BIN=… ` in front if it isn't `/opt/alt/php83/usr/bin/php`.)
 
-**Why a script:** Hostinger disables `proc_open` (with `exec`, `shell_exec` and others) in PHP. Laravel's scheduler needs `proc_open` to start each task, and without it every task fails silently: the queue (all emails), hold expiry, backups. `deploy/schedule-run.sh` runs `schedule:run` with Hostinger's own `disable_functions` list minus `proc_open`, for that process only, never for the website. hPanel limits cron commands to 255 characters, too short for the list inline. A plain `artisan schedule:run` by hand looks fine but runs nothing: the tasks "finish" in a few milliseconds and the `jobs` table doesn't empty.
+**Why a script:** Hostinger disables `proc_open` (with `exec`, `shell_exec` and others) in PHP. Laravel's scheduler needs `proc_open` to start each task, and without it every task fails silently: the queue (all emails), hold expiry, backups. `deploy/schedule-run.sh` writes Hostinger's own `disable_functions` list minus `proc_open` to `shared/storage/framework/php-cli/zz-proc-open.ini` (rewritten every run) and starts `schedule:run` with `PHP_INI_SCAN_DIR` pointing at it. Every task the scheduler starts is a new `php artisan …` process and inherits that variable; the website never sees it. A `php -d` flag isn't enough: it reached only `schedule:run` itself, so `backup:run` couldn't start `mysqldump` and every backup failed from 2026-11-10 until the fix. hPanel limits cron commands to 255 characters, too short for the list inline.
+
+To check it on the server: `PHP_INI_SCAN_DIR=":<DEPLOY_PATH>/shared/storage/framework/php-cli" <PHP_BIN> -r 'var_dump(function_exists("proc_open") && !str_contains(ini_get("disable_functions"), "proc_open"));'` prints `bool(true)` once cron has run. A plain `artisan schedule:run` by hand looks fine but runs nothing: the tasks "finish" in a few milliseconds and the `jobs` table doesn't empty.
 
 That single entry runs everything in `routes/console.php`:
 
@@ -328,7 +330,9 @@ Check: send a sign-in code or `mail:test` to the address https://www.mail-tester
 - **Every week**, download the newest zip to a computer or cloud drive you control: `scp -P 65002 u123456789@<host>:<DEPLOY_PATH>/shared/storage/app/backups/<APP_NAME>/<newest>.zip .`
 - Hostinger's own daily/weekly backups (hPanel → Files → Backups) are a second, independent copy.
 
-**Health emails** go to `BACKUP_NOTIFICATION_EMAIL`: a failed backup or cleanup straight away, and every Monday a report from `backup:monitor` (healthy, or unhealthy if the newest backup is older than a day or they use over 5 GB). Successful nightly runs don't email.
+**Health emails** go to `BACKUP_NOTIFICATION_EMAIL`: a failed backup or cleanup straight away, and every Monday a report from `backup:monitor` (healthy, or unhealthy if the newest backup is older than a day or they use over 5 GB). Successful nightly runs don't email. (They stay listed in `config/backup.php` with no channels: the package crashes on a notification it can't find in that list.)
+
+**Check after a deploy that touches the scheduler or backups:** the next morning, `ls -l <DEPLOY_PATH>/shared/storage/app/backups/*/` shows a zip from 01:30 UTC, and `grep -c 'Backup failed' <DEPLOY_PATH>/shared/storage/logs/laravel-$(date -u +%F).log` is 0. To test straight away, run it the way cron does: `cd <DEPLOY_PATH>/current && PHP_INI_SCAN_DIR=":<DEPLOY_PATH>/shared/storage/framework/php-cli" <PHP_BIN> artisan backup:run`.
 
 ### Restore (test it on staging before launch)
 

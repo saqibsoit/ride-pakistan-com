@@ -54,16 +54,26 @@ it('lets a customer join the waitlist for a full session', function (): void {
 
     $this->actingAs($user);
 
-    visit(route('account.waitlist.create', $slot))->on()->mobile()
+    $page = visit(route('account.waitlist.create', $slot))->on()->mobile()
         ->assertSee('Join the waitlist')
-        ->assertNoJavaScriptErrors()
-        ->click('form[action*="waitlist/join"] button[type=submit]')
-        ->assertSee('You’re on the waitlist')
-        ->assertSee('number 1 in line')
-        ->assertNoJavaScriptErrors()
+        ->assertNoJavaScriptErrors();
+    $browser = $page->page();
+
+    // One raw click, then wait for the waitlist page's own result. The
+    // wrapper's click() retries in 1 s steps: under load the join's redirect
+    // outlasted a step, the click was repeated on a page with no join form
+    // left (or submitted twice), and the test failed although the join worked.
+    $browser->locator('form[action*="waitlist/join"] button[type=submit]')->click(['timeout' => E2E_WAIT_MS]);
+    waitForText($browser, 'You’re on the waitlist');
+    waitForText($browser, 'number 1 in line');
+
+    $page->assertNoJavaScriptErrors()
         ->assertNoConsoleLogs();
 
-    expect(WaitlistEntry::query()->where('user_id', $user->id)->value('status'))->toBe(WaitlistStatus::Waiting);
+    $entries = WaitlistEntry::query()->where('user_id', $user->id)->get();
+
+    expect($entries)->toHaveCount(1)
+        ->and($entries->sole()->status)->toBe(WaitlistStatus::Waiting);
 });
 
 it('shows a rider’s progress and the next step', function (): void {

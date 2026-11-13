@@ -8,6 +8,7 @@ use App\Support\Stripe\StripeGateway;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Foundation\Vite;
+use Illuminate\Testing\ParallelTesting;
 use RuntimeException;
 use Tests\Support\FakeStripeGateway;
 
@@ -41,6 +42,17 @@ abstract class TestCase extends BaseTestCase
         // exists, so a running `npm run dev` (public/hot) can't change what
         // the tests see.
         $app->make(Vite::class)->useHotFile(storage_path('framework/testing/hot'));
+
+        // In a parallel run, one sitemap file per worker. Seeding dispatches
+        // RegenerateSitemap (sync in tests) and SeoFilesTest deletes the
+        // file, so workers sharing one path raced; on Windows a write while
+        // another worker held the file failed with "Permission denied".
+        $token = $app->make(ParallelTesting::class)->token();
+
+        if ($token !== false) {
+            $path = (string) $config->get('site.sitemap_path');
+            $config->set('site.sitemap_path', preg_replace('/(\.xml)?$/', "-{$token}$1", $path, 1));
+        }
 
         return $app;
     }

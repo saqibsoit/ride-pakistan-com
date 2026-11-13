@@ -32,5 +32,7 @@ If you cancel a session you paid for, we'll be in touch about your refund.
 If you cancel, the credit goes back to your package.
 @endif
 
+@include('mail.partials.manage-link', ['for' => $bookings])
+
 Ride Pakistan
 </x-mail::message>

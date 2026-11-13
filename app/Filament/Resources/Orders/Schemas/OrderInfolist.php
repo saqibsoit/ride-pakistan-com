@@ -28,6 +28,11 @@ class OrderInfolist
                     TextEntry::make('user.name')->label('Customer'),
                     TextEntry::make('user.email')->label('Email')->copyable(),
                     TextEntry::make('user.whatsapp_phone')->label('WhatsApp')->placeholder('Not given yet')->copyable(),
+                    // Guest checkout: what was typed for this booking (an existing account's profile isn't changed).
+                    TextEntry::make('contact_name')->label('Booked as (guest)')
+                        ->visible(fn (Order $record): bool => $record->placed_as_guest),
+                    TextEntry::make('contact_whatsapp')->label('WhatsApp for this booking')->copyable()
+                        ->visible(fn (Order $record): bool => $record->placed_as_guest && $record->contact_whatsapp !== null),
                     TextEntry::make('product_name')->label('Product (as bought)'),
                     TextEntry::make('amount_minor')->label('Charged (after discounts)')
                         ->formatStateUsing(fn (Order $record): string => Money::format($record->amount_minor, $record->currency)),

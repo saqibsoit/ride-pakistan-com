@@ -40,6 +40,7 @@ final class CreateVoucherOrder
         string $recipientEmail,
         ?string $message,
         ?CarbonImmutable $sendOn,
+        ?string $guestName = null,
     ): VoucherOrder {
         $product = null;
 
@@ -89,6 +90,9 @@ final class CreateVoucherOrder
             'message' => $message === '' ? null : mb_substr($message, 0, VoucherRules::MAX_MESSAGE_LENGTH),
             'send_on' => $sendOn?->format('Y-m-d'),
             'expires_at' => CarbonImmutable::now()->addHours(VoucherRules::UNPAID_HOURS),
+            // Guest checkout: the buyer's typed name is who the voucher is "from".
+            'placed_as_guest' => $guestName !== null,
+            'contact_name' => $guestName === null ? null : mb_substr(trim($guestName), 0, 120),
         ]);
 
         activity('vouchers')

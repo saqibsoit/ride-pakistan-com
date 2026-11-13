@@ -1,12 +1,20 @@
 <div @if ($polling) wire:poll.{{ \App\Livewire\Checkout\PaymentStatus::POLL_SECONDS }}s="poll" @endif aria-live="polite" class="flex flex-col gap-6">
     @if ($state === 'paid')
         <x-alert variant="success" title="Payment received. You're booked.">
-            We've emailed your receipt. Your sessions and tickets are in your account.
+            @if ($guest)
+                We've emailed your receipt and tickets, with a link to manage this booking.
+            @else
+                We've emailed your receipt. Your sessions and tickets are in your account.
+            @endif
             <x-spam-hint />
         </x-alert>
         <div class="flex flex-wrap gap-3">
-            <x-button :href="route('account.orders.show', $order->reference)">See your order</x-button>
-            <x-button variant="ghost" :href="route('account.bookings')">Your bookings</x-button>
+            @if ($guest)
+                <x-button :href="route('manage.show', $order->reference)">Manage this booking</x-button>
+            @else
+                <x-button :href="route('account.orders.show', $order->reference)">See your order</x-button>
+                <x-button variant="ghost" :href="route('account.bookings')">Your bookings</x-button>
+            @endif
         </div>
     @elseif ($state === 'failed')
         <x-alert variant="warning" title="Your card payment didn't go through.">
@@ -19,10 +27,10 @@
         </x-alert>
     @elseif ($timedOut)
         <x-alert variant="info" title="We're still confirming your payment.">
-            This can take a few minutes. You don't need to pay again: we'll email you as soon as it's confirmed, and the order in your account will update.
+            This can take a few minutes. You don't need to pay again: we'll email you as soon as it's confirmed, and {{ $guest ? 'the link in that email shows your booking' : 'the order in your account will update' }}.
             <x-spam-hint />
         </x-alert>
-        <x-button variant="ghost" :href="route('account.orders.show', $order->reference)">See your order</x-button>
+        <x-button variant="ghost" :href="$guest ? route('manage.show', $order->reference) : route('account.orders.show', $order->reference)">See your order</x-button>
     @else
         <x-alert variant="info" title="Confirming your payment…">
             This usually takes a few seconds. Please keep this page open.

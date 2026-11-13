@@ -39,11 +39,11 @@ Ticket **{{ $booking->ticket_code }}** · [Add to Google Calendar]({{ $calendar[
 @endisset
 
 @endforeach
-The ticket images are also attached, and each ticket is in your account. To add the sessions to Apple Calendar or Outlook, open the attached .ics file.
+The ticket images are also attached, and every ticket is on your booking page (link below). To add the sessions to Apple Calendar or Outlook, open the attached .ics file.
 @endif
 
 @if ($order->creditPack)
-**Your package:** {{ $order->creditPack->creditsRemaining() }} {{ $order->creditPack->creditsRemaining() === 1 ? 'credit' : 'credits' }} left, valid until {{ $order->creditPack->expires_at->setTimezone($timezone)->format('j M Y') }}. Book sessions from your account.
+**Your package:** {{ $order->creditPack->creditsRemaining() }} {{ $order->creditPack->creditsRemaining() === 1 ? 'credit' : 'credits' }} left, valid until {{ $order->creditPack->expires_at->setTimezone($timezone)->format('j M Y') }}. Book sessions from your booking page (link below) or your account.
 @endif
 
 @if ($helmet !== '' && $bookings->isNotEmpty())
@@ -62,9 +62,7 @@ Open the map pin
 </x-mail::button>
 @endif
 
-<x-mail::button :url="route('account.orders.show', $order->reference)" color="primary">
-See your order
-</x-mail::button>
+@include('mail.partials.manage-link', ['for' => $order])
 
 The charge comes from {{ $brand }}.
 

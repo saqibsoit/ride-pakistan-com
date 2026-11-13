@@ -15,5 +15,7 @@ If you have any questions, email us at {{ app(\App\Support\Settings::class)->str
 See other sessions
 </x-mail::button>
 
+@include('mail.partials.manage-link', ['for' => $order])
+
 Ride Pakistan
 </x-mail::message>

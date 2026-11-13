@@ -85,6 +85,11 @@ final class ChangeOrderDiscounts
     public function useCredit(Order $order, User $customer, bool $use): void
     {
         $this->assertEditable($order, $customer);
+
+        // Account credit is never offered on a guest order (decided 2026-11-12).
+        if ($use && $order->placed_as_guest) {
+            throw DiscountRejected::because('Sign in to use your account credit.');
+        }
         $this->change($order, $customer, ['use_credit' => $use], null);
     }
 

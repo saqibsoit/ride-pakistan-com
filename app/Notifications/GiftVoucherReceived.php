@@ -39,7 +39,7 @@ final class GiftVoucherReceived extends CustomerNotification
     public function toMail(object $notifiable): MailMessage
     {
         $this->voucher->loadMissing('voucherOrder.user');
-        $from = $this->voucher->voucherOrder?->user->name;
+        $from = $this->voucher->voucherOrder?->buyerName();
 
         return (new MailMessage)
             ->subject(($from !== null && $from !== '' ? $from.' sent you' : 'You\'ve received').' a Ride Pakistan gift voucher')

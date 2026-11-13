@@ -44,8 +44,10 @@ use Livewire\Component;
  * The component only ever holds ids, counts and rider details. Prices are
  * looked up from the product row on every render (PriceQuote) and again
  * by CreateOrder, so nothing the browser sends can change an amount.
- * Guests fill in rider details and sign in with a code at the review
- * step; the draft waits in their session and resumes at /book?resume=1.
+ * Guests fill in rider details, then at the review step either continue
+ * as a guest (their details on /book/details, guest checkout decided
+ * 2026-11-12) or sign in with a code; either way the draft waits in their
+ * session (sign-in resumes at /book?resume=1).
  * Customers with package credits can book straight away ("use credits").
  *
  * Private sessions can also be requested for the customer's own date and
@@ -115,6 +117,13 @@ final class BookingFlow extends Component
 
         if (request()->boolean('resume')) {
             $this->resume();
+        }
+
+        // Sent back from /book/details (a slot that just filled up, a draft changed in another tab).
+        $notice = session('booking_notice');
+
+        if (is_string($notice)) {
+            $this->error = $notice;
         }
 
         $this->prefillWhatsApp();
@@ -302,8 +311,31 @@ final class BookingFlow extends Component
     /** Guests: keep the draft in the session and sign in with a code. */
     public function signInToContinue(): mixed
     {
-        $this->validateWhatsApp();
+        $this->saveDraft();
 
+        redirect()->setIntendedUrl(route('book', ['resume' => 1]));
+
+        return $this->redirectRoute('login');
+    }
+
+    /**
+     * Guests (guest checkout, decided 2026-11-12): keep the draft in the
+     * session and give their details on /book/details, a plain page so the
+     * Turnstile check works without extra scripts.
+     */
+    public function continueAsGuest(): mixed
+    {
+        if ($this->user() !== null || $this->use === self::CREDITS) {
+            return null;
+        }
+
+        $this->saveDraft();
+
+        return $this->redirectRoute('book.details');
+    }
+
+    private function saveDraft(): void
+    {
         session()->put(self::DRAFT_KEY, [
             'whatsapp' => $this->whatsapp,
             'product' => $this->productSlug,
@@ -313,10 +345,6 @@ final class BookingFlow extends Component
             'riders' => $this->guestRiders,
             'request' => $this->requesting ? ['date' => $this->requestDate, 'time' => $this->requestTime, 'note' => $this->requestNote] : null,
         ]);
-
-        redirect()->setIntendedUrl(route('book', ['resume' => 1]));
-
-        return $this->redirectRoute('login');
     }
 
     public function placeOrder(CreateOrder $createOrder, BookWithCredit $bookWithCredit): mixed
@@ -324,7 +352,7 @@ final class BookingFlow extends Component
         $user = $this->user();
 
         if ($user === null) {
-            return $this->signInToContinue();
+            return $this->continueAsGuest();
         }
 
         $this->error = null;
@@ -679,13 +707,23 @@ final class BookingFlow extends Component
         $this->whatsappIsPhone = $user->phone !== null;
     }
 
-    /** Back from sign-in: save the guest riders and pick up where we left off. */
+    /**
+     * Back from sign-in: save the guest riders and pick up where we left
+     * off. Still a guest (back from /book/details): the same draft, riders
+     * as typed, kept in the session for the next try.
+     */
     private function resume(): void
     {
-        $draft = session()->pull(self::DRAFT_KEY);
         $user = $this->user();
+        $draft = $user === null ? session()->get(self::DRAFT_KEY) : session()->pull(self::DRAFT_KEY);
 
-        if (! is_array($draft) || $user === null) {
+        if (! is_array($draft)) {
+            return;
+        }
+
+        if ($user === null) {
+            $this->restoreGuestDraft($draft);
+
             return;
         }
 
@@ -724,6 +762,40 @@ final class BookingFlow extends Component
         }
 
         $this->riderIds = array_values(array_unique($ids));
+        $this->step = 'review';
+    }
+
+    /** @param  array<mixed>  $draft */
+    private function restoreGuestDraft(array $draft): void
+    {
+        $this->productSlug = is_string($draft['product'] ?? null) ? $draft['product'] : '';
+        $this->slotId = is_int($draft['slot'] ?? null) ? $draft['slot'] : null;
+        $this->later = (bool) ($draft['later'] ?? false);
+
+        $request = $draft['request'] ?? null;
+
+        if (is_array($request)) {
+            $this->requesting = true;
+            $this->requestDate = is_string($request['date'] ?? null) ? $request['date'] : '';
+            $this->requestTime = is_string($request['time'] ?? null) ? $request['time'] : '';
+            $this->requestNote = is_string($request['note'] ?? null) ? $request['note'] : '';
+        }
+
+        $riders = [];
+
+        foreach ((array) ($draft['riders'] ?? []) as $guest) {
+            if (is_array($guest) && is_string($guest['name'] ?? null)) {
+                $riders[] = [
+                    'name' => $guest['name'],
+                    'age_bracket' => is_string($guest['age_bracket'] ?? null) ? $guest['age_bracket'] : '',
+                    'experience_level' => is_string($guest['experience_level'] ?? null) ? $guest['experience_level'] : '',
+                ];
+            }
+        }
+
+        $this->guestRiders = $riders;
+        $this->riderCount = max(1, count($riders));
+        // normaliseStep() sends a slot that filled up back to the slot step.
         $this->step = 'review';
     }
 }

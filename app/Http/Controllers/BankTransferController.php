@@ -11,29 +11,26 @@ use App\Enums\BankTransferStatus;
 use App\Enums\OrderStatus;
 use App\Enums\SettingKey;
 use App\Exceptions\CheckoutUnavailable;
+use App\Http\Middleware\EnsureOrderAccess;
 use App\Http\Requests\UploadTransferProofRequest;
-use App\Models\Order;
-use App\Models\User;
 use App\Support\Settings;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Gate;
 use InvalidArgumentException;
 
 /**
  * /checkout/{reference}/transfer (PLAN §3.2): choose bank transfer, see
  * the bank details and deadline, and upload the proof. Same order and
- * reference as card payment. Scoped to the signed-in customer.
+ * reference as card payment. EnsureOrderAccess lets in the signed-in owner
+ * or a guest with access to this order (guest checkout).
  */
 final class BankTransferController extends Controller
 {
     public function choose(Request $request, string $reference, ChooseBankTransfer $choose): RedirectResponse
     {
-        $order = $this->order($request, $reference);
-
-        Gate::authorize('pay', $order);
+        $order = EnsureOrderAccess::order($request);
 
         try {
             $choose->handle($order);
@@ -46,9 +43,7 @@ final class BankTransferController extends Controller
 
     public function show(Request $request, string $reference, Settings $settings, TransferWindow $window): View|RedirectResponse
     {
-        $order = $this->order($request, $reference);
-
-        Gate::authorize('view', $order);
+        $order = EnsureOrderAccess::order($request);
 
         if ($order->status === OrderStatus::PendingPayment) {
             return redirect()->route('checkout.show', $order->reference);
@@ -72,14 +67,13 @@ final class BankTransferController extends Controller
                 'Bank address' => $settings->string(SettingKey::BankAddress),
             ],
             'sessionStart' => $window->firstSessionStart($order),
+            'guest' => $request->user()?->id !== $order->user_id,
         ]);
     }
 
     public function upload(UploadTransferProofRequest $request, string $reference, SubmitBankTransfer $submit): RedirectResponse
     {
-        $order = $this->order($request, $reference);
-
-        Gate::authorize('pay', $order);
+        $order = EnsureOrderAccess::order($request);
 
         $file = $request->file('proof');
         $ref = $request->validated('transaction_ref');
@@ -97,13 +91,5 @@ final class BankTransferController extends Controller
         }
 
         return redirect()->route('checkout.transfer', $order->reference)->with('transfer_uploaded', true);
-    }
-
-    private function order(Request $request, string $reference): Order
-    {
-        /** @var User $user */
-        $user = $request->user();
-
-        return $user->orders()->where('reference', $reference)->firstOrFail();
     }
 }

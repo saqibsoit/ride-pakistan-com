@@ -48,6 +48,10 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property bool $needs_review
  * @property array<string, mixed>|null $meta
  * @property CarbonImmutable $created_at
+ * @property string|null $contact_name guest checkout: the name typed for this record
+ * @property string|null $contact_whatsapp guest checkout: the WhatsApp number typed (E.164)
+ * @property bool $placed_as_guest placed signed out (guest checkout)
+ * @property int $manage_link_version part of every signed manage link; raised to revoke them
  * @property-read User $user
  * @property-read Product|null $product
  * @property-read Voucher|null $voucher
@@ -73,6 +77,9 @@ class VoucherOrder extends Model
         'message',
         'send_on',
         'expires_at',
+        'contact_name',
+        'contact_whatsapp',
+        'placed_as_guest',
     ];
 
     /** @var array<string, mixed> */
@@ -80,11 +87,24 @@ class VoucherOrder extends Model
         'status' => 'pending_payment',
         'currency' => 'PKR',
         'needs_review' => false,
+        'placed_as_guest' => false,
+        'manage_link_version' => 1,
     ];
 
     public function getRouteKeyName(): string
     {
         return 'reference';
+    }
+
+    /**
+     * Who the voucher is from: the name typed at a guest purchase (guest
+     * checkout), never the name of an account that already used the email.
+     */
+    public function buyerName(): ?string
+    {
+        $name = $this->placed_as_guest ? $this->contact_name : ($this->user->name ?? null);
+
+        return $name === null || trim($name) === '' ? null : $name;
     }
 
     public function label(): string
@@ -198,6 +218,8 @@ class VoucherOrder extends Model
     protected function casts(): array
     {
         return [
+            'placed_as_guest' => 'boolean',
+            'manage_link_version' => 'integer',
             'status' => VoucherOrderStatus::class,
             'payment_method' => PaymentMethod::class,
             'amount_minor' => 'integer',

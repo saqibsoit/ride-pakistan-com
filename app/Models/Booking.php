@@ -62,6 +62,18 @@ class Booking extends Model
         'calendar_sequence' => 0,
     ];
 
+    /**
+     * Who to WhatsApp about this booking: the number typed for the order
+     * that paid for it, or for its package (guest checkout), else the
+     * account's.
+     */
+    public function contactWhatsApp(): ?string
+    {
+        $order = $this->order ?? $this->creditPack?->order;
+
+        return $order->contact_whatsapp ?? $this->user->whatsapp_phone ?? null;
+    }
+
     /** Paid for with a package credit (customers may change these themselves). */
     public function usesCredit(): bool
     {

@@ -4,7 +4,9 @@
             {{ $order->send_on ? 'We\'ll email it to '.$order->recipient_name.' on '.$order->send_on->format('j F Y').' at 9 am (Pakistan time).' : 'We\'ve emailed it to '.$order->recipient_name.'.' }} You'll get a copy of the receipt.
             <x-spam-hint />
         </x-alert>
-        <div><x-button :href="route('account.vouchers')">Your gift vouchers</x-button></div>
+        @unless ($guest)
+            <div><x-button :href="route('account.vouchers')">Your gift vouchers</x-button></div>
+        @endunless
     @elseif ($state === 'failed')
         <x-alert variant="warning" title="Your card payment didn't go through.">
             Nothing was charged. Try another card, or pay by bank transfer with reference <strong>{{ $order->reference }}</strong>.
@@ -19,7 +21,9 @@
             This can take a few minutes. You don't need to pay again: we'll email you as soon as it's confirmed.
             <x-spam-hint />
         </x-alert>
-        <div><x-button variant="ghost" :href="route('account.vouchers')">Your gift vouchers</x-button></div>
+        @unless ($guest)
+            <div><x-button variant="ghost" :href="route('account.vouchers')">Your gift vouchers</x-button></div>
+        @endunless
     @else
         <x-alert variant="info" title="Confirming your payment…">
             This usually takes a few seconds. Please keep this page open.

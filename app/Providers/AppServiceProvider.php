@@ -133,6 +133,25 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('checkin', fn (Request $request): Limit => Limit::perMinute(60)
             ->by('checkin:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));
 
+        // Guest checkout (decided 2026-11-12). Opening manage links: plenty
+        // for a family sharing one, too few to guess signatures. Asking for
+        // a new link sends an email: a few per IP and per address.
+        // Placing a booking or request without signing in: a few tries per
+        // visitor (GuestBookingController adds a per-email limit).
+        RateLimiter::for('guest-checkout', fn (Request $request): array => [
+            Limit::perMinute(5)->by('guest-checkout:'.$request->ip()),
+            Limit::perHour(10)->by('guest-checkout-hour:'.$request->ip()),
+        ]);
+
+        RateLimiter::for('manage-link', fn (Request $request): Limit => Limit::perMinute(30)
+            ->by('manage-link:'.$request->ip()));
+
+        RateLimiter::for('manage-link-request', fn (Request $request): array => [
+            Limit::perMinute(3)->by('manage-link-request:'.$request->ip()),
+            Limit::perDay(20)->by('manage-link-request-day:'.$request->ip()),
+            Limit::perHour(3)->by('manage-link-request-email:'.Str::lower(trim((string) $request->input('email')))),
+        ]);
+
         // Transfer proof uploads (PLAN §7): a few replacements, not a flood.
         RateLimiter::for('transfer-upload', fn (Request $request): Limit => Limit::perHour(10)
             ->by('transfer-upload:'.($request->user()?->getAuthIdentifier() ?? $request->ip())));

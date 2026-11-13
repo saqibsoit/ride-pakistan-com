@@ -99,7 +99,7 @@ it('refuses another customer’s riders smuggled into the payload', function ():
     expect(Order::query()->count())->toBe(0);
 });
 
-it('sends a guest to sign in at review and resumes the booking afterwards', function (): void {
+it('lets a guest sign in instead at review and resumes the booking afterwards', function (): void {
     Mail::fake();
     $slot = nearSlot();
 
@@ -110,7 +110,8 @@ it('sends a guest to sign in at review and resumes the booking afterwards', func
         ->set('guestRiders.0.age_bracket', 'under_12')
         ->call('confirmRiders')
         ->assertSet('step', 'review')
-        ->assertSee('Sign in to continue')
+        ->assertSee('Continue as guest')
+        ->assertSee('Sign in instead')
         ->set('whatsapp', '0334 4554500')
         ->call('signInToContinue')
         ->assertRedirect(route('login'));

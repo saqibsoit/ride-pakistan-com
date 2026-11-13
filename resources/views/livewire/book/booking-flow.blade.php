@@ -236,7 +236,7 @@
                 </div>
             </dl>
 
-            @if ($requestLabel)
+            @if ($requestLabel && $user)
                 <x-form.field
                     name="requestNote"
                     label="Anything we should know? (optional)"
@@ -248,14 +248,11 @@
                 />
             @endif
 
-            {{-- Contact for this booking (prompt 14): email from the account, WhatsApp asked here. --}}
+            {{-- Contact for this booking (prompt 14): email from the account, WhatsApp asked here. Guests give both on /book/details. --}}
+            @if ($user)
             <fieldset class="flex flex-col gap-4">
                 <legend class="mb-2 font-semibold">How we reach you</legend>
-                @if ($user)
-                    <p class="text-sm text-sand-dim">Email: <span class="font-semibold text-sand">{{ $user->email }}</span>. Your tickets and receipt go here.</p>
-                @else
-                    <p class="text-sm text-sand-dim">You’ll give your email when you sign in; your tickets and receipt go there.</p>
-                @endif
+                <p class="text-sm text-sand-dim">Email: <span class="font-semibold text-sand">{{ $user->email }}</span>. Your tickets and receipt go here.</p>
 
                 @if ($user?->phone)
                     <label class="flex items-start gap-3">
@@ -277,6 +274,7 @@
                     />
                 @endunless
             </fieldset>
+            @endif
 
             @if ($user)
                 <div class="flex flex-col gap-3">
@@ -291,10 +289,11 @@
                 </div>
             @else
                 <div class="flex flex-col gap-3">
-                    <div>
-                        <x-button wire:click="signInToContinue">Sign in to continue</x-button>
+                    <div class="flex flex-wrap gap-3">
+                        <x-button wire:click="continueAsGuest" wire:loading.attr="disabled">Continue as guest</x-button>
+                        <x-button variant="ghost" wire:click="signInToContinue">Sign in instead</x-button>
                     </div>
-                    <p class="text-sm text-sand-dim">We’ll email you a code. New here? Your account is created when you enter it, and you come straight back to this booking.</p>
+                    <p class="text-sm text-sand-dim">No account needed: next you give your name, email and WhatsApp number, and we email your tickets with a link to manage the booking. Signing in shows all your bookings and lets you use package credits and account credit.</p>
                 </div>
             @endif
         </section>

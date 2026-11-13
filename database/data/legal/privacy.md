@@ -1,12 +1,12 @@
 # Privacy Policy
 
-Last updated: 10 November 2026
+Last updated: 12 November 2026
 
 This policy explains what personal information Ride Pakistan collects, why, and your choices. Ride Pakistan is run by Destination Pakistan, Plot No. 68, Siddique Trade Centre, Gulberg, Lahore ("we", "us"). Contact: hello@ride-pakistan.com.
 
 ## 1. What we collect
 
-- **Account and contact details:** your name, email address and WhatsApp number.
+- **Account and contact details:** your name, email address and WhatsApp number. If you book without signing in, we use the account that already belongs to your email address, or create one, so your bookings, tickets and receipts stay together.
 - **Rider details:** each rider's name, age group, riding experience, notes you give us, and an emergency contact. Emergency contacts and notes are stored encrypted.
 - **Bookings and payments:** your bookings, orders, package credits, gift vouchers and payment records. Card payments are handled by Stripe. We never see or store your full card number.
 - **Bank transfer proof:** if you pay by bank transfer, the screenshot you upload. It is kept privately and deleted 90 days after we review it. The payment record itself is kept for our accounts.
@@ -18,6 +18,7 @@ This policy explains what personal information Ride Pakistan collects, why, and 
 
 - To take and manage your bookings, payments, refunds and tickets.
 - To send booking confirmations, reminders, schedule changes and other service messages by email and WhatsApp.
+- To email you a private link for each booking, so you can see your tickets, pay and make changes without signing in. Anyone with the link can see that booking. It stops working 7 days after your last session, and you can stop it at any time from the link or your account.
 - To keep riders safe, for example by sharing rider details and emergency contacts with your trainer.
 - To answer your questions and follow up on enquiries.
 - To keep our accounts and meet legal and tax requirements.

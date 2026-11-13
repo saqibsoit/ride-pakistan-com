@@ -1,6 +1,6 @@
 # Terms and Conditions
 
-Last updated: 10 November 2026
+Last updated: 12 November 2026
 
 These terms apply when you use ride-pakistan.com or book a session with Ride Pakistan. Ride Pakistan is run by Destination Pakistan, Plot No. 68, Siddique Trade Centre, Gulberg, Lahore ("we", "us"). By booking, you agree to these terms, our Cancellation and Refund Policy and our Privacy Policy.
 
@@ -10,7 +10,7 @@ We offer weekend horse riding and horsemanship sessions in Islamabad with our tr
 
 ## 2. Your account
 
-You sign in with a one-time code sent to your email. Keep access to your email secure. You are responsible for bookings made from your account. Please give accurate details, including a WhatsApp number we can reach you on.
+You can book as a guest or sign in with a one-time code sent to your email. When you book as a guest, we use the account that already belongs to your email address, or create one. Each booking email has a private link to manage that booking: anyone with the link can see the booking, so please keep it to yourself. The link stops working 7 days after your last session, and you can stop it at any time. Keep access to your email secure. You are responsible for bookings made with your email address. Please give accurate details, including a WhatsApp number we can reach you on.
 
 ## 3. Booking and payment
 

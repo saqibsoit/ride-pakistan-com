@@ -40,11 +40,18 @@ final class SubmitPrivateRequest
     ) {}
 
     /**
+     * A guest request (guest checkout, decided 2026-11-12) passes $guest,
+     * the name and WhatsApp number typed. It is placed_as_guest, and the
+     * one check that depends on the account (an open request already) runs
+     * last and throws PrivateRequestRejected::alreadyOpen(), so the guest
+     * wrapper can keep it from the guest.
+     *
      * @param  list<int>  $riderIds
+     * @param  array{name: string, whatsapp: string}|null  $guest
      *
      * @throws PrivateRequestRejected
      */
-    public function handle(User $user, Product $product, CarbonImmutable $startsAt, array $riderIds, ?string $note = null): PrivateSessionRequest
+    public function handle(User $user, Product $product, CarbonImmutable $startsAt, array $riderIds, ?string $note = null, ?array $guest = null): PrivateSessionRequest
     {
         $product = Product::query()->whereKey($product->id)->firstOrFail();
 
@@ -56,7 +63,7 @@ final class SubmitPrivateRequest
             throw PrivateRequestRejected::because('Team accounts can’t request private sessions.');
         }
 
-        if (trim((string) $user->whatsapp_phone) === '') {
+        if ($guest === null && trim((string) $user->whatsapp_phone) === '') {
             throw PrivateRequestRejected::because('Add your WhatsApp number so we can reach you about the session.');
         }
 
@@ -82,18 +89,20 @@ final class SubmitPrivateRequest
         $note = trim((string) $note);
         $note = $note === '' ? null : mb_substr($note, 0, PrivateSessionRequest::NOTE_MAX_LENGTH);
 
-        $request = DB::transaction(function () use ($user, $product, $startsAt, $endsAt, $riderIds, $note): PrivateSessionRequest {
+        $request = DB::transaction(function () use ($user, $product, $startsAt, $endsAt, $riderIds, $note, $guest): PrivateSessionRequest {
             // Serialises a customer's own submissions (double clicks, two tabs).
             User::query()->whereKey($user->id)->lockForUpdate()->first();
 
-            if (PrivateSessionRequest::query()->where('user_id', $user->id)->open()->exists()) {
-                throw PrivateRequestRejected::because('You already have a private session request open. You can withdraw it from your account first.');
-            }
-
+            // The schedule clash first: it doesn't depend on the account, so
+            // a guest sees the same answer whoever the email belongs to.
             $clash = $this->overlap->firstClash($startsAt, $endsAt);
 
             if ($clash !== null) {
                 throw PrivateRequestRejected::because('That time isn’t free: there’s another session close to it. Please choose another time.');
+            }
+
+            if (PrivateSessionRequest::query()->where('user_id', $user->id)->open()->exists()) {
+                throw PrivateRequestRejected::alreadyOpen();
             }
 
             $request = PrivateSessionRequest::query()->create([
@@ -106,6 +115,9 @@ final class SubmitPrivateRequest
                 'rider_ids' => $riderIds,
                 'note' => $note,
                 'answer_by' => CarbonImmutable::now()->addHours($this->rules->answerHours()),
+                'placed_as_guest' => $guest !== null,
+                'contact_name' => $guest['name'] ?? null,
+                'contact_whatsapp' => $guest['whatsapp'] ?? null,
             ]);
 
             activity('private_requests')

@@ -15,6 +15,8 @@ Your riders in this session:
 @endforeach
 @endif
 
+@include('mail.partials.manage-link', ['for' => $bookings])
+
 Questions? Reply to this email or write to {{ $contactEmail }}.
 
 Ride Pakistan

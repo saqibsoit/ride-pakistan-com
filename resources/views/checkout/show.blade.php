@@ -26,6 +26,11 @@
                 <x-alert variant="warning" title="This order has expired.">The seat hold ran out before payment. <a href="{{ route('book') }}" class="underline underline-offset-4">Book again</a>.</x-alert>
             @endif
 
+            @if ($guest && session('guest_email'))
+                {{-- Guest checkout: the address they typed, never the account's details. --}}
+                <p class="text-sm text-sand-dim">Booking as a guest. Your tickets, receipt and a link to manage this booking go to <span class="font-semibold text-sand">{{ session('guest_email') }}</span>.</p>
+            @endif
+
             <dl class="grid gap-4 rounded-sm border border-line-strong bg-earth-2 p-6 sm:grid-cols-2">
                 <div>
                     <dt class="text-sm text-sand-dim">Session</dt>

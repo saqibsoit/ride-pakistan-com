@@ -138,7 +138,7 @@ final class RunExport
                     Money::decimal(self::discount($order, DiscountKind::Voucher)),
                     Money::decimal(self::discount($order, DiscountKind::AccountCredit)),
                     $order->paid_at === null ? '' : Money::decimal(OrderRevenue::of($order)),
-                    $order->user->whatsapp_phone ?? '',
+                    $order->contactWhatsApp() ?? '',
                 ]))),
 
             ExportDataset::Payments, ExportDataset::Refunds => Payment::query()
@@ -209,7 +209,7 @@ final class RunExport
                     self::bookingPrice($booking),
                     $booking->horse->name ?? '',
                     self::bookingNetPrice($booking),
-                    $booking->user->whatsapp_phone ?? '',
+                    $booking->contactWhatsApp() ?? '',
                 ]))),
 
             ExportDataset::Leads => Lead::query()

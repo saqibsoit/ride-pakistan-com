@@ -96,7 +96,8 @@ final class RepriceOrder
                 $selected['promo_code_id'] = null;
             }
 
-            if ($promo === null && ($referral = $this->referrals->referralFor($customer, $locked)) instanceof Referral) {
+            // Never on a guest order (decided 2026-11-12): it depends on the account behind the email.
+            if ($promo === null && ! $locked->placed_as_guest && ($referral = $this->referrals->referralFor($customer, $locked)) instanceof Referral) {
                 $lines[] = $this->line(DiscountKind::Referral, $referral, 'Welcome discount (invited by a friend)', $this->referrals->amountFor($subtotal));
             }
 
@@ -118,7 +119,7 @@ final class RepriceOrder
             }
 
             // 3. Account credit.
-            if ($selected['use_credit'] && $remaining > 0) {
+            if ($selected['use_credit'] && ! $locked->placed_as_guest && $remaining > 0) {
                 $spent = $this->credit->spend($customer, $locked, $remaining);
 
                 if ($spent > 0) {

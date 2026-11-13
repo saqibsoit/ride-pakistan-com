@@ -5,9 +5,11 @@ You have **{{ $left }} {{ $left === 1 ? 'credit' : 'credits' }}** left on your p
 
 Book your next {{ $left === 1 ? 'session' : 'sessions' }} before then: any of your riders can use them.
 
-<x-mail::button :url="route('book', ['use' => 'credits'])" color="primary">
+<x-mail::button :url="\App\Support\ManageLink::forPackBooking($pack)" color="primary">
 Book with your credits
 </x-mail::button>
+
+No sign-in needed: the button opens your package. Anyone with the link can use it, so please don't share it.
 
 Ride Pakistan
 </x-mail::message>

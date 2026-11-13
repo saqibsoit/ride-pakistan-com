@@ -36,11 +36,9 @@ Open the map pin
 </x-mail::button>
 @endif
 
-Can't make it? Credit bookings can be moved or cancelled from your account up to {{ $cutoffHours }} hours before the session.
+Can't make it? Credit bookings can be moved or cancelled up to {{ $cutoffHours }} hours before the session.
 
-<x-mail::button :url="route('account.bookings')" color="primary">
-Your bookings
-</x-mail::button>
+@include('mail.partials.manage-link', ['for' => $bookings])
 
 Ride Pakistan
 </x-mail::message>

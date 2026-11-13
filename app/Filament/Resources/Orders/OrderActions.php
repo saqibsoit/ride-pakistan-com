@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources\Orders;
 
 use App\Actions\Discounts\RefundCoveredOrder;
+use App\Actions\Guest\RevokeManageLinks;
 use App\Actions\Notifications\ResendNotification;
 use App\Actions\Payments\FlagOrderForReview;
 use App\Actions\Payments\RecordTransferRefund;
@@ -308,6 +309,35 @@ final class OrderActions
                 }
 
                 Notification::make()->success()->title('Email queued for '.$record->user->email)->send();
+            });
+    }
+
+    /**
+     * Guest checkout: stop every "Manage your booking" link sent for this
+     * order (a forwarded email, a shared phone). The customer is emailed a
+     * new link. Admins only, reason required, audit-logged.
+     */
+    public static function revokeManageLinks(): Action
+    {
+        return Action::make('revoke_manage_links')
+            ->label('Revoke manage links')
+            ->icon(Heroicon::OutlinedLinkSlash)
+            ->color('gray')
+            ->visible(fn (Order $record): bool => self::admin($record) !== null)
+            ->modalDescription('Every link sent so far stops working, also in browsers that opened one. The customer gets a new link by email.')
+            ->schema([
+                Textarea::make('reason')->label('Reason')->required()->maxLength(500),
+            ])
+            ->action(function (Order $record, array $data): void {
+                $admin = self::admin($record);
+
+                if ($admin === null) {
+                    return;
+                }
+
+                app(RevokeManageLinks::class)->handle($record, $admin, (string) $data['reason']);
+
+                Notification::make()->success()->title('Links revoked; a new one was emailed to '.$record->user->email)->send();
             });
     }
 

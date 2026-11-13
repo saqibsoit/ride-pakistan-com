@@ -104,4 +104,11 @@
     </article>
 
     <p class="text-sm text-sand-dim print:hidden">Use your browser’s print option to save or print this {{ $isReceipt ? 'receipt' : 'page' }}.</p>
+
+    {{-- Guest checkout: the booking emails' "Manage your booking" links for this order. --}}
+    <form method="POST" action="{{ route('manage.revoke', $order->reference) }}" class="flex flex-col gap-2 border-t border-line pt-6 text-sm text-sand-dim print:hidden">
+        @csrf
+        <p>Forwarded a booking email by mistake? Stop every “Manage your booking” link sent for this order. We’ll email you a new one.</p>
+        <div><x-button type="submit" variant="ghost" size="sm">Stop the links for {{ $order->reference }}</x-button></div>
+    </form>
 </x-layouts.account>

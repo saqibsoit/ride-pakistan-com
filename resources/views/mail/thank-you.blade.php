@@ -25,5 +25,7 @@ Ready for the next one?
 See the schedule
 </x-mail::button>
 
+@include('mail.partials.manage-link', ['for' => $bookings])
+
 Ride Pakistan
 </x-mail::message>

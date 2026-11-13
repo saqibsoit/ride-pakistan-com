@@ -16,9 +16,7 @@ Open the map pin
 </x-mail::button>
 @endif
 
-<x-mail::button :url="route('account.bookings')" color="primary">
-See your bookings
-</x-mail::button>
+@include('mail.partials.manage-link', ['for' => $bookings])
 
 Ride Pakistan
 </x-mail::message>

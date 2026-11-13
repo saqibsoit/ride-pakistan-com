@@ -9,7 +9,7 @@ A customer has uploaded proof of a bank transfer for a gift voucher.
 | Reference | {{ $order->reference }} |
 | Expected | {{ \App\Support\Money::format($order->amount_minor, $order->currency) }} |
 | Voucher | {{ $order->label() }} |
-| Customer | {{ $order->user->name ?? 'Customer' }} |
+| Customer | {{ $order->buyerName() ?? 'Customer' }}{{ $order->placed_as_guest ? ' (guest)' : '' }} |
 </x-mail::table>
 
 Check that the amount arrived with the reference **{{ $order->reference }}**, then approve or reject it. The voucher is issued only once you approve.

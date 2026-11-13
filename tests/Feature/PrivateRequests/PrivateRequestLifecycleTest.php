@@ -40,6 +40,7 @@ use App\Notifications\PrivateRequestLapsed;
 use App\Notifications\PrivateRequestReceived;
 use App\Notifications\PrivateRequestToReview;
 use App\Notifications\PrivateSessionAssigned;
+use App\Support\ManageLink;
 use App\Support\TransferProofs;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Notification;
@@ -197,9 +198,10 @@ describe('approving', function (): void {
             ->and(Activity::query()->where('log_name', 'private_requests')->where('event', 'status_changed')->count())->toBe(1);
 
         Notification::assertSentTo($request->user, PrivateRequestApproved::class, function (PrivateRequestApproved $n) use ($request, $order): bool {
-            $html = (string) $n->toMail($request->user)->render();
+            $html = html_entity_decode((string) $n->toMail($request->user)->render());
 
-            return str_contains($html, route('checkout.show', $order->reference)) && str_contains($html, 'PKR');
+            // Pay now opens the order's manage link (guest checkout), which works signed in or not.
+            return str_contains($html, ManageLink::forOrder($order)) && str_contains($html, 'PKR');
         });
     });
 

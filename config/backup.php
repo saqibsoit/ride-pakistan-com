@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 use Spatie\Backup\Notifications\Notifiable;
 use Spatie\Backup\Notifications\Notifications\BackupHasFailedNotification;
+use Spatie\Backup\Notifications\Notifications\BackupWasSuccessfulNotification;
 use Spatie\Backup\Notifications\Notifications\CleanupHasFailedNotification;
+use Spatie\Backup\Notifications\Notifications\CleanupWasSuccessfulNotification;
 use Spatie\Backup\Notifications\Notifications\HealthyBackupWasFoundNotification;
 use Spatie\Backup\Notifications\Notifications\UnhealthyBackupWasFoundNotification;
 use Spatie\Backup\Tasks\Cleanup\Strategies\DefaultStrategy;
@@ -92,7 +94,9 @@ return [
 
     /*
      * Failures and the weekly health report only; a successful nightly run
-     * sends nothing.
+     * sends nothing. The package looks up every notification it sends in
+     * this list and crashes on a missing key, so the successful ones stay
+     * listed with no channels rather than being left out.
      */
     'notifications' => [
         'notifications' => [
@@ -100,6 +104,8 @@ return [
             UnhealthyBackupWasFoundNotification::class => ['mail'],
             CleanupHasFailedNotification::class => ['mail'],
             HealthyBackupWasFoundNotification::class => ['mail'],
+            BackupWasSuccessfulNotification::class => [],
+            CleanupWasSuccessfulNotification::class => [],
         ],
 
         'notifiable' => Notifiable::class,

@@ -2,8 +2,17 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Facades\Notification;
+use Spatie\Backup\Events\BackupHasFailed;
+use Spatie\Backup\Events\BackupWasSuccessful;
+use Spatie\Backup\Events\CleanupHasFailed;
+use Spatie\Backup\Events\CleanupWasSuccessful;
+use Spatie\Backup\Notifications\EventHandler;
+use Spatie\Backup\Notifications\Notifiable;
 use Spatie\Backup\Notifications\Notifications\BackupHasFailedNotification;
 use Spatie\Backup\Notifications\Notifications\BackupWasSuccessfulNotification;
+use Spatie\Backup\Notifications\Notifications\CleanupHasFailedNotification;
+use Spatie\Backup\Notifications\Notifications\CleanupWasSuccessfulNotification;
 use Spatie\Backup\Notifications\Notifications\HealthyBackupWasFoundNotification;
 use Spatie\Backup\Notifications\Notifications\UnhealthyBackupWasFoundNotification;
 
@@ -44,13 +53,51 @@ it('keeps every backup for 30 days and nothing longer', function (): void {
 it('emails failures and the weekly health report, not every successful run', function (): void {
     $notifications = config('backup.notifications.notifications');
 
-    expect($notifications)->toHaveKey(BackupHasFailedNotification::class)
-        ->toHaveKey(UnhealthyBackupWasFoundNotification::class)
-        ->toHaveKey(HealthyBackupWasFoundNotification::class)
-        ->not->toHaveKey(BackupWasSuccessfulNotification::class)
+    expect($notifications[BackupHasFailedNotification::class])->toBe(['mail'])
+        ->and($notifications[CleanupHasFailedNotification::class])->toBe(['mail'])
+        ->and($notifications[UnhealthyBackupWasFoundNotification::class])->toBe(['mail'])
+        ->and($notifications[HealthyBackupWasFoundNotification::class])->toBe(['mail'])
+        ->and($notifications[BackupWasSuccessfulNotification::class])->toBe([])
+        ->and($notifications[CleanupWasSuccessfulNotification::class])->toBe([])
         ->and(config('backup.monitor_backups'))->toHaveCount(1)
         ->and(config('backup.monitor_backups.0.disks'))->toBe(['backups']);
 });
+
+// The package reads notifications[<class>] for every notification it sends
+// and crashed backup:clean every night on the missing successful entry.
+it('lists every notification the package can send, so none of them crashes', function (): void {
+    $map = (new ReflectionProperty(EventHandler::class, 'eventToNotificationMap'))->getValue();
+
+    expect($map)->not->toBeEmpty();
+
+    foreach ($map as $notification) {
+        expect(config('backup.notifications.notifications'))->toHaveKey($notification);
+    }
+});
+
+it('sends nothing for a successful backup or cleanup, and does not throw', function (object $event): void {
+    Notification::fake();
+
+    event($event);
+
+    Notification::assertNothingSent();
+})->with([
+    'backup' => fn (): BackupWasSuccessful => new BackupWasSuccessful('backups', 'Ride Pakistan'),
+    'cleanup' => fn (): CleanupWasSuccessful => new CleanupWasSuccessful('backups', 'Ride Pakistan'),
+]);
+
+it('still emails a failed backup or cleanup', function (object $event, string $notification): void {
+    Notification::fake();
+
+    event($event);
+
+    Notification::assertSentTo(app(Notifiable::class), $notification, function (object $sent, array $channels): bool {
+        return $channels === ['mail'];
+    });
+})->with([
+    'backup' => [fn (): BackupHasFailed => new BackupHasFailed(new RuntimeException('dump failed')), BackupHasFailedNotification::class],
+    'cleanup' => [fn (): CleanupHasFailed => new CleanupHasFailed(new RuntimeException('disk full')), CleanupHasFailedNotification::class],
+]);
 
 it('falls back to defaults when optional keys are left empty, as in .env.example', function (): void {
     putenv('BACKUP_NOTIFICATION_EMAIL=');

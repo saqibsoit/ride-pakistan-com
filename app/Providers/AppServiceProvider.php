@@ -34,6 +34,7 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
+use Intervention\Image\Drivers\Gd\Driver as GdDriver;
 use Intervention\Image\ImageManager;
 use Spatie\Activitylog\Models\Activity;
 
@@ -45,7 +46,10 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         // GD driver; EXIF orientation applied and metadata stripped on encode.
-        $this->app->singleton(ImageManager::class, fn (): ImageManager => ImageManager::gd(
+        // `strip` is off by default in intervention/image 4: keep it explicit
+        // (transfer proofs must lose GPS/device data, PLAN §7).
+        $this->app->singleton(ImageManager::class, fn (): ImageManager => new ImageManager(
+            GdDriver::class,
             autoOrientation: true,
             strip: true,
         ));

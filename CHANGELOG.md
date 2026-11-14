@@ -352,6 +352,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - The full-page cache now has its own cache store. It used the default store, and `ResponseCache::clear()` (run after every seat change and content edit) emptied that whole store, resetting rate-limit counters, including the sign-in code limits. A regression test covers it.
 
 ### Changed
+- intervention/image 3.11 → 4.4 (and intervention/gif 4 → 5). The image code moves to the v4 API (`decodeBinary`, `encodeUsingFormat`, `driver->supports`). `strip: true` stays explicit because v4 turns it off by default; a test now checks it, alongside the existing check that transfer proofs lose EXIF/GPS. Same AVIF/WebP/JPEG output, so no images need regenerating.
 - `.node-version` pins Node 22, the version CI and deploy build with, so fnm or nvm switch to it in this folder.
 - `docs/DEPLOY.md`, based on what the real Hostinger server showed:
   - Staging is added as its own website, so it no longer sits under production's web root. The staging `DEPLOY_PATH` is now `~/domains/staging.ride-pakistan.com/app`. A subdomain made under Domains → Subdomains lands in `public_html/staging`.

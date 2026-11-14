@@ -9,7 +9,8 @@ use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
-use Intervention\Image\Exceptions\RuntimeException as ImageException;
+use Intervention\Image\Exceptions\ImageException;
+use Intervention\Image\Format;
 use Intervention\Image\ImageManager;
 use Intervention\Image\Interfaces\ImageInterface;
 use InvalidArgumentException;
@@ -49,7 +50,7 @@ final class GenerateResponsiveVariants
         }
 
         try {
-            $image = $this->images->read($binary);
+            $image = $this->images->decodeBinary($binary);
         } catch (ImageException $e) {
             throw new InvalidArgumentException("[{$path}] is not a readable image.", 0, $e);
         }
@@ -129,7 +130,7 @@ final class GenerateResponsiveVariants
         $configured = config('images.formats');
 
         return array_values(array_filter($configured, function (string $format) use ($path): bool {
-            if ($this->images->driver()->supports($format)) {
+            if ($this->images->driver->supports($format)) {
                 return true;
             }
 
@@ -162,8 +163,8 @@ final class GenerateResponsiveVariants
         $quality = (int) config("images.quality.{$format}");
 
         $encoded = match ($format) {
-            'avif' => $resized->toAvif(quality: $quality),
-            'webp' => $resized->toWebp(quality: $quality),
+            'avif' => $resized->encodeUsingFormat(Format::AVIF, quality: $quality),
+            'webp' => $resized->encodeUsingFormat(Format::WEBP, quality: $quality),
             default => throw new InvalidArgumentException("Unsupported variant format [{$format}]."),
         };
 

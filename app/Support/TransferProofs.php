@@ -8,6 +8,7 @@ use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Intervention\Image\Format;
 use Intervention\Image\ImageManager;
 use InvalidArgumentException;
 use Throwable;
@@ -55,9 +56,9 @@ final class TransferProofs
         }
 
         try {
-            $image = $this->images->read($contents)->scaleDown(width: self::MAX_EDGE, height: self::MAX_EDGE);
-            $webp = $this->images->driver()->supports('webp');
-            $encoded = ($webp ? $image->toWebp(quality: 85) : $image->toJpeg(quality: 85))->toString();
+            $image = $this->images->decodeBinary($contents)->scaleDown(width: self::MAX_EDGE, height: self::MAX_EDGE);
+            $webp = $this->images->driver->supports(Format::WEBP);
+            $encoded = $image->encodeUsingFormat($webp ? Format::WEBP : Format::JPEG, quality: 85)->toString();
         } catch (Throwable) {
             throw new InvalidArgumentException('That image could not be read. Upload a clear screenshot or photo.');
         }

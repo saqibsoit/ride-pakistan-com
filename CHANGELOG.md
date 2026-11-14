@@ -344,6 +344,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - The full-page cache now has its own cache store. It used the default store, and `ResponseCache::clear()` (run after every seat change and content edit) emptied that whole store, resetting rate-limit counters, including the sign-in code limits. A regression test covers it.
 
 ### Changed
+- `.node-version` pins Node 22, the version CI and deploy build with, so fnm or nvm switch to it in this folder.
 - `docs/DEPLOY.md`, based on what the real Hostinger server showed:
   - Staging is added as its own website, so it no longer sits under production's web root. The staging `DEPLOY_PATH` is now `~/domains/staging.ride-pakistan.com/app`. A subdomain made under Domains → Subdomains lands in `public_html/staging`.
   - `sodium` must be ticked in hPanel. It's the only required extension that's off by default.

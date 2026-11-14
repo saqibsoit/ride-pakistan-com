@@ -8,6 +8,7 @@ use App\Listeners\GenerateVariantsForUploadedImage;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Storage;
+use Intervention\Image\ImageManager;
 
 beforeEach(function (): void {
     Storage::fake('site', ['url' => '/images']);
@@ -72,4 +73,12 @@ it('generates variants through the upload hook', function (): void {
     ImageUploaded::dispatch('site', 'upload.jpg');
 
     Storage::disk('site')->assertExists('_variants/upload-768.webp');
+});
+
+it('configures the image engine to strip metadata and apply EXIF orientation', function (): void {
+    // intervention/image 4 turns `strip` off by default; transfer proofs rely on it (PLAN §7).
+    $config = app(ImageManager::class)->driver->config();
+
+    expect($config->strip)->toBeTrue()
+        ->and($config->autoOrientation)->toBeTrue();
 });

@@ -5,6 +5,13 @@ All notable changes to this project are documented here. The format follows [Kee
 ## [Unreleased]
 
 ### Added
+- The venue is public (decided 2026-11-14): Yashwala Ranch, Islamabad.
+  - **Footer** on every page: the venue and a "Get directions" link (Google Maps).
+  - **Map card** (`<x-venue-map>`) on `/contact`, the home page ("Where we ride") and session pages. The Google embed loads only when the visitor presses "Show map", so nothing is requested from Google and no cookie is set before that. CSP allows `frame-src https://www.google.com`, and only `https://www.google.com/maps/embed?…` URLs are rendered.
+  - **Settings:** `business.venue_name` and `business.map_embed_url` are new. `booking.map_pin_url` is public now and defaults to the Google Maps listing.
+  - `llms.txt` and the location JSON-LD (`alternateName`, `hasMap`) carry the venue and the map link. No street address is published. New FAQ and quick-reply tokens `{venue}` and `{map_link}`.
+  - **Copy:** booking emails say "Get directions" and drop "please don't share it publicly". A migration rewrites the shipped FAQ, booking policy and location quick reply where they still say the pin is private; anything an admin rewrote is left alone.
+  - **Tests:** footer, map card, click-to-load, CSP, a non-Google embed URL being ignored, no map link, `llms.txt`, JSON-LD, tokens and the migration.
 - Guest checkout (decided 2026-11-12): book, pay, buy gift vouchers and request private sessions without signing in. "My account" still uses the email code.
   - **Booking.** `/book`'s review step offers "Continue as guest". `/book/details` asks for name, email twice, WhatsApp and the Turnstile check. Then the usual checkout by card or bank transfer. "Sign in instead" keeps the old draft-and-resume.
   - **The account behind the email** is created if there is none, otherwise reused and never changed (only an empty name or WhatsApp number is filled). The typed name and number are stored on the order, and typed riders are always new riders. Team accounts, accounts scheduled for deletion and anonymised ones get one neutral refusal.

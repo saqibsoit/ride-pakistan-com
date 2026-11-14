@@ -132,6 +132,12 @@
         </section>
     @endif
 
+    @if ($facts->mapUrl() !== null)
+        <section id="where" class="wrap pb-section" aria-labelledby="where-title">
+            <x-venue-map />
+        </section>
+    @endif
+
     <section id="book" class="wrap pb-section" aria-labelledby="book-title">
         <div class="grid gap-14 md:grid-cols-2 md:gap-20">
             <div>
@@ -139,7 +145,7 @@
                 <ol class="step-list mt-9">
                     <li><p>Choose your session and a weekend slot online.</p></li>
                     <li><p>Pay by card, or by bank transfer using your booking reference.</p></li>
-                    <li><p>Get your ticket by email, with the exact location pin.</p></li>
+                    <li><p>Get your ticket by email, with directions to the ranch.</p></li>
                     <li><p>Come in long trousers and closed shoes.</p></li>
                 </ol>
             </div>

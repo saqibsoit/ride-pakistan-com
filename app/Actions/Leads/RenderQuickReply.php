@@ -14,7 +14,7 @@ use App\Support\LeadRef;
  * so prices and times always match the site:
  *
  * - the FAQ tokens of BusinessFacts::interpolate(): {schedule},
- *   {location}, {trainer}, {cutoff}, {price:slug}, {per_session:slug},
+ *   {location}, {venue}, {map_link}, {trainer}, {cutoff}, {price:slug}, {per_session:slug},
  *   {validity:slug};
  * - {booking_link} (/book) and {product_link:slug} (/sessions/{slug}),
  *   absolute, with the signed lead reference when a lead is chosen and

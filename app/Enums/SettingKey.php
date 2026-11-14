@@ -14,6 +14,8 @@ enum SettingKey: string
     case ParentCompany = 'business.parent_company';
     case TrainerName = 'business.trainer_name';
     case Location = 'business.location';
+    case VenueName = 'business.venue_name';
+    case MapEmbedUrl = 'business.map_embed_url';
     case Tagline = 'business.tagline';
 
     case Email = 'contact.email';
@@ -93,7 +95,7 @@ enum SettingKey: string
     {
         return match ($this) {
             self::Email => SettingType::Email,
-            self::InstagramUrl, self::InstagramDmUrl, self::GoogleReviewUrl, self::ExpeditionsUrl, self::MapPinUrl => SettingType::Url,
+            self::InstagramUrl, self::InstagramDmUrl, self::GoogleReviewUrl, self::ExpeditionsUrl, self::MapPinUrl, self::MapEmbedUrl => SettingType::Url,
             self::RidersPerSlot, self::TransferHoldHours, self::TransferMinNoticeHours, self::CancellationCutoffHours,
             self::SellingFastThreshold, self::MinRiderAge, self::CheckinOpensMinutes, self::ArrivalMinutes, self::SlotHorizonWeeks,
             self::CardHoldMinutes, self::MinNoticeHours, self::WaitlistOfferHours, self::SlotBufferMinutes,
@@ -126,6 +128,8 @@ enum SettingKey: string
             self::ParentCompany => 'Parent company',
             self::TrainerName => 'Trainer name',
             self::Location => 'Public location',
+            self::VenueName => 'Venue name',
+            self::MapEmbedUrl => 'Google Maps embed URL',
             self::Tagline => 'Tagline',
             self::Email => 'Contact email',
             self::InstagramUrl => 'Instagram profile URL',
@@ -153,7 +157,7 @@ enum SettingKey: string
             self::PrivateDurationMinutes => 'Private requests: session length (minutes)',
             self::PrivateAnswerHours => 'Private requests: expire unanswered after (hours)',
             self::PrivatePayHours => 'Private requests: pay within (hours after approval)',
-            self::MapPinUrl => 'Exact map pin URL (private, sent after confirmation)',
+            self::MapPinUrl => 'Map link (Google Maps)',
             self::RidingRules => 'Riding rules',
             self::BookingPolicies => 'Booking policies',
             self::RefundPolicy => 'Refund policy (full text, Markdown)',
@@ -202,7 +206,9 @@ enum SettingKey: string
             self::BusinessName => 'Shown in page titles, emails, structured data and llms.txt.',
             self::ParentCompany => 'The company behind the business, shown in the footer, on receipts, in structured data and in llms.txt.',
             self::TrainerName => 'Used wherever the site names the trainer (session pages, FAQs with {trainer}, structured data).',
-            self::Location => 'The public location, e.g. "Islamabad". Never put the exact address here; that is the private map pin.',
+            self::Location => 'The city we ride in, e.g. "Islamabad". Used in page answers, FAQs with {location} and structured data.',
+            self::VenueName => 'The ranch name, shown with the map in the footer, on /contact, the home page and session pages, and in structured data and llms.txt.',
+            self::MapEmbedUrl => 'The src of Google Maps "Share → Embed a map" (starts with https://www.google.com/maps/embed). The map loads only when a visitor clicks "Show map". Leave empty to show only the directions link.',
             self::Tagline => 'Short line shown in the footer, in structured data and as the default social-share image description.',
             self::Email => 'Where customers write to. Shown in the footer and in every email.',
             self::InstagramUrl => 'Link to the Instagram profile in the header, footer and structured data.',
@@ -222,7 +228,7 @@ enum SettingKey: string
             self::SlotHorizonWeeks => 'How far ahead slots are created from the schedule rules (and how far the rule preview looks). 1 to 52 weeks.',
             self::CardHoldMinutes => 'How long seats stay held while a customer pays by card. Stripe needs at least 31, so shorter values use 31.',
             self::MinNoticeHours => 'Online booking for a slot closes this many hours before it starts. 0 keeps it open until the start.',
-            self::MapPinUrl => 'Exact location link (e.g. Google Maps). Never shown on public pages; sent only in confirmation and reminder emails.',
+            self::MapPinUrl => 'The "Get directions" link (e.g. Google Maps). Shown in the footer, on /contact, the home page and session pages, and in confirmation and reminder emails. Leave empty to hide it everywhere.',
             self::WaitlistOfferHours => 'When seats free up in a full slot, the first person on its waitlist who fits gets an email and the seats are held for them this long (never past the booking cutoff). If they do not book in time, the offer moves to the next person.',
             self::SlotBufferMinutes => 'The bulk schedule editor refuses to create a session, or move one, that starts or ends within this many minutes of another session that is not cancelled. Private session requests use the same gap.',
             self::PrivateEarliestStartHour => 'A requested private session can start no earlier than this hour (0–23, Pakistan time). 7 = 07:00.',
@@ -272,7 +278,7 @@ enum SettingKey: string
     /** Private settings are never rendered on public pages or in llms.txt. */
     public function isPrivate(): bool
     {
-        return in_array($this, [self::MapPinUrl, self::WeatherLatitude, self::WeatherLongitude], true);
+        return in_array($this, [self::WeatherLatitude, self::WeatherLongitude], true);
     }
 
     public function default(): mixed

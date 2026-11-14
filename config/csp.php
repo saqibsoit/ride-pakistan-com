@@ -72,6 +72,11 @@ return [
             'frame-src' => ['https://challenges.cloudflare.com'],
             'connect-src' => ['https://challenges.cloudflare.com'],
         ],
+        'google_maps' => [
+            'purpose' => 'Google Maps embed of the venue (x-venue-map). The iframe is only inserted after the visitor presses "Show map", so nothing loads from Google and no cookie is set before that; no consent banner needed. Only www.google.com/maps/embed URLs are rendered (BusinessFacts::mapEmbedUrl).',
+            'pages' => ['/', '/contact', '/sessions/{product}'],
+            'frame-src' => ['https://www.google.com'],
+        ],
         'meta_pixel' => [
             'purpose' => 'Meta Pixel (ad measurement). Loaded by resources/js/tracking.js with the page nonce, only after the visitor accepts the cookie banner and only when META_PIXEL_ID is set.',
             'pages' => ['all public pages'],

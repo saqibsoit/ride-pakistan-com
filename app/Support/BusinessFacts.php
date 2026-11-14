@@ -75,6 +75,37 @@ final class BusinessFacts
         return $this->settings->string(SettingKey::Location);
     }
 
+    /** The ranch name, e.g. "Yashwala Ranch". */
+    public function venueName(): string
+    {
+        return $this->settings->string(SettingKey::VenueName);
+    }
+
+    /** "Yashwala Ranch, Islamabad", or just the city without a venue name. */
+    public function venueWithLocation(): string
+    {
+        return implode(', ', array_filter([$this->venueName(), $this->location()], fn (string $part): bool => $part !== ''));
+    }
+
+    /** The public "Get directions" link, or null while unset. */
+    public function mapUrl(): ?string
+    {
+        $url = $this->settings->string(SettingKey::MapPinUrl);
+
+        return str_starts_with($url, 'https://') ? $url : null;
+    }
+
+    /**
+     * The Google Maps embed src, or null. Only www.google.com/maps/embed is
+     * accepted: it is the one frame origin the CSP allows (config/csp.php).
+     */
+    public function mapEmbedUrl(): ?string
+    {
+        $url = $this->settings->string(SettingKey::MapEmbedUrl);
+
+        return str_starts_with($url, 'https://www.google.com/maps/embed?') ? $url : null;
+    }
+
     public function trainer(): string
     {
         return $this->settings->string(SettingKey::TrainerName);
@@ -175,7 +206,7 @@ final class BusinessFacts
     }
 
     /**
-     * Fill FAQ/answer tokens: {schedule}, {location}, {trainer}, {cutoff}, {helmet},
+     * Fill FAQ/answer tokens: {schedule}, {location}, {venue}, {map_link}, {trainer}, {cutoff}, {helmet},
      * {price:slug}, {per_session:slug}, {validity:slug}. Unknown tokens stay.
      */
     public function interpolate(string $text): string
@@ -183,6 +214,8 @@ final class BusinessFacts
         $text = strtr($text, [
             '{schedule}' => $this->scheduleText(),
             '{location}' => $this->location(),
+            '{venue}' => $this->venueName(),
+            '{map_link}' => $this->mapUrl() ?? '',
             '{trainer}' => $this->trainer(),
             '{cutoff}' => (string) ($this->settings->int(SettingKey::CancellationCutoffHours) ?? ''),
             '{helmet}' => $this->settings->string(SettingKey::HelmetNotice),

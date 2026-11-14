@@ -38,7 +38,7 @@ final class LlmsTxt
 
         $out[] = '## Key facts';
         $out[] = implode("\n", [
-            '- Location: '.$location.'. The exact location pin is shared after a booking is confirmed.',
+            '- Location: '.$this->facts->venueWithLocation().'.'.($this->facts->mapUrl() !== null ? ' Map and directions: '.$this->facts->mapUrl() : ''),
             '- Schedule: '.ucfirst($this->facts->scheduleText()).' (Asia/Karachi time). Times shift slightly with the seasons.',
             '- Trainer: '.$trainer,
             '- Riders per slot: up to '.($this->settings->int(SettingKey::RidersPerSlot) ?? 0),

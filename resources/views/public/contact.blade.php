@@ -37,4 +37,10 @@
             :turnstile-site-key="$turnstileSiteKey"
         />
     </section>
+
+    @if ($facts->mapUrl() !== null)
+        <section id="where" class="wrap max-w-narrow pb-section" aria-labelledby="where-title">
+            <x-venue-map />
+        </section>
+    @endif
 </x-layouts.app>

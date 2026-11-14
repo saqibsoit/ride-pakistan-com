@@ -95,7 +95,7 @@ it('ships eight templates that render with no unknown tokens', function (): void
         expect(app(RenderQuickReply::class)->unknownTokens($reply->body))->toBe([], $reply->title);
     }
 
-    expect(QuickReply::query()->where('key', 'location')->value('body'))->toContain('exact location pin')
+    expect(QuickReply::query()->where('key', 'location')->value('body'))->toContain('Directions: {map_link}')
         ->and(QuickReply::query()->where('key', 'bank-transfer')->value('body'))->not->toContain('IBAN');
 });
 

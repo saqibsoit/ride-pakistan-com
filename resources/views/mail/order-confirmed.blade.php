@@ -55,10 +55,10 @@ The ticket images are also attached, and every ticket is on your booking page (l
 @if ($mapPin !== '' && $bookings->isNotEmpty())
 ## Where to find us
 
-Here's the exact location for your session in Islamabad (please don't share it publicly):
+Here's how to find us at {{ app(\App\Support\BusinessFacts::class)->venueWithLocation() }}:
 
 <x-mail::button :url="$mapPin">
-Open the map pin
+Get directions
 </x-mail::button>
 @endif
 

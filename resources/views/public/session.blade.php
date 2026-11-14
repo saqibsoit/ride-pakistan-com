@@ -47,7 +47,7 @@
                     </div>
                     <div>
                         <dt class="font-display text-display-xs font-extrabold">Where</dt>
-                        <dd class="mt-1 text-sand-dim">{{ $facts->location() }}. Exact pin sent once your booking is confirmed.</dd>
+                        <dd class="mt-1 text-sand-dim">{{ $facts->venueWithLocation() }}.@if ($facts->mapUrl() !== null) <a href="#where-title" class="underline underline-offset-4">Map and directions</a>@endif</dd>
                     </div>
                     <div>
                         <dt class="font-display text-display-xs font-extrabold">Duration</dt>
@@ -125,6 +125,12 @@
                         @endforeach
                     </ul>
                     <p class="mt-4 text-sm text-sand-dim"><a href="{{ route('prices') }}#policies" class="underline underline-offset-4">All riding rules and booking policies</a></p>
+                </section>
+            @endif
+
+            @if ($facts->mapUrl() !== null)
+                <section aria-labelledby="where-title">
+                    <x-venue-map />
                 </section>
             @endif
 

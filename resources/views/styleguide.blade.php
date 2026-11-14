@@ -194,7 +194,7 @@
                     <x-img src="graze.jpg" alt="Close-up of a white horse grazing" sizes="(min-width: 64rem) 48rem, 100vw" class="aspect-3/2 w-full rounded-sm object-cover" />
                     <p class="max-w-prose text-sand-dim">A two-hour beginner session every Saturday and Sunday in Islamabad. You bring the horse in, groom and tack up, ride mostly on the trail, then untack and cool him down. No experience needed.</p>
                 </div>
-                <x-booking.price-box :from-minor="1000000" book-href="#sg-booking" note="Exact location shared after booking.">
+                <x-booking.price-box :from-minor="1000000" book-href="#sg-booking" note="Directions in your confirmation email.">
                     <x-seats-left :seats="2" />
                     <p class="text-sm text-sand-dim">Sat &amp; Sun · 8–10 am or 3–5 pm</p>
                 </x-booking.price-box>
@@ -230,7 +230,7 @@
             <div>
                 <x-faq-item question="I’ve never been near a horse. Is that okay?" group="sg-faq">Yes. The sessions are made for complete beginners.</x-faq-item>
                 <x-faq-item question="What should I wear?" group="sg-faq">Full-length trousers and closed shoes or boots with a small heel.</x-faq-item>
-                <x-faq-item question="Where exactly are you?" group="sg-faq">We’re in Islamabad. We share the exact location pin when we confirm your booking.</x-faq-item>
+                <x-faq-item question="Where exactly are you?" group="sg-faq">We ride at Yashwala Ranch, Islamabad. Directions are on our contact page and in your confirmation email.</x-faq-item>
             </div>
         </section>
 

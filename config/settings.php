@@ -25,7 +25,8 @@ return [
         'business.location' => 'Islamabad',
         'business.venue_name' => 'Yashwala Ranch',
         // Google Maps "Embed a map" src; loaded only after a click (x-venue-map).
-        'business.map_embed_url' => env('SITE_MAP_EMBED_URL', 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3319.0439179433974!2d72.90611257550113!3d33.70781247328839!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x38dfbd6ed8e97f0b%3A0x2097ca716068affc!2sYashwala%20Ranch%20By%20Ride%20Pakistan!5e0!3m2!1sen!2s!4v1794648232259!5m2!1sen!2s'),
+        // `?:` so an empty SITE_MAP_EMBED_URL= line in .env still uses the default.
+        'business.map_embed_url' => env('SITE_MAP_EMBED_URL') ?: 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3319.0439179433974!2d72.90611257550113!3d33.70781247328839!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x38dfbd6ed8e97f0b%3A0x2097ca716068affc!2sYashwala%20Ranch%20By%20Ride%20Pakistan!5e0!3m2!1sen!2s!4v1794648232259!5m2!1sen!2s',
         'business.tagline' => 'Weekend horsemanship and trail riding in Islamabad.',
 
         // Contact and links
@@ -58,7 +59,8 @@ return [
         'booking.checkin_opens_minutes' => 120,
         'booking.arrival_minutes' => null,
         // Public "Get directions" link (footer, contact, home, session pages, booking emails).
-        'booking.map_pin_url' => env('BOOKING_MAP_PIN_URL', 'https://maps.app.goo.gl/331RdG1QtCS8Zi7i8'),
+        // `?:` so an empty BOOKING_MAP_PIN_URL= line in .env (production had one) still uses the default.
+        'booking.map_pin_url' => env('BOOKING_MAP_PIN_URL') ?: 'https://maps.app.goo.gl/331RdG1QtCS8Zi7i8',
 
         // Policies. ":cutoff" and ":min_age" are replaced when shown.
         // Only confirmed or neutral wording here: unconfirmed rules (arrival

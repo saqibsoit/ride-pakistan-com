@@ -84,6 +84,28 @@ it('puts the venue and the map link in llms.txt and the JSON-LD', function (): v
         ->assertSee('"alternateName":"Yashwala Ranch"', false);
 });
 
+it('falls back to the default map links when .env has empty lines for them', function (): void {
+    // Production's .env had `BOOKING_MAP_PIN_URL=`, which blanked the link (2026-11-14).
+    $keys = ['BOOKING_MAP_PIN_URL', 'SITE_MAP_EMBED_URL'];
+
+    foreach ($keys as $key) {
+        putenv($key.'=');
+        $_ENV[$key] = $_SERVER[$key] = '';
+    }
+
+    try {
+        $defaults = (require config_path('settings.php'))['defaults'];
+    } finally {
+        foreach ($keys as $key) {
+            putenv($key);
+            unset($_ENV[$key], $_SERVER[$key]);
+        }
+    }
+
+    expect($defaults['booking.map_pin_url'])->toStartWith('https://maps.app.goo.gl/')
+        ->and($defaults['business.map_embed_url'])->toStartWith('https://www.google.com/maps/embed?');
+});
+
 it('fills the {venue} and {map_link} tokens', function (): void {
     expect(app(BusinessFacts::class)->interpolate('{venue}, {location}: {map_link}'))
         ->toBe('Yashwala Ranch, Islamabad: '.MAP_LINK);

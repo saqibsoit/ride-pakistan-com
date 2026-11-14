@@ -15,10 +15,11 @@ use Carbon\CarbonImmutable;
  */
 
 beforeEach(function (): void {
+    // A Wednesday, so "this weekend" and the schedule have upcoming sessions.
+    // Frozen before seeding: the seeder builds slots from "now".
+    $this->travelTo(CarbonImmutable::parse('2026-11-11 09:00', 'Asia/Karachi'));
     $this->seed();
     config(['site.indexable' => true]);
-    // A Wednesday, so "this weekend" and the schedule have upcoming sessions.
-    $this->travelTo(CarbonImmutable::parse('2026-11-11 09:00', 'Asia/Karachi'));
 });
 
 /** Schema.org types the site is allowed to emit (all valid schema.org types). */

@@ -82,7 +82,7 @@ final class IcsCalendar
         $pin = $this->settings->string(SettingKey::MapPinUrl);
 
         if (! $cancelled && $pin !== '' && $booking->status === BookingStatus::Confirmed) {
-            $parts[] = 'Location pin (please do not share): '.$pin;
+            $parts[] = 'Directions: '.$pin;
         }
 
         $parts[] = 'Your bookings: '.route('account.bookings');

@@ -81,7 +81,7 @@ it('lists Meta and GA4 only for visitors who consented, and only when configured
     $granted = (string) $this->withUnencryptedCookie(Consent::COOKIE, Consent::GRANTED)->get('/prices')->headers->get('Content-Security-Policy');
 
     foreach ([$without, $declined] as $policy) {
-        expect($policy)->not->toContain('facebook')->not->toContain('google');
+        expect($policy)->not->toContain('facebook')->not->toContain('googletagmanager')->not->toContain('google-analytics');
     }
 
     expect($granted)->toContain('https://connect.facebook.net')

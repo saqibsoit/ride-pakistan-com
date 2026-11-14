@@ -93,7 +93,7 @@ final class SchemaFactory
 
     /**
      * The riding location: area served and opening hours from active rules.
-     * No street address is published (PLAN §2, §8).
+     * Venue name and map link are public; no street address (PLAN §2, §8).
      *
      * @param  Collection<int, ScheduleRule>  $rules
      * @param  Collection<int, Product>  $products
@@ -123,6 +123,18 @@ final class SchemaFactory
             ->address(Schema::postalAddress()->addressLocality($location)->addressCountry('PK'))
             ->parentOrganization(Schema::organization()->identifier(self::organizationId()))
             ->openingHoursSpecification($hours);
+
+        // The venue is public (2026-11-14): its name and the Google Maps link. Still no street address.
+        $venue = $this->settings->string(SettingKey::VenueName);
+        $map = $this->settings->string(SettingKey::MapPinUrl);
+
+        if ($venue !== '') {
+            $node->alternateName($venue);
+        }
+
+        if (str_starts_with($map, 'https://')) {
+            $node->hasMap($map);
+        }
 
         if ($products->isNotEmpty()) {
             $node->priceRange(

@@ -26,7 +26,7 @@ it('builds a strict public policy', function (): void {
 
     expect($d['script-src'])->toBe("'nonce-abc123' 'strict-dynamic' https://challenges.cloudflare.com")
         ->and($d['style-src'])->toBe("'self' 'nonce-abc123'")
-        ->and($d['frame-src'])->toBe('https://challenges.cloudflare.com')
+        ->and($d['frame-src'])->toBe('https://challenges.cloudflare.com https://www.google.com')
         ->and($d['form-action'])->toBe("'self' https://checkout.stripe.com")
         ->and($d['object-src'])->toBe("'none'")
         ->and($d)->not->toHaveKey('upgrade-insecure-requests')

@@ -131,7 +131,7 @@ Defaults chosen while building sign-in and the account area. Settings can be cha
 | 11.2 | Google review link for the thank-you email? | **None** (setting `contact.google_review_url` empty); the review button is hidden. | Thank-you email. | Open decision |
 | 11.3 | When should reminders and thank-yous go out? | **Reminder about 24 h before; thank-you 1 to 24 h after a session the riders attended; credit warning 7 days before expiry, at 10:00.** | Scheduler (`notifications:send`). | Confirm |
 | 11.4 | How early can staff check riders in? | **2 hours before the start** (setting `booking.checkin_opens_minutes`). | `/checkin/{code}`. | Confirm |
-| 11.5 | The exact map pin is not set yet. | **Empty** (setting `booking.map_pin_url`): confirmation and reminder emails leave the location section out until it is set. | Emails only. | Open decision |
+| 11.5 | The exact map pin is not set yet. | **Decided 2026-11-14: public.** Yashwala Ranch; `booking.map_pin_url` and `business.map_embed_url` default to the Google Maps listing (PLAN §2). | Footer, `/contact`, home, session pages, llms.txt, JSON-LD, booking emails. | Decided |
 
 ## 12. Leads and tracking (milestone 9)
 

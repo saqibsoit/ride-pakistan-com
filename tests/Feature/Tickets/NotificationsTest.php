@@ -104,12 +104,12 @@ it('says the transfer was approved when a bank transfer order is confirmed', fun
     expect((string) (new OrderConfirmed($order))->toMail($order->user)->render())->toContain('bank transfer for order')->toContain('approved');
 });
 
-it('never shows the map pin on public pages', function (): void {
+it('shows the public map link on every public page (the venue is public since 2026-11-14)', function (): void {
     $this->seed();
     app(UpdateSettings::class)->handle([SettingKey::MapPinUrl->value => SECRET_PIN]);
 
     foreach (['/', '/experiences', '/schedule', '/prices', '/faq', '/contact', '/book', '/llms.txt', '/sessions/single-session', '/trainer/omar-saleem'] as $url) {
-        $this->get($url)->assertOk()->assertDontSee(SECRET_PIN, false)->assertDontSee('secret-pin', false);
+        $this->get($url)->assertOk()->assertSee(SECRET_PIN, false);
     }
 });
 

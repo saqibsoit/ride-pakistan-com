@@ -228,16 +228,11 @@ it('serves the booking flow without indexing it, starting at the chosen product'
         ->and($html)->toContain('Showing slots nobody has booked yet');
 });
 
-it('never shows bank details or the map pin on public pages', function (): void {
-    app(UpdateSettings::class)->handle([
-        'bank.iban' => 'PK00TEST0000000000000000',
-        'booking.map_pin_url' => 'https://maps.example.test/secret-pin',
-    ]);
+it('never shows bank details on public pages', function (): void {
+    app(UpdateSettings::class)->handle(['bank.iban' => 'PK00TEST0000000000000000']);
 
     foreach (['/', '/prices', '/sessions/single-session', '/contact', '/book', '/llms.txt'] as $url) {
-        $this->get($url)
-            ->assertDontSee('PK00TEST0000000000000000')
-            ->assertDontSee('secret-pin');
+        $this->get($url)->assertDontSee('PK00TEST0000000000000000');
     }
 });
 

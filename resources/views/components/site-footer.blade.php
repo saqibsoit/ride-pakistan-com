@@ -25,6 +25,8 @@
     }
     $expeditions = $settings->string(\App\Enums\SettingKey::ExpeditionsUrl);
     $email = $settings->string(\App\Enums\SettingKey::Email);
+    $facts = app(\App\Support\BusinessFacts::class);
+    $mapUrl = $facts->mapUrl();
 @endphp
 
 <footer {{ $attributes->class('site-footer border-t border-line pt-14 text-sm text-sand-dim') }}>
@@ -36,6 +38,12 @@
             </a>
             <p class="max-w-prose">{{ $settings->string(\App\Enums\SettingKey::Tagline) }}</p>
             <p>A {{ $settings->string(\App\Enums\SettingKey::ParentCompany) }} company</p>
+            @if ($mapUrl !== null)
+                <address class="flex flex-col gap-1.5 not-italic">
+                    <span class="flex items-center gap-2 text-sand"><x-glyph name="pin" class="size-4 shrink-0" />{{ $facts->venueWithLocation() }}</span>
+                    <a href="{{ $mapUrl }}" target="_blank" rel="noopener" class="self-start hover:text-sand">Get directions<span class="sr-only"> to {{ $facts->venueWithLocation() }} (opens in a new tab)</span></a>
+                </address>
+            @endif
         </div>
 
         <nav aria-label="Site">

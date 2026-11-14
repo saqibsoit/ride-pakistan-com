@@ -32,7 +32,7 @@ Please arrive by **{{ $arrivalAt->format('g:i a') }}** so there's time to meet t
 ## Where to find us
 
 <x-mail::button :url="$mapPin">
-Open the map pin
+Get directions
 </x-mail::button>
 @endif
 

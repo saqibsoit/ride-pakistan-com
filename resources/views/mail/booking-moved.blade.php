@@ -12,7 +12,7 @@ The attached .ics file updates the entry in Apple Calendar or Outlook. In Google
 
 @if ($mapPin !== '')
 <x-mail::button :url="$mapPin">
-Open the map pin
+Get directions
 </x-mail::button>
 @endif
 

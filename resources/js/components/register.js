@@ -2,6 +2,7 @@ import consentBanner from './consent-banner';
 import consentSettings from './consent-settings';
 import copyButton from './copy-button';
 import countdown from './countdown';
+import mapEmbed from './map-embed';
 import siteHeader from './site-header';
 import stepper from './stepper';
 import turnstile from './turnstile';
@@ -13,6 +14,7 @@ export default function registerComponents(Alpine) {
     Alpine.data('consentSettings', consentSettings);
     Alpine.data('copyButton', copyButton);
     Alpine.data('countdown', countdown);
+    Alpine.data('mapEmbed', mapEmbed);
     Alpine.data('siteHeader', siteHeader);
     Alpine.data('stepper', stepper);
     Alpine.data('turnstile', turnstile);

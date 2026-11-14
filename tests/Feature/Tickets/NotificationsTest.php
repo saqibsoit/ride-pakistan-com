@@ -61,6 +61,8 @@ function paidOrderAt(string $local, int $riders = 1, ?User $user = null): Order
 }
 
 beforeEach(function (): void {
+    // The slots below sit on fixed dates, so freeze the clock before them.
+    $this->travelTo(pkt('2026-11-10 12:00'));
     app(UpdateSettings::class)->handle([SettingKey::MapPinUrl->value => SECRET_PIN]);
 });
 

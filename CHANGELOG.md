@@ -329,6 +329,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - README with local setup steps.
 
 ### Fixed
+- The venue map and directions were hidden on production: its `.env` has an empty `BOOKING_MAP_PIN_URL=` line, which overrode the default link. Empty `BOOKING_MAP_PIN_URL` and `SITE_MAP_EMBED_URL` now fall back to the defaults. A test covers it.
 - **Nightly backups never ran on production** (every night from 2026-11-10 to 2026-11-13 failed, and no archive was written). Two causes:
   - `deploy/schedule-run.sh` gave `proc_open` back only to the `schedule:run` process, through `php -d`. The scheduler starts each task as a new `php artisan …` process, which got Hostinger's full list again, so `backup:run` couldn't start `mysqldump`. The script now writes a small ini file (`storage/framework/php-cli/zz-proc-open.ini`, Hostinger's list minus `proc_open`, rewritten each run) and points `PHP_INI_SCAN_DIR` at it, which every process cron starts inherits. The website never loads it.
   - `config/backup.php` left the "successful" notifications out to keep successful runs quiet, but the package reads a key for every notification it sends, so `backup:clean` crashed with `Undefined array key CleanupWasSuccessfulNotification` (and `backup:run` would have too). Both are now listed with no channels: still no email on success, no crash.

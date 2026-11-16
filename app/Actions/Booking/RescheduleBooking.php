@@ -21,7 +21,7 @@ use Illuminate\Support\Facades\DB;
 /**
  * Moves a booking to another slot (PLAN §2). Customers may move only their
  * own credit bookings, before the cutoff, to a slot their pack still
- * covers. Admins can move any booking at any time with a reason. A
+ * covers, within the weekly package limit (PackageWeeklyLimit). Admins can move any booking at any time with a reason. A
  * private session moves as a group (every booking of its order in that
  * slot) and needs an empty target. Both slots are locked, in id order.
  *
@@ -38,6 +38,7 @@ final class RescheduleBooking
         private readonly Settings $settings,
         private readonly Notifier $notifier,
         private readonly OfferWaitlistSeats $waitlist,
+        private readonly PackageWeeklyLimit $weeklyLimit,
     ) {}
 
     /**
@@ -128,6 +129,17 @@ final class RescheduleBooking
                         throw BookingRejected::noCredits('Your package expires before that slot. Choose an earlier one.');
                     }
                 }
+            }
+
+            // A customer's own move keeps to the weekly package limit; admin moves and slot time changes don't.
+            if (! $asAdmin && ! $forSlotChange) {
+                $packageMoves = $moving->filter(fn (Booking $b): bool => $b->credit_pack_id !== null);
+
+                $this->weeklyLimit->assertAllows(
+                    array_values($packageMoves->map(fn (Booking $b): int => $b->rider_id)->all()),
+                    $to->slot,
+                    array_values(array_map('intval', $packageMoves->modelKeys())),
+                );
             }
 
             foreach ($moving as $item) {

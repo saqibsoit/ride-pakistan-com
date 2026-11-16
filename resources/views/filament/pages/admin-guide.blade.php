@@ -14,6 +14,7 @@
             <li>Leave <strong>On sale</strong> off while you check the page, then switch it on. The prices page, home page, structured data and llms.txt update straight away.</li>
         </ol>
         <p><strong>Changing a price, the number of sessions or the validity later</strong> only affects new orders. Every order keeps the name, price, sessions and validity it was bought with, including unpaid bank transfers approved later. Credit packs never change.</p>
+        <p><strong>Weekly limit:</strong> customers can book at most 2 package sessions per rider per week (Monday to Sunday). Change the number in Settings → Booking ("Package sessions per rider per week", 0 = no limit). Bookings and moves you make as an admin ignore it, so you can make an exception.</p>
         <p>The type (single, private or package) is fixed once a product has orders. To sell something different, archive it and create a new product.</p>
     </x-filament::section>
 

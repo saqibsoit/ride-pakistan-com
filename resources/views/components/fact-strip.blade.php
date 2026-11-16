@@ -1,6 +1,6 @@
 {{--
     <x-fact-strip label="Session facts">
-        <x-fact value="Sat & Sun" label="Every weekend" />
+        <x-fact value="Daily" label="Every week" />
         ...
     </x-fact-strip>
 --}}

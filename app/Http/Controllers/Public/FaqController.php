@@ -23,7 +23,7 @@ final class FaqController extends Controller
             'groups' => $faqs->groupBy(fn (Faq $faq): string => $faq->topic ?: 'General'),
             'seo' => $seo->make(
                 title: 'Horse riding lessons FAQ',
-                description: 'Answers about our weekend horse riding sessions in Islamabad: beginners, what to wear, prices, packages, booking, cancellations and location.',
+                description: 'Answers about our horse riding sessions in Islamabad: beginners, what to wear, prices, packages, booking, cancellations and location.',
                 page: Page::query()->firstWhere('slug', 'faq'),
                 breadcrumbs: [
                     ['label' => 'Home', 'url' => route('home')],

@@ -28,7 +28,7 @@ final class HomeController extends Controller
         return view('public.home', [
             'facts' => $facts,
             'products' => $products,
-            'weekend' => $availability->weekend(),
+            'comingUp' => $availability->comingUp(),
             'faqs' => $faqs,
             'reviews' => $reviews->latest(6),
             'seo' => $seo->make(

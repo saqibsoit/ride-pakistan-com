@@ -4,10 +4,10 @@ Master plan. Every build prompt in `/prompts` refers back to this file. If a pro
 
 ## 1. What we are building
 
-A fast, secure, bilingual-ready website for Ride Pakistan’s weekend horse riding sessions in Islamabad, with:
+A fast, secure, bilingual-ready website for Ride Pakistan’s horse riding sessions in Islamabad, with:
 
 - Public marketing pages that rank in Google and get cited by AI answer engines.
-- A booking engine: weekend slots, capacity, single sessions, private sessions and multi-session packages with validity windows.
+- A booking engine: daily slots, capacity, single sessions, private sessions and multi-session packages with validity windows.
 - Payments in PKR through Stripe Checkout (Destination Pakistan’s Stripe account), with bank transfer as a fallback that requires manual verification before a ticket is issued.
 - Customer accounts: bookings, tickets (QR), package credits and payment history.
 - Lead management: capture, source tracking (Instagram ads, UTM), pipeline and notes.
@@ -22,7 +22,7 @@ A fast, secure, bilingual-ready website for Ride Pakistan’s weekend horse ridi
 | 8-class package (2 per week) | 60,000 | 8 | 6 weeks from confirmation |
 | 16-class package (2 per week) | 100,000 | 16 | 10 weeks from confirmation |
 
-- Sessions run every Saturday and Sunday. Current slots: 08:00–10:00 and 15:00–17:00, Asia/Karachi. Times change seasonally, so slots are generated from editable schedule rules, never hard-coded.
+- Sessions run every day (decided 2026-11-16; until then Saturday and Sunday only). Current slots: 08:00–10:00 and 15:00–17:00, Asia/Karachi. The site describes the schedule from the active schedule rules (`BusinessFacts`): "every day" and "Daily" once rules cover all seven days, otherwise the days named; manual slots aren't counted, so recurring daily times belong in rules. Public copy never says "weekend". Times change seasonally, so slots are generated from editable schedule rules, never hard-coded.
 - Session content: bring horses in from the paddock, groom, tack up, ride (mostly trail; arena work on request), untack, massage and stretch.
 - Trainer: Omar Saleem.
 - Location (changed 2026-11-14: the venue is public): Yashwala Ranch, Islamabad (`business.venue_name`, `business.location`). The Google Maps link (`booking.map_pin_url`) is the "Get directions" link in the footer of every page, on `/contact`, the home page and session pages, in `llms.txt`, the JSON-LD (`hasMap`) and the confirmation and reminder emails. `/contact`, the home page and session pages show a map card (`<x-venue-map>`): the Google embed (`business.map_embed_url`, only `https://www.google.com/maps/embed?…`) loads only after the visitor presses "Show map", so no Google request or cookie before that and no consent needed; CSP allows `frame-src https://www.google.com`. No street address is published. The weather coordinates stay private.
@@ -254,7 +254,7 @@ Overbooking protection: seat checks and holds run inside a transaction with `SEL
 Design sources: see `docs/reference/DESIGN-REFERENCES.md`. Brand look comes from our static page; page structure and booking UX come from the three inspiration screenshots.
 
 Public (server-rendered, cached):
-- `/` Home (lessons landing, same story and look as the static page, plus a "This weekend" strip showing upcoming slots and their availability)
+- `/` Home (lessons landing, same story and look as the static page, plus a "Coming up" strip showing the slots of today and the next two days with their availability, decided 2026-11-16; it replaced "This weekend"; on `/schedule` every day looks the same)
 - `/experiences` Catalog of all bookable products with filter chips (inspiration 03)
 - `/sessions/{product}` Product detail page with sticky "From PKR X" box, key facts, timeline, what to bring, what’s included, good to know, and an inline booking widget with live availability (inspiration 01)
 - **Availability on customer pages (decided 2026-11-16):** customers never see how many seats are left. Wherever a slot is listed (home strip, `/schedule`, product pages, `/book`, reschedule, move and package-booking pages) it shows "Available", with the "Selling fast" badge at or below `booking.selling_fast_threshold`, or "Fully booked" (`<x-seats-left>`). The waitlist join page says "Some seats are free right now". Refusals that name a number ("Only N seats are left in that slot") stay so a customer can pick fewer riders. The slot size is hidden too: product pages and cards show no "Up to N riders" (a product's own group size text still shows; private sessions say "Just your group"), the booking flow's rider step doesn't name the maximum, and `llms.txt` has no riders-per-slot line. The rider picker still stops at the maximum. Team screens keep the counts.

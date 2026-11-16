@@ -72,7 +72,7 @@
     @if ($step === 'slot')
         <section aria-labelledby="step-slot" class="flex flex-col gap-6">
             <h2 id="step-slot" class="text-display-md">{{ $isPackage ? 'Book your first session?' : 'Choose a date.' }}</h2>
-            <p class="text-sand-dim">Weekend slots, Pakistan time.{{ $isPrivate ? ' Showing slots nobody has booked yet, as a private session takes the whole slot.' : '' }}</p>
+            <p class="text-sand-dim">Times are Pakistan time.{{ $isPrivate ? ' Showing slots nobody has booked yet, as a private session takes the whole slot.' : '' }}</p>
 
             @if ($isPackage)
                 <div>

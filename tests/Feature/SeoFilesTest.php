@@ -116,7 +116,7 @@ describe('llms.txt', function (): void {
 
         expect($text)
             ->toStartWith('# Ride Pakistan')
-            ->toContain('> Ride Pakistan runs weekend horse riding sessions in Islamabad, Pakistan, every Saturday and Sunday, 8–10 am or 3–5 pm, with trainer Omar Saleem.')
+            ->toContain('> Ride Pakistan runs horse riding sessions in Islamabad, Pakistan, every Saturday and Sunday, 8–10 am or 3–5 pm, with trainer Omar Saleem.')
             ->toContain('[Single session]('.route('sessions.show', 'single-session').'): PKR 10,000 per rider')
             ->toContain('PKR 60,000 for 8 sessions (PKR 7,500 per session), valid 6 weeks from confirmation')
             ->toContain('PKR 100,000 for 16 sessions')

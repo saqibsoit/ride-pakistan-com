@@ -27,7 +27,7 @@ return [
         // Google Maps "Embed a map" src; loaded only after a click (x-venue-map).
         // `?:` so an empty SITE_MAP_EMBED_URL= line in .env still uses the default.
         'business.map_embed_url' => env('SITE_MAP_EMBED_URL') ?: 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3319.0439179433974!2d72.90611257550113!3d33.70781247328839!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x38dfbd6ed8e97f0b%3A0x2097ca716068affc!2sYashwala%20Ranch%20By%20Ride%20Pakistan!5e0!3m2!1sen!2s!4v1794648232259!5m2!1sen!2s',
-        'business.tagline' => 'Weekend horsemanship and trail riding in Islamabad.',
+        'business.tagline' => 'Horsemanship and trail riding in Islamabad, every day.',
 
         // Contact and links
         'contact.email' => env('SITE_EMAIL', 'hello@ridepakistan.co'),
@@ -104,8 +104,8 @@ return [
         'privacy.transfer_proof_retention_days' => 90,
 
         // SEO
-        'seo.default_title' => 'Ride Pakistan | Weekend horse riding in Islamabad',
-        'seo.default_description' => 'Weekend horsemanship and trail riding sessions in Islamabad with trainer Omar Saleem. Every Saturday and Sunday. No experience needed.',
+        'seo.default_title' => 'Ride Pakistan | Horse riding in Islamabad, every day',
+        'seo.default_description' => 'Horsemanship and trail riding sessions in Islamabad with trainer Omar Saleem. Every day of the week. No experience needed.',
         // Reputable AI crawlers named in robots.txt (decision: allowed; PLAN §8).
         'seo.ai_crawlers' => [
             'GPTBot',

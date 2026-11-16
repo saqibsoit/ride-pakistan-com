@@ -22,6 +22,19 @@ it('describes the schedule from rules', function (): void {
         ->and($facts->fromPriceMinor())->toBe(1_000_000);
 });
 
+it('says every day and Daily when rules cover all seven days', function (): void {
+    foreach ([CarbonInterface::MONDAY, CarbonInterface::TUESDAY, CarbonInterface::WEDNESDAY, CarbonInterface::THURSDAY, CarbonInterface::FRIDAY] as $day) {
+        ScheduleRule::factory()->create(['day_of_week' => $day, 'start_time' => '08:00', 'end_time' => '10:00']);
+        ScheduleRule::factory()->create(['day_of_week' => $day, 'start_time' => '15:00', 'end_time' => '17:00']);
+    }
+
+    $facts = app(BusinessFacts::class);
+
+    expect($facts->everyDay())->toBeTrue()
+        ->and($facts->daysShort())->toBe('Daily')
+        ->and($facts->scheduleText())->toBe('every day, 8–10 am or 3–5 pm');
+});
+
 it('ignores inactive and expired rules', function (): void {
     ScheduleRule::query()->where('day_of_week', CarbonInterface::SUNDAY)->update(['is_active' => false]);
     ScheduleRule::factory()->create(['day_of_week' => CarbonInterface::FRIDAY, 'valid_to' => now()->subDay()]);

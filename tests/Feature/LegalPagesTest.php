@@ -207,6 +207,15 @@ describe('at checkout', function (): void {
 });
 
 describe('the guest checkout wording (2026-11-12)', function (): void {
+    /** The page as of 12 November: today's text with the daily sessions change (2026-11-16) put back. */
+    function legalBodyOn12Nov(string $slug): array
+    {
+        $c = (new ReflectionClass(require database_path('migrations/2026_11_26_100000_update_copy_for_daily_sessions.php')))->getConstants();
+        $back = $slug === 'terms' ? [$c['DATE_NEW'] => $c['DATE_OLD'], $c['TERMS_NEW'] => $c['TERMS_OLD']] : [];
+
+        return array_map(fn (array $block): array => ['type' => $block['type'], 'data' => [...$block['data'], 'content' => strtr($block['data']['content'], $back)]], LegalPages::content($slug)['body']);
+    }
+
     /** The page as published on 11 November: today's text with the new sentences put back to the old ones. */
     function legalOldBody(string $slug): array
     {
@@ -216,7 +225,7 @@ describe('the guest checkout wording (2026-11-12)', function (): void {
             ? [$c['DATE_NEW'] => $c['DATE_OLD'], $c['TERMS_NEW'] => $c['TERMS_OLD']]
             : [$c['DATE_NEW'] => $c['DATE_OLD'], $c['PRIVACY_NEW_2'] => $c['PRIVACY_OLD_2'], $c['PRIVACY_NEW_1'] => $c['PRIVACY_OLD_1']];
 
-        return array_map(fn (array $block): array => ['type' => $block['type'], 'data' => [...$block['data'], 'content' => strtr($block['data']['content'], $back)]], LegalPages::content($slug)['body']);
+        return array_map(fn (array $block): array => ['type' => $block['type'], 'data' => [...$block['data'], 'content' => strtr($block['data']['content'], $back)]], legalBodyOn12Nov($slug));
     }
 
     function legalGuestMigration(): object
@@ -227,13 +236,13 @@ describe('the guest checkout wording (2026-11-12)', function (): void {
     it('updates the published terms and privacy pages that still hold the old wording', function (): void {
         foreach (['terms', 'privacy'] as $slug) {
             Page::factory()->create(['slug' => $slug, 'is_published' => true, 'body' => legalOldBody($slug)]);
-            expect(Page::query()->where('slug', $slug)->sole()->body)->not->toBe(LegalPages::content($slug)['body']);
+            expect(Page::query()->where('slug', $slug)->sole()->body)->not->toBe(legalBodyOn12Nov($slug));
         }
 
         legalGuestMigration()->up();
 
         foreach (['terms', 'privacy'] as $slug) {
-            expect(Page::query()->where('slug', $slug)->sole()->body)->toBe(LegalPages::content($slug)['body']);
+            expect(Page::query()->where('slug', $slug)->sole()->body)->toBe(legalBodyOn12Nov($slug));
         }
 
         expect(json_encode(Page::query()->where('slug', 'terms')->sole()->body))->toContain('book as a guest');

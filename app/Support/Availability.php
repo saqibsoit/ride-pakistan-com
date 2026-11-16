@@ -67,17 +67,16 @@ final class Availability
     }
 
     /**
-     * The coming weekend: today and tomorrow if it is already the weekend,
-     * otherwise next Saturday and Sunday (local).
+     * Coming up (home page): today and the next $days - 1 days (local).
+     * Sessions run daily since 2026-11-16, so this replaced "This weekend".
      *
      * @return Collection<int, Slot>
      */
-    public function weekend(): Collection
+    public function comingUp(int $days = 3): Collection
     {
         $today = SessionTimes::now()->startOfDay();
-        $saturday = $today->isSunday() ? $today->subDay() : ($today->isSaturday() ? $today : $today->next(CarbonImmutable::SATURDAY));
 
-        return $this->between($saturday, $saturday->addDays(2));
+        return $this->between($today, $today->addDays($days));
     }
 
     /**

@@ -25,8 +25,8 @@ function slotOn(string $localStart, int $capacity = 6): Slot
         ?? Slot::factory()->at($start)->create(['capacity' => $capacity]);
 }
 
-it('shows live seats and Selling fast on the home weekend strip', function (): void {
-    $slot = slotOn('2026-11-14 08:00');
+it('shows live availability and Selling fast in the home Coming up strip', function (): void {
+    $slot = slotOn('2026-11-12 08:00'); // Thursday: within the next 3 days
     Booking::factory()->count(4)->create(['slot_id' => $slot->id]);
 
     $this->get('/')
@@ -91,7 +91,7 @@ it('shows the booking widget with next slots and seats on product pages', functi
 
 it('refreshes cached pages after a seat change', function (): void {
     config()->set('responsecache.enabled', true);
-    $slot = slotOn('2026-11-14 08:00');
+    $slot = slotOn('2026-11-12 08:00'); // in the home Coming up strip
 
     $this->get('/')->assertSee('Available')->assertDontSee('Selling fast');
     Booking::factory()->count(5)->create(['slot_id' => $slot->id]);

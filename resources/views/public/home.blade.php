@@ -1,10 +1,10 @@
-{{-- Home: same story order as docs/reference/index.html, plus "This weekend". --}}
+{{-- Home: same story order as docs/reference/index.html, plus "Coming up" (the next 3 days). --}}
 @php
     use App\Http\Controllers\Public\BookController;
     $times = $facts->timeRanges();
     $from = $facts->fromPriceMinor();
     $tz = (string) config('app.display_timezone');
-    $answer = config('app.name').' runs weekend horse riding sessions in '.$facts->location().', '.$facts->scheduleText()
+    $answer = config('app.name').' runs horse riding sessions in '.$facts->location().', '.$facts->scheduleText()
         .', with trainer '.$facts->trainer().'. '
         .($from !== null ? 'A '.$facts->sessionLengthAdjective().' session costs '.\App\Support\Money::format($from).' per rider, no' : 'No')
         .' experience is needed, and 8 and 16-class packages take beginners to confident trail riders.';
@@ -15,14 +15,14 @@
         image="hero.jpg"
         image-alt="A rider resting his forehead against a white horse"
         :lines="['Never touched', 'a horse?', 'Perfect.']"
-        lede="Weekend horsemanship and trail riding in {{ $facts->location() }}. {{ $facts->sessionLength() }} with a horse, from first hello to your first ride, with trainer {{ $facts->trainer() }}."
+        lede="Horsemanship and trail riding in {{ $facts->location() }}. {{ $facts->sessionLength() }} with a horse, from first hello to your first ride, with trainer {{ $facts->trainer() }}."
     >
         <x-button :href="route('book')">Book a session</x-button>
         <x-button :href="route('prices')" variant="ghost">See sessions and prices</x-button>
     </x-hero>
 
     <x-fact-strip label="Session facts">
-        <x-fact :value="$facts->daysShort()" label="Every weekend" />
+        <x-fact :value="$facts->daysShort()" label="Every week" />
         @if ($times !== [])
             <x-fact :value="$times[0]" :label="count($times) > 1 ? 'or '.implode(' or ', array_slice($times, 1)) : 'Asia/Karachi time'" />
         @endif
@@ -34,17 +34,17 @@
         <x-answer>{{ $answer }}</x-answer>
     </section>
 
-    {{-- This weekend: live slots (rule and manual) with their availability (no seat counts). --}}
-    <section class="wrap pt-section" aria-labelledby="weekend-title">
+    {{-- Coming up: live slots (rule and manual) in the next 3 days, with their availability (no seat counts). --}}
+    <section class="wrap pt-section" aria-labelledby="coming-up-title">
         <div class="flex flex-wrap items-end justify-between gap-6">
-            <x-section-heading id="weekend-title" title="This weekend." size="lg" />
+            <x-section-heading id="coming-up-title" title="Coming up." size="lg" />
             <a href="{{ route('schedule') }}" class="inline-flex items-center gap-2 font-semibold underline underline-offset-4">Full schedule <x-glyph name="arrow-right" class="size-4" /></a>
         </div>
-        @if ($weekend->isEmpty())
-            <p class="mt-8 text-sand-dim">No more sessions this weekend. <a href="{{ route('schedule') }}" class="underline underline-offset-4">See next week’s times</a>.</p>
+        @if ($comingUp->isEmpty())
+            <p class="mt-8 text-sand-dim">No sessions in the next few days. <a href="{{ route('schedule') }}" class="underline underline-offset-4">See the full schedule</a>.</p>
         @else
-            <ul class="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                @foreach ($weekend as $slot)
+            <ul class="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                @foreach ($comingUp as $slot)
                     @php($open = $slot->status === \App\Enums\SlotStatus::Open)
                     <li>
                         <p class="mb-2 text-xs font-semibold uppercase tracking-label text-sand-dim">{{ $slot->localStartsAt()->format('l j M') }}</p>
@@ -143,7 +143,7 @@
             <div>
                 <h2 id="book-title" class="text-display-xl">How to book.</h2>
                 <ol class="step-list mt-9">
-                    <li><p>Choose your session and a weekend slot online.</p></li>
+                    <li><p>Choose your session and a time online.</p></li>
                     <li><p>Pay by card, or by bank transfer using your booking reference.</p></li>
                     <li><p>Get your ticket by email, with directions to the ranch.</p></li>
                     <li><p>Come in long trousers and closed shoes.</p></li>
@@ -163,7 +163,7 @@
         <x-img src="group.jpg" alt="A line of riders on horseback raising their fists in front of a mountain" sizes="100vw" class="w-full object-cover object-bottom md:absolute md:inset-0 md:object-top" />
         <div class="wrap relative z-10 py-14 md:min-h-north md:py-24">
             <h2 id="north-title" class="text-display-xl">Learn in {{ $facts->location() }}.<br>Ride the mountains next.</h2>
-            <p class="mt-6 mb-8 max-w-prose text-lede">Our weekend sessions are the first step. When you’re ready, join a Ride Pakistan expedition through the northern valleys.</p>
+            <p class="mt-6 mb-8 max-w-prose text-lede">Our sessions in {{ $facts->location() }} are the first step. When you’re ready, join a Ride Pakistan expedition through the northern valleys.</p>
             <x-button :href="route('expeditions')" variant="ghost">Explore expeditions</x-button>
         </div>
     </section>

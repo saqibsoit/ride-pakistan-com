@@ -40,6 +40,7 @@ enum SettingKey: string
     case MapPinUrl = 'booking.map_pin_url';
     case WaitlistOfferHours = 'booking.waitlist_offer_hours';
     case SlotBufferMinutes = 'booking.slot_buffer_minutes';
+    case PackageSessionsPerWeek = 'booking.package_sessions_per_week';
 
     case RidingRules = 'policies.riding_rules';
     case BookingPolicies = 'policies.booking';
@@ -98,7 +99,7 @@ enum SettingKey: string
             self::InstagramUrl, self::InstagramDmUrl, self::GoogleReviewUrl, self::ExpeditionsUrl, self::MapPinUrl, self::MapEmbedUrl => SettingType::Url,
             self::RidersPerSlot, self::TransferHoldHours, self::TransferMinNoticeHours, self::CancellationCutoffHours,
             self::SellingFastThreshold, self::MinRiderAge, self::CheckinOpensMinutes, self::ArrivalMinutes, self::SlotHorizonWeeks,
-            self::CardHoldMinutes, self::MinNoticeHours, self::WaitlistOfferHours, self::SlotBufferMinutes,
+            self::CardHoldMinutes, self::MinNoticeHours, self::WaitlistOfferHours, self::SlotBufferMinutes, self::PackageSessionsPerWeek,
             self::PrivateEarliestStartHour, self::PrivateLatestEndHour, self::PrivateMinNoticeHours,
             self::PrivateDurationMinutes, self::PrivateAnswerHours, self::PrivatePayHours,
             self::DeletionGraceDays, self::OrderRetentionYears, self::TransferProofRetentionDays, self::LeadFollowUpDays,
@@ -151,6 +152,7 @@ enum SettingKey: string
             self::MinNoticeHours => 'Stop booking a slot this many hours before it starts (0 = until it starts)',
             self::WaitlistOfferHours => 'Waitlist offer: hold freed seats for the next person this many hours',
             self::SlotBufferMinutes => 'Minimum gap between sessions (minutes)',
+            self::PackageSessionsPerWeek => 'Package sessions per rider per week',
             self::PrivateEarliestStartHour => 'Private requests: earliest start (hour, Pakistan time)',
             self::PrivateLatestEndHour => 'Private requests: latest end (hour, Pakistan time)',
             self::PrivateMinNoticeHours => 'Private requests: at least this many hours ahead',
@@ -231,6 +233,7 @@ enum SettingKey: string
             self::MapPinUrl => 'The "Get directions" link (e.g. Google Maps). Shown in the footer, on /contact, the home page and session pages, and in confirmation and reminder emails. Leave empty to hide it everywhere.',
             self::WaitlistOfferHours => 'When seats free up in a full slot, the first person on its waitlist who fits gets an email and the seats are held for them this long (never past the booking cutoff). If they do not book in time, the offer moves to the next person.',
             self::SlotBufferMinutes => 'The bulk schedule editor refuses to create a session, or move one, that starts or ends within this many minutes of another session that is not cancelled. Private session requests use the same gap.',
+            self::PackageSessionsPerWeek => 'Package credits book at most this many sessions per rider per week (Monday to Sunday, Pakistan time). Admin bookings and moves ignore it. 0 means no limit.',
             self::PrivateEarliestStartHour => 'A requested private session can start no earlier than this hour (0–23, Pakistan time). 7 = 07:00.',
             self::PrivateLatestEndHour => 'A requested private session must end by this hour (1–24, Pakistan time). 18 = 18:00, so a 2-hour session starts at 16:00 at the latest.',
             self::PrivateMinNoticeHours => 'Customers can request a private session only this many hours ahead or more.',

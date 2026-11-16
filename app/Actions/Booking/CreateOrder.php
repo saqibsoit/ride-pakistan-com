@@ -48,6 +48,7 @@ final class CreateOrder
         private readonly Settings $settings,
         private readonly ReferralDiscount $referrals,
         private readonly RepriceOrder $reprice,
+        private readonly PackageWeeklyLimit $weeklyLimit,
     ) {}
 
     /**
@@ -179,6 +180,11 @@ final class CreateOrder
 
             if ($startsAt !== null && CarbonImmutable::parse($startsAt)->isAfter(now()->addDays((int) $product->validity_days))) {
                 throw BookingRejected::noCredits('That slot is after this package would expire. Choose an earlier one.');
+            }
+
+            // The first session counts towards the weekly package limit like any credit booking.
+            if ($slotId !== null) {
+                $this->weeklyLimit->assertAllows($riderIds, Slot::query()->findOrFail($slotId));
             }
 
             return;

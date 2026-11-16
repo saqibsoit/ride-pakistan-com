@@ -180,7 +180,9 @@ describe('at checkout', function (): void {
     {
         $user = User::factory()->create();
         $rider = Rider::factory()->for($user)->create();
-        $slot = Slot::factory()->at(CarbonImmutable::now((string) config('app.display_timezone'))->addDays(5)->setTime(8, 0))->create();
+        $start = CarbonImmutable::now((string) config('app.display_timezone'))->addDays(5)->setTime(8, 0);
+        // On a Monday this lands on a seeded Saturday rule slot; starts are unique, so use that one.
+        $slot = Slot::query()->where('starts_at', $start->utc())->first() ?? Slot::factory()->at($start)->create();
 
         return app(CreateOrder::class)->handle($user, Product::factory()->create(), $slot->id, [$rider->id]);
     }

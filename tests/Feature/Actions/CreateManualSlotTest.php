@@ -2,10 +2,12 @@
 
 declare(strict_types=1);
 
+use App\Actions\Slots\ChangeSlotStatus;
 use App\Actions\Slots\CreateManualSlot;
 use App\Enums\SlotSource;
 use App\Enums\SlotStatus;
 use App\Exceptions\SlotNotCreated;
+use App\Models\BookingHold;
 use App\Models\Slot;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -97,4 +99,31 @@ it('allows a manual slot that overlaps another slot without sharing its start', 
 
     expect($slot->exists)->toBeTrue()
         ->and(Slot::query()->count())->toBe(2);
+});
+
+it('reopens an empty cancelled slot at the same start instead of refusing', function (): void {
+    $admin = User::factory()->admin()->create();
+    $cancelled = Slot::factory()->manual()->at(karachi('2026-11-09 10:00'))->create(['private_only' => true]);
+    app(ChangeSlotStatus::class)->handle($cancelled, SlotStatus::Cancelled, $admin, 'Withdrawn');
+
+    $slot = createManual('2026-11-09 10:00', '2026-11-09 11:30', 5, $admin);
+
+    expect($slot->id)->toBe($cancelled->id)
+        ->and(Slot::query()->count())->toBe(1)
+        ->and($slot->status)->toBe(SlotStatus::Open)
+        ->and($slot->private_only)->toBeFalse()
+        ->and($slot->capacity)->toBe(5)
+        ->and($slot->ends_at->equalTo(karachi('2026-11-09 11:30')))->toBeTrue()
+        ->and(Activity::query()->where('event', 'reopened_as_new_slot')->exists())->toBeTrue();
+});
+
+it('refuses a cancelled slot at the same start that still has a hold', function (): void {
+    $cancelled = Slot::factory()->at(karachi('2026-11-09 10:00'))->create();
+    app(ChangeSlotStatus::class)->handle($cancelled, SlotStatus::Cancelled, null, 'Rain');
+    BookingHold::factory()->create(['slot_id' => $cancelled->id, 'seats' => 1]);
+
+    expect(fn () => createManual('2026-11-09 10:00', '2026-11-09 11:00'))
+        ->toThrow(SlotNotCreated::class, 'still has bookings or holds');
+
+    expect($cancelled->fresh()?->status)->toBe(SlotStatus::Cancelled);
 });

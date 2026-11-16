@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Actions\Slots;
 
 use App\Enums\SlotSource;
+use App\Enums\SlotStatus;
+use App\Exceptions\InvalidStatusTransition;
 use App\Exceptions\SlotNotCreated;
 use App\Models\Slot;
 use App\Models\User;
@@ -16,12 +18,19 @@ use Illuminate\Support\Facades\DB;
  * Adds a one-off slot outside the schedule rules (any date and time, its
  * own capacity), on any day, optionally private-only. Manual slots are never changed or removed by
  * GenerateSlots; they change status through ChangeSlotStatus like any slot.
+ *
+ * Slot starts are unique. A future cancelled slot at the same start with
+ * nothing left on it (no seat-taking booking, no active hold) is reopened
+ * with the new details (ChangeSlotStatus::reopenAsNewSlot) instead of
+ * blocking the time; an open or closed one refuses.
  */
 final class CreateManualSlot
 {
     public const MIN_CAPACITY = 1;
 
     public const MAX_CAPACITY = 50;
+
+    public function __construct(private readonly ChangeSlotStatus $status) {}
 
     /**
      * @throws SlotNotCreated
@@ -49,9 +58,18 @@ final class CreateManualSlot
 
         try {
             return DB::transaction(function () use ($startsAt, $endsAt, $capacity, $actor, $privateOnly, $trainer): Slot {
-                $taken = Slot::query()->where('starts_at', $startsAt)->lockForUpdate()->exists();
+                $taken = Slot::query()->where('starts_at', $startsAt)->lockForUpdate()->first();
 
-                if ($taken) {
+                if ($taken !== null && $taken->status === SlotStatus::Cancelled) {
+                    // Starts are unique: an empty cancelled slot here is reopened instead.
+                    try {
+                        return $this->status->reopenAsNewSlot($taken, $endsAt, $capacity, $privateOnly, $trainer, $actor);
+                    } catch (InvalidStatusTransition) {
+                        throw SlotNotCreated::cancelledStillInUse(self::label($startsAt));
+                    }
+                }
+
+                if ($taken !== null) {
                     throw SlotNotCreated::startTaken(self::label($startsAt));
                 }
 

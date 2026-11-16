@@ -33,4 +33,9 @@ final class SlotNotCreated extends DomainException
     {
         return new self(sprintf('A slot already starts at %s.', $label));
     }
+
+    public static function cancelledStillInUse(string $label): self
+    {
+        return new self(sprintf('A cancelled slot at %s still has bookings or holds on it.', $label));
+    }
 }

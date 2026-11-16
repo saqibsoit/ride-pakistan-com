@@ -10,15 +10,15 @@ beforeEach(function (): void {
     Storage::fake('site', ['url' => '/images']);
 });
 
-it('shows seats left with selling-fast and fully-booked states', function (int $seats, string $text, bool $sellingFast): void {
-    $view = $this->blade('<x-seats-left :seats="$seats" />', ['seats' => $seats])->assertSee($text);
+it('shows availability without the seat count, with selling-fast and fully-booked states', function (int $seats, string $text, bool $sellingFast): void {
+    $view = $this->blade('<x-seats-left :seats="$seats" />', ['seats' => $seats])->assertSee($text)->assertDontSee('left');
 
     $sellingFast ? $view->assertSee('Selling fast') : $view->assertDontSee('Selling fast');
 })->with([
-    'plenty' => [6, '6 spots left', false],
-    'three' => [3, '3 spots left', false],
-    'at threshold' => [2, '2 spots left', true],
-    'one' => [1, '1 spot left', true],
+    'plenty' => [6, 'Available', false],
+    'three' => [3, 'Available', false],
+    'at threshold' => [2, 'Available', true],
+    'one' => [1, 'Available', true],
     'none' => [0, 'Fully booked', false],
     'negative is clamped' => [-1, 'Fully booked', false],
 ]);
@@ -36,7 +36,7 @@ it('shows a note instead of seats before live availability exists', function ():
     ])
         ->assertSee('Seats shown when online booking opens')
         ->assertSee('href="/book"', false)
-        ->assertDontSee('spots left');
+        ->assertDontSee('Available');
 });
 
 it('can announce seat changes politely', function (): void {
@@ -53,7 +53,7 @@ it('shows slot times in Asia/Karachi and links bookable slots', function (): voi
         ->assertSee('href="/book?slot=1"', false)
         ->assertSee('Saturday 14 November')
         ->assertSee('with Omar Saleem')
-        ->assertSee('3 spots left');
+        ->assertSee('Available');
 });
 
 it('does not link a fully booked slot', function (): void {

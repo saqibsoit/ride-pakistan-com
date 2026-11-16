@@ -34,7 +34,7 @@
         <x-answer>{{ $answer }}</x-answer>
     </section>
 
-    {{-- This weekend: live slots (rule and manual) with seats left. --}}
+    {{-- This weekend: live slots (rule and manual) with their availability (no seat counts). --}}
     <section class="wrap pt-section" aria-labelledby="weekend-title">
         <div class="flex flex-wrap items-end justify-between gap-6">
             <x-section-heading id="weekend-title" title="This weekend." size="lg" />

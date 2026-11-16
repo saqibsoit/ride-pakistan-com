@@ -1,6 +1,6 @@
 {{--
     Inline booking widget on product pages (inspiration 01): next slots with
-    seats left, rider count, then the /book flow pre-filled. A plain GET
+    availability, rider count, then the /book flow pre-filled. A plain GET
     form, so it works without JavaScript and keeps Livewire off marketing
     pages; the rider stepper is progressive enhancement (Alpine "stepper").
 

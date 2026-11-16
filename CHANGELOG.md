@@ -4,6 +4,9 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Changed
+- Customers no longer see how many seats are left (decided 2026-11-16). `<x-seats-left>` shows "Available" (plus "Selling fast" at or below `booking.selling_fast_threshold`) or "Fully booked" on the home strip, `/schedule`, product pages, `/book` and the reschedule, move and package-booking pages. The waitlist join page says "Some seats are free right now". Refusals such as "Only N seats are left in that slot" still name the number so a customer can choose fewer riders. Team screens are unchanged.
+
 ### Added
 - The venue is public (decided 2026-11-14): Yashwala Ranch, Islamabad.
   - **Footer** on every page: the venue and a "Get directions" link (Google Maps).

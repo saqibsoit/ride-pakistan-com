@@ -24,7 +24,7 @@ final class BookController extends Controller
             'facts' => $facts,
             'seo' => $seo->make(
                 title: 'Book a riding session',
-                description: 'Book a weekend horse riding session in Islamabad with Ride Pakistan.',
+                description: 'Book a horse riding session in Islamabad with Ride Pakistan, any day of the week.',
                 breadcrumbs: [
                     ['label' => 'Home', 'url' => route('home')],
                     ['label' => 'Book'],

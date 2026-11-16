@@ -62,7 +62,7 @@ class ProductSeeder extends Seeder
                 'validity_days' => null,
                 'is_featured' => false,
                 'sort' => 20,
-                'short_description' => 'Just you, or you and your people: your own trainer and pace on a weekend slot. No other riders join.',
+                'short_description' => 'Just you, or you and your people: your own trainer and pace on a slot of your choice. No other riders join.',
                 'long_description' => 'The whole slot is yours. Come alone, as a couple, a family or a small group, at your own pace. Arena work is available on request.',
                 'who_for' => 'Individuals, couples, families and small groups who want their own trainer and pace.',
                 'group_size' => 'Just your group',

@@ -13,7 +13,7 @@ No forecast has loaded yet, so there are no weather badges or alerts.
 Last error: {{ $error }}
 @endif
 
-Until it works again, check the weather yourself before weekend sessions. You get this email once per outage.
+Until it works again, check the weather yourself before each day’s sessions. You get this email once per outage.
 
 Ride Pakistan
 </x-mail::message>

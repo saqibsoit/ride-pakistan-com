@@ -29,7 +29,7 @@
         ['token' => 'text-display-md', 'class' => 'font-display font-black text-display-md', 'sample' => 'Beginner to trail rider'],
         ['token' => 'text-display-sm', 'class' => 'font-display font-black text-display-sm', 'sample' => 'Bring him in'],
         ['token' => 'text-display-xs', 'class' => 'font-display font-extrabold text-display-xs', 'sample' => 'What should I wear?'],
-        ['token' => 'text-lede', 'class' => 'text-lede', 'sample' => 'Weekend horsemanship and trail riding in Islamabad.'],
+        ['token' => 'text-lede', 'class' => 'text-lede', 'sample' => 'Horsemanship and trail riding in Islamabad.'],
         ['token' => 'text-base', 'class' => 'text-base', 'sample' => 'Brush him down and check his hooves. It’s the quiet part of the session.'],
         ['token' => 'text-sm', 'class' => 'text-sm', 'sample' => 'Session timings shift slightly with the seasons.'],
         ['token' => 'text-xs', 'class' => 'text-xs font-semibold uppercase tracking-label', 'sample' => 'Lessons'],
@@ -41,14 +41,14 @@
         image="hero.jpg"
         image-alt="A rider resting his forehead against a white horse"
         :lines="['Never touched', 'a horse?', 'Perfect.']"
-        lede="Weekend horsemanship and trail riding in Islamabad. Two hours with a horse, from first hello to your first ride, with trainer Omar Saleem."
+        lede="Horsemanship and trail riding in Islamabad. Two hours with a horse, from first hello to your first ride, with trainer Omar Saleem."
     >
         <x-button href="#prices">See sessions and prices</x-button>
         <x-button :href="app(\App\Support\Settings::class)->string(\App\Enums\SettingKey::InstagramDmUrl)" variant="ghost" external>Message us on Instagram</x-button>
     </x-hero>
 
     <x-fact-strip label="Session facts">
-        <x-fact value="Sat & Sun" label="Every weekend" />
+        <x-fact value="Daily" label="Every week" />
         <x-fact value="8–10 am" label="or 3–5 pm" />
         <x-fact value="2 hours" label="Per session" />
         <x-fact value="Islamabad" label="No experience needed" />
@@ -142,7 +142,7 @@
                     image-alt="A man gently touching a grazing white horse"
                     category="Private"
                     :price-minor="1500000"
-                    description="Just you, or you and your people. Your own trainer and pace on a weekend slot."
+                    description="Just you, or you and your people. Your own trainer and pace on a slot of your choice."
                     duration="2 hours"
                     location="Islamabad"
                     video-href="https://www.instagram.com/ridepakistan/"
@@ -192,11 +192,11 @@
             <div class="grid gap-10 lg:grid-cols-3">
                 <div class="flex flex-col gap-6 lg:col-span-2">
                     <x-img src="graze.jpg" alt="Close-up of a white horse grazing" sizes="(min-width: 64rem) 48rem, 100vw" class="aspect-3/2 w-full rounded-sm object-cover" />
-                    <p class="max-w-prose text-sand-dim">A two-hour beginner session every Saturday and Sunday in Islamabad. You bring the horse in, groom and tack up, ride mostly on the trail, then untack and cool him down. No experience needed.</p>
+                    <p class="max-w-prose text-sand-dim">A two-hour beginner session every day in Islamabad. You bring the horse in, groom and tack up, ride mostly on the trail, then untack and cool him down. No experience needed.</p>
                 </div>
                 <x-booking.price-box :from-minor="1000000" book-href="#sg-booking" note="Directions in your confirmation email.">
                     <x-seats-left :seats="2" />
-                    <p class="text-sm text-sand-dim">Sat &amp; Sun · 8–10 am or 3–5 pm</p>
+                    <p class="text-sm text-sand-dim">Daily · 8–10 am or 3–5 pm</p>
                 </x-booking.price-box>
             </div>
         </section>
@@ -220,7 +220,7 @@
                 <x-price-row title="Single session" :amount-minor="1000000" caption="per rider" summary="One 2-hour session.">The full experience: groundwork, grooming, tacking up and a guided ride.</x-price-row>
                 <x-price-row title="8-class package" :amount-minor="6000000" caption="PKR 7,500 per session · valid 6 weeks" summary="8 sessions, 2 per week.">Build your basics and your confidence in the saddle.</x-price-row>
                 <x-price-row title="16-class package" :amount-minor="10000000" caption="PKR 6,250 per session · valid 10 weeks" summary="16 sessions, 2 per week." label="Best value" featured>From your first time touching a horse to riding the trail with confidence.</x-price-row>
-                <x-price-row title="Private session" :amount-minor="1500000" caption="per rider" summary="Just you, or you and your people.">Your own trainer and pace, on a weekend slot that suits you.</x-price-row>
+                <x-price-row title="Private session" :amount-minor="1500000" caption="per rider" summary="Just you, or you and your people.">Your own trainer and pace, on a slot that suits you.</x-price-row>
             </div>
         </section>
 

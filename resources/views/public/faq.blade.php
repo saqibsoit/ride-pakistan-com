@@ -3,7 +3,7 @@
     <x-page-header
         title="Questions."
         :breadcrumbs="[['label' => 'Home', 'url' => route('home')], ['label' => 'FAQ']]"
-        :answer="'Ride Pakistan runs beginner-friendly weekend horse riding sessions in '.$facts->location().', '.$facts->scheduleText().'. Below are straight answers about what to expect, what to wear, prices, packages and booking.'"
+        :answer="'Ride Pakistan runs beginner-friendly horse riding sessions in '.$facts->location().', '.$facts->scheduleText().'. Below are straight answers about what to expect, what to wear, prices, packages and booking.'"
     />
 
     <div class="wrap max-w-narrow pb-section">

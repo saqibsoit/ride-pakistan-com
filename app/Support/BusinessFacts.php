@@ -119,9 +119,19 @@ final class BusinessFacts
         return $min === null ? null : (int) $min;
     }
 
-    /** "Saturday and Sunday" */
+    /** True when the active rules run on all seven days (sessions are daily since 2026-11-16). */
+    public function everyDay(): bool
+    {
+        return $this->rules()->pluck('day_of_week')->unique()->count() === 7;
+    }
+
+    /** "Saturday and Sunday", or "day" when sessions run daily ("every day"). */
     public function daysText(): string
     {
+        if ($this->everyDay()) {
+            return 'day';
+        }
+
         $days = array_values($this->rules()->pluck('day_of_week')->unique()
             ->map(fn (int $day): string => self::DAY_NAMES[$day])
             ->all());
@@ -129,9 +139,13 @@ final class BusinessFacts
         return self::join($days);
     }
 
-    /** "Sat & Sun" (fact strip) */
+    /** "Sat & Sun", or "Daily" (fact strip) */
     public function daysShort(): string
     {
+        if ($this->everyDay()) {
+            return 'Daily';
+        }
+
         $days = $this->rules()->pluck('day_of_week')->unique()
             ->map(fn (int $day): string => substr(self::DAY_NAMES[$day], 0, 3))
             ->values()
@@ -153,11 +167,11 @@ final class BusinessFacts
             ->all());
     }
 
-    /** "every Saturday and Sunday, 8–10 am or 3–5 pm" */
+    /** "every day, 8–10 am or 3–5 pm" or "every Saturday and Sunday, 8–10 am or 3–5 pm" */
     public function scheduleText(): string
     {
         if ($this->rules()->isEmpty()) {
-            return 'on weekends (times to be announced)';
+            return 'with times to be announced';
         }
 
         return 'every '.$this->daysText().', '.self::join($this->timeRanges(), 'or');

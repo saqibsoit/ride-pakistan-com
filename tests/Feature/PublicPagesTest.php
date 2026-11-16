@@ -7,6 +7,7 @@ use App\Actions\Settings\UpdateSettings;
 use App\Models\Page;
 use App\Models\Post;
 use App\Models\Product;
+use App\Models\Slot;
 use Carbon\CarbonImmutable;
 
 /*
@@ -199,10 +200,19 @@ it('filters the catalog with chips that work without JavaScript', function (): v
     $this->get('/experiences')->assertSee('aria-current="true"', false);
 });
 
-it('shows this weekend and the week calendar from live slots', function (): void {
+it('shows the next 3 days and the week calendar from live slots', function (): void {
+    // Wednesday: the seeded Saturday and Sunday rule slots are further away than 3 days.
     $this->get('/')
-        ->assertSee('This weekend.')
-        ->assertSee('Saturday 14 Nov')
+        ->assertSee('Coming up.')
+        ->assertSee('No sessions in the next few days')
+        ->assertDontSee('Saturday 14 Nov')
+        ->assertDontSee('This weekend');
+
+    Slot::factory()->at(CarbonImmutable::parse('2026-11-13 15:00', 'Asia/Karachi'))->create();
+
+    $this->get('/')
+        ->assertSee('Coming up.')
+        ->assertSee('Friday 13 Nov')
         ->assertSee('Available')
         ->assertDontSee('Seats shown when online booking opens');
 

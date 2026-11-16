@@ -31,7 +31,7 @@ final class LlmsTxt
 
         $out = [];
         $out[] = '# '.$name;
-        $out[] = '> '.$name.' runs weekend horse riding sessions in '.$location.', Pakistan, '
+        $out[] = '> '.$name.' runs horse riding sessions in '.$location.', Pakistan, '
             .$this->facts->scheduleText().', with trainer '.$trainer.'. No experience needed. '
             .'Each '.$this->facts->sessionLengthAdjective().' session covers bringing the horse in from the paddock, grooming, tacking up, '
             .'a guided ride (mostly trail, arena work on request), untacking, massage and stretch.';

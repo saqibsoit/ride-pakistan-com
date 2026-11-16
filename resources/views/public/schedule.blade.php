@@ -48,11 +48,10 @@
         <ol class="grid gap-4 lg:grid-cols-7">
             @foreach ($days as $date => $slots)
                 @php($day = \Carbon\CarbonImmutable::parse($date, $tz))
-                @php($isWeekend = $day->isWeekend())
+                {{-- Sessions run daily (2026-11-16): every day looks the same; empty days hide on small screens. --}}
                 <li @class([
-                    'flex flex-col gap-3 rounded-sm p-3',
-                    'bg-earth-2' => $isWeekend,
-                    'hidden lg:flex' => ! $isWeekend && $slots->isEmpty(),
+                    'flex flex-col gap-3 rounded-sm bg-earth-2 p-3',
+                    'hidden lg:flex' => $slots->isEmpty(),
                 ])>
                     <h3 class="flex items-baseline gap-2 border-b border-line pb-2">
                         <span class="font-display text-display-xs font-extrabold">{{ $day->format('D') }}</span>
@@ -74,7 +73,7 @@
                             :waitlist="$open && ! $asPrivate && ! $slot->isPrivatelyBooked() ? route('account.waitlist.create', $slot) : null"
                         />
                     @empty
-                        <p class="text-sm text-sand-dim">{{ $isWeekend ? 'No more sessions' : 'No sessions' }}</p>
+                        <p class="text-sm text-sand-dim">No sessions</p>
                     @endforelse
                 </li>
             @endforeach

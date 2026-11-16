@@ -1,12 +1,12 @@
 # Terms and Conditions
 
-Last updated: 12 November 2026
+Last updated: 16 November 2026
 
 These terms apply when you use ride-pakistan.com or book a session with Ride Pakistan. Ride Pakistan is run by Destination Pakistan, Plot No. 68, Siddique Trade Centre, Gulberg, Lahore ("we", "us"). By booking, you agree to these terms, our Cancellation and Refund Policy and our Privacy Policy.
 
 ## 1. Our sessions
 
-We offer weekend horse riding and horsemanship sessions in Islamabad with our trainer. Each session lasts 2 hours and includes groundwork with the horse and a guided ride. Session details, prices and times are shown on the website when you book.
+We offer horse riding and horsemanship sessions in Islamabad with our trainer. Each session lasts 2 hours and includes groundwork with the horse and a guided ride. Session details, prices and times are shown on the website when you book.
 
 ## 2. Your account
 

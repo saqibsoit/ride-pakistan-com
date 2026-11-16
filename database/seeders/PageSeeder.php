@@ -40,8 +40,8 @@ class PageSeeder extends Seeder
         Page::query()->firstOrCreate(['slug' => 'expeditions'], [
             'title' => 'Riding expeditions',
             'meta_title' => 'Horse riding expeditions in northern Pakistan',
-            'meta_description' => 'After weekend lessons in Islamabad, ride the mountains: Ride Pakistan expeditions through the northern valleys.',
-            'answer' => 'Our weekend sessions in Islamabad are the first step. When you’re ready, join a Ride Pakistan expedition through the northern valleys of Pakistan.',
+            'meta_description' => 'After lessons in Islamabad, ride the mountains: Ride Pakistan expeditions through the northern valleys.',
+            'answer' => 'Our sessions in Islamabad are the first step. When you’re ready, join a Ride Pakistan expedition through the northern valleys of Pakistan.',
             'is_published' => true,
             'body' => [
                 ['type' => 'image', 'data' => ['image' => 'group.jpg', 'alt' => 'A line of riders on horseback raising their fists in front of a mountain']],

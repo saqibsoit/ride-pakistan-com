@@ -4,6 +4,9 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Fixed
+- A cancelled slot no longer blocks its start time for good (decided 2026-11-16). Adding a manual slot from the Slots screen or creating slots in the bulk schedule editor at the start of a future cancelled slot reopens that slot with the new end, capacity, trainer and group or private-only type (`ChangeSlotStatus::reopenAsNewSlot`, audit `reopened_as_new_slot` with the old cancellation). Refused while the cancelled slot still has a seat-taking booking or an active hold; open and closed slots still block. The bulk preview marks these rows "Reuses a cancelled slot". The slot generator still leaves cancelled rule slots alone.
+
 ### Added
 - The venue is public (decided 2026-11-14): Yashwala Ranch, Islamabad.
   - **Footer** on every page: the venue and a "Get directions" link (Google Maps).

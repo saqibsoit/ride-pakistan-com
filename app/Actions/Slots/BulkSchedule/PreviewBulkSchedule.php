@@ -20,8 +20,10 @@ use InvalidArgumentException;
  * slot locks, for the rows the admin confirmed.
  *
  * - Create: a new slot per matching date. Skipped if it starts in the
- *   past, a slot already starts then, or it comes within the buffer of
- *   another session (SlotOverlap) or of a slot created in the same run.
+ *   past, an open or closed slot already starts then (an empty cancelled
+ *   one there is reused; one still in use skips), or it comes within the
+ *   buffer of another session (SlotOverlap) or of a slot created in the
+ *   same run.
  * - Update: open matching slots. Skipped when the new capacity is below
  *   the seats taken (booked + held), or the new time is in the past, taken,
  *   or too close to another session. A slot with an active hold (unpaid
@@ -108,10 +110,24 @@ final class PreviewBulkSchedule
                 continue;
             }
 
-            if (Slot::query()->where('starts_at', $start)->exists()) {
+            $sameStart = Slot::query()->withSeatCounts()->where('slots.starts_at', $start)->first();
+            $reuses = false;
+
+            if ($sameStart !== null && $sameStart->status !== SlotStatus::Cancelled) {
                 $skip('A slot already starts at this time');
 
                 continue;
+            }
+
+            if ($sameStart !== null) {
+                // An empty cancelled slot is reopened by CreateManualSlot; one still in use blocks the time.
+                if ($sameStart->seatsBooked() > 0 || $sameStart->seatsHeld() > 0 || $sameStart->isPrivatelyBooked()) {
+                    $skip('A cancelled slot at this time still has bookings or holds');
+
+                    continue;
+                }
+
+                $reuses = true;
             }
 
             $clash = $this->overlap->firstClash($start, $end);
@@ -131,7 +147,8 @@ final class PreviewBulkSchedule
             }
 
             $planned[] = [$start, $end];
-            $items[] = new BulkScheduleItem(BulkScheduleItem::CREATE, null, $start, $end, $capacity, newTrainerId: $criteria->trainerId, note: $note);
+            $itemNote = $reuses ? implode(' · ', array_filter([$note, 'Reuses a cancelled slot'])) : $note;
+            $items[] = new BulkScheduleItem(BulkScheduleItem::CREATE, null, $start, $end, $capacity, newTrainerId: $criteria->trainerId, note: $itemNote);
         }
 
         return $items;

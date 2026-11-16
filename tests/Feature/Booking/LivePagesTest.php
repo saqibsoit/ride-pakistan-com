@@ -31,7 +31,8 @@ it('shows live seats and Selling fast on the home weekend strip', function (): v
 
     $this->get('/')
         ->assertOk()
-        ->assertSee('2 spots left')
+        ->assertSee('Available')
+        ->assertDontSee('2 spots left')
         ->assertSee('Selling fast')
         ->assertSee(route('book', ['slot' => $slot->id]), false);
 });
@@ -44,7 +45,8 @@ it('shows manual slots and closed slots on the schedule', function (): void {
     $html = $this->get('/schedule')->assertOk()->getContent();
 
     expect($html)->toContain('4:00 pm – 6:00 pm')
-        ->and($html)->toContain('3 spots left')
+        ->and($html)->toContain('Available')
+        ->and($html)->not->toContain('spots left')
         ->and($html)->toContain(route('book', ['slot' => $manual->id]))
         ->and($html)->toContain('Closed for booking')
         ->and($html)->not->toContain(route('book', ['slot' => $closed->id]));
@@ -78,7 +80,8 @@ it('shows the booking widget with next slots and seats on product pages', functi
         ->assertOk()
         ->assertSee('Book this session.')
         ->assertSee('name="slot" value="'.$slot->id.'"', false)
-        ->assertSee('1 spot left')
+        ->assertSee('Available')
+        ->assertDontSee('1 spot left')
         ->assertSee('x-data="stepper"', false)
         ->assertSee('action="'.route('book').'"', false)
         ->assertDontSee('Online booking with live seats is opening soon');
@@ -90,10 +93,10 @@ it('refreshes cached pages after a seat change', function (): void {
     config()->set('responsecache.enabled', true);
     $slot = slotOn('2026-11-14 08:00');
 
-    $this->get('/')->assertSee('6 spots left');
+    $this->get('/')->assertSee('Available')->assertDontSee('Selling fast');
     Booking::factory()->count(5)->create(['slot_id' => $slot->id]);
 
-    $this->get('/')->assertSee('1 spot left');
+    $this->get('/')->assertSee('Selling fast');
 })->skip(fn (): bool => ! class_exists(ResponseCache::class));
 
 it('never response-caches /book or checkout', function (): void {

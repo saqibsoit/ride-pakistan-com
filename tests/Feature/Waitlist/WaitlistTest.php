@@ -318,6 +318,16 @@ it('lets customers join, see and leave their waitlists from the account', functi
     expect($entry->refresh()->status)->toBe(WaitlistStatus::Cancelled);
 });
 
+it('tells a bigger group seats are free without saying how many', function (): void {
+    $slot = nearSlot(4, 8, ['capacity' => 3]);
+    Booking::factory()->count(2)->create(['slot_id' => $slot->id]);
+
+    $this->actingAs(waitlistCustomer(2))->get(route('account.waitlist.create', ['slot' => $slot, 'riders' => 2]))
+        ->assertOk()
+        ->assertSee('Some seats are free right now.')
+        ->assertDontSee('1 seat is free');
+});
+
 it('shows Join the waitlist on full group slots in the schedule', function (): void {
     $slot = fullSlot(1);
 

@@ -203,7 +203,7 @@ it('shows this weekend and the week calendar from live slots', function (): void
     $this->get('/')
         ->assertSee('This weekend.')
         ->assertSee('Saturday 14 Nov')
-        ->assertSee('6 spots left')
+        ->assertSee('Available')
         ->assertDontSee('Seats shown when online booking opens');
 
     $this->get('/schedule')

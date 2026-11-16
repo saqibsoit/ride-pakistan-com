@@ -254,12 +254,13 @@ Overbooking protection: seat checks and holds run inside a transaction with `SEL
 Design sources: see `docs/reference/DESIGN-REFERENCES.md`. Brand look comes from our static page; page structure and booking UX come from the three inspiration screenshots.
 
 Public (server-rendered, cached):
-- `/` Home (lessons landing, same story and look as the static page, plus a "This weekend" strip showing upcoming slots with seats left)
+- `/` Home (lessons landing, same story and look as the static page, plus a "This weekend" strip showing upcoming slots and their availability)
 - `/experiences` Catalog of all bookable products with filter chips (inspiration 03)
-- `/sessions/{product}` Product detail page with sticky "From PKR X" box, key facts, timeline, what to bring, what’s included, good to know, and an inline booking widget with live seats left (inspiration 01)
-- `/schedule` Weekly calendar of live slots (rule and manual) with seats left, filters All / Group / Private (`?type=`), click to book (inspiration 02). A trainer filter appears once slots have more than one trainer
+- `/sessions/{product}` Product detail page with sticky "From PKR X" box, key facts, timeline, what to bring, what’s included, good to know, and an inline booking widget with live availability (inspiration 01)
+- **Availability on customer pages (decided 2026-11-16):** customers never see how many seats are left. Wherever a slot is listed (home strip, `/schedule`, product pages, `/book`, reschedule, move and package-booking pages) it shows "Available", with the "Selling fast" badge at or below `booking.selling_fast_threshold`, or "Fully booked" (`<x-seats-left>`). The waitlist join page says "Some seats are free right now". Refusals that name a number ("Only N seats are left in that slot") stay so a customer can pick fewer riders. Team screens keep the counts.
+- `/schedule` Weekly calendar of live slots (rule and manual) with their availability, filters All / Group / Private (`?type=`), click to book (inspiration 02). A trainer filter appears once slots have more than one trainer
 - `/prices` Lesson options, pricing with packs and validity, riding rules and booking policies (inspiration 02)
-- `/book` Booking flow (Livewire, not cached): product → slot → riders → review; `?product`, `?slot`, `?riders` start part-way, `?use=credits` books with package credits, `?resume=1` continues after a guest signs in (or comes back from `/book/details`). Product pages have a plain-form widget (next slots, seats left, rider count) that opens it pre-filled
+- `/book` Booking flow (Livewire, not cached): product → slot → riders → review; `?product`, `?slot`, `?riders` start part-way, `?use=credits` books with package credits, `?resume=1` continues after a guest signs in (or comes back from `/book/details`). Product pages have a plain-form widget (next slots, availability, rider count) that opens it pre-filled
 - Guest checkout (§2, 2026-11-12): `/book/details` (a guest's details), `/book/request-sent`; `/manage` (ask for a new link), `/manage/{reference}/open` (signed), `/manage/{reference}` with `/book`, `/revoke`, `/bookings/{ticket}/calendar.ics`, `/cancel`, `/reschedule`; `/requests/{reference}/open` (signed), `/requests/{reference}` and `/withdraw`; `/gift-vouchers/{reference}/open` (signed). All not cached, noindex
 - `/trainer/omar-saleem` Trainer profile (Person schema)
 - `/faq`

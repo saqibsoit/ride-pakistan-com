@@ -4,6 +4,9 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Changed
+- Customers no longer see how many seats are left (decided 2026-11-16). `<x-seats-left>` shows "Available" (plus "Selling fast" at or below `booking.selling_fast_threshold`) or "Fully booked" on the home strip, `/schedule`, product pages, `/book` and the reschedule, move and package-booking pages. The waitlist join page says "Some seats are free right now". Refusals such as "Only N seats are left in that slot" still name the number so a customer can choose fewer riders. Team screens are unchanged.
+
 ### Fixed
 - A cancelled slot no longer blocks its start time for good (decided 2026-11-16). Adding a manual slot from the Slots screen or creating slots in the bulk schedule editor at the start of a future cancelled slot reopens that slot with the new end, capacity, trainer and group or private-only type (`ChangeSlotStatus::reopenAsNewSlot`, audit `reopened_as_new_slot` with the old cancellation). Refused while the cancelled slot still has a seat-taking booking or an active hold; open and closed slots still block. The bulk preview marks these rows "Reuses a cancelled slot". The slot generator still leaves cancelled rule slots alone.
 

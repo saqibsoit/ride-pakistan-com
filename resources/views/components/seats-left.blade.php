@@ -1,5 +1,6 @@
 {{--
-    <x-seats-left :seats="2" />  → "2 spots left" + "Selling fast" badge
+    <x-seats-left :seats="2" />  → "Available" + "Selling fast" badge
+    Customers never see how many seats are left (decided 2026-11-16).
     - 0 seats: "Fully booked"
     - 1..threshold (setting booking.selling_fast_threshold): Selling fast
     - live: announce changes politely (booking widget)
@@ -16,7 +17,7 @@
     @if ($seats === 0)
         <span class="font-semibold text-sand-dim">Fully booked</span>
     @else
-        <span class="font-semibold text-sand">{{ $seats }} {{ \Illuminate\Support\Str::plural('spot', $seats) }} left</span>
+        <span class="font-semibold text-sand">Available</span>
         @if ($sellingFast)
             <x-badge variant="selling-fast">Selling fast</x-badge>
         @endif

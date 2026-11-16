@@ -1,4 +1,4 @@
-{{-- /schedule: week calendar of live slots (rule and manual) with seats left (inspiration 02). --}}
+{{-- /schedule: week calendar of live slots (rule and manual) with their availability, no seat counts (inspiration 02). --}}
 @php
     $tz = (string) config('app.display_timezone');
     $sunday = $monday->addDays(6);

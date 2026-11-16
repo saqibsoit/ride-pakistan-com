@@ -125,15 +125,15 @@ it('edits from the panel for admins only and clears the page cache', function ()
     $slot = app(CreateManualSlot::class)->handle(slotLocal('2026-11-18 16:00'), slotLocal('2026-11-18 18:00'), 4, $this->admin);
 
     // A cached schedule page must not survive the change.
-    $this->get('/schedule?week=2026-11-16')->assertSee('4 spots left')->assertDontSee('5 spots left');
+    $this->get('/schedule?week=2026-11-16')->assertSee('4:00 pm – 6:00 pm')->assertDontSee('5:00 pm – 7:00 pm');
 
     $this->actingAs($this->admin);
     Livewire::test(ListSlots::class)
-        ->callAction(TestAction::make('editManual')->table($slot), ['date' => '2026-11-18', 'start_time' => '16:00', 'end_time' => '18:00', 'capacity' => 5, 'private_only' => false])
+        ->callAction(TestAction::make('editManual')->table($slot), ['date' => '2026-11-18', 'start_time' => '17:00', 'end_time' => '19:00', 'capacity' => 5, 'private_only' => false])
         ->assertHasNoActionErrors();
 
     expect($slot->refresh()->capacity)->toBe(5);
-    $this->get('/schedule?week=2026-11-16')->assertSee('5 spots left');
+    $this->get('/schedule?week=2026-11-16')->assertSee('5:00 pm – 7:00 pm')->assertDontSee('4:00 pm – 6:00 pm');
 
     $this->actingAs(User::factory()->staff()->withMfa()->create());
     Livewire::test(ListSlots::class)->assertActionHidden(TestAction::make('editManual')->table($slot));

@@ -41,7 +41,6 @@ final class LlmsTxt
             '- Location: '.$this->facts->venueWithLocation().'.'.($this->facts->mapUrl() !== null ? ' Map and directions: '.$this->facts->mapUrl() : ''),
             '- Schedule: '.ucfirst($this->facts->scheduleText()).' (Asia/Karachi time). Times shift slightly with the seasons.',
             '- Trainer: '.$trainer,
-            '- Riders per slot: up to '.($this->settings->int(SettingKey::RidersPerSlot) ?? 0),
             '- Experience: none needed; complete beginners welcome.',
             '- Payment: PKR, by card online or by bank transfer (verified before the booking is confirmed).',
             '- Part of '.$this->settings->string(SettingKey::ParentCompany).'.',

@@ -127,9 +127,9 @@
         <section aria-labelledby="step-riders" class="flex flex-col gap-6">
             <h2 id="step-riders" class="text-display-md">Who’s riding?</h2>
             @if ($chosenSlot)
-                <p class="text-sand-dim">{{ $chosenSlot->label() }} · up to {{ $maxRiders }} {{ $maxRiders === 1 ? 'rider' : 'riders' }}</p>
+                <p class="text-sand-dim">{{ $chosenSlot->label() }}</p>
             @elseif ($requestLabel)
-                <p class="text-sand-dim">Requested: {{ $requestLabel }} · up to {{ $maxRiders }} {{ $maxRiders === 1 ? 'rider' : 'riders' }}</p>
+                <p class="text-sand-dim">Requested: {{ $requestLabel }}</p>
             @endif
 
             @if ($user)

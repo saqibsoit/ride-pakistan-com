@@ -181,8 +181,9 @@ final class BusinessFacts
     }
 
     /**
-     * Group size for a product: its own text if set, otherwise derived from
-     * the riders-per-slot setting so the two never disagree.
+     * Group size for a product: its own text if set, "Just your group" for
+     * a private session, otherwise none. Customers never see how many riders
+     * a slot takes (decided 2026-11-16).
      */
     public function groupSize(Product $product): ?string
     {
@@ -190,13 +191,7 @@ final class BusinessFacts
             return $product->group_size;
         }
 
-        if ($product->type === ProductType::Private) {
-            return 'Just your group';
-        }
-
-        $riders = $this->settings->int(SettingKey::RidersPerSlot);
-
-        return $riders === null ? null : 'Up to '.$riders.' riders';
+        return $product->type === ProductType::Private ? 'Just your group' : null;
     }
 
     /** "2-hour" (as in "a 2-hour session"). */

@@ -18,7 +18,9 @@ use Illuminate\Support\Facades\DB;
 /**
  * The only place a slot changes status: close, reopen or cancel. Cancelling
  * needs a reason and announces SlotCancelled after commit. A cancelled slot
- * stays cancelled, with one exception: reopenForPrivateRequest() below.
+ * stays cancelled, with one exception: an empty future cancelled slot is
+ * reused when a new slot is wanted at its start (reopenForPrivateRequest()
+ * and reopenAsNewSlot() below).
  */
 final class ChangeSlotStatus
 {
@@ -72,19 +74,55 @@ final class ChangeSlotStatus
 
     /**
      * Reuses a cancelled slot for an approved private session request
-     * (prompt 15B follow-up): slot starts are unique, so a cancelled slot
-     * would otherwise block that start time for good. Allowed only for a
-     * future cancelled slot with nothing on it any more (no booking that
-     * takes a seat, no active hold). It reopens as a private-only manual
-     * slot with the request's end, capacity and trainer, and its old
-     * cancellation details are cleared (kept in the audit log). Open and
-     * closed slots are never taken over.
+     * (prompt 15B follow-up): it reopens as a private-only manual slot with
+     * the request's end, capacity and trainer. See reopenCancelled().
      *
      * Must run inside the caller's transaction (it takes the slot lock).
      *
      * @throws InvalidStatusTransition
      */
     public function reopenForPrivateRequest(Slot $slot, CarbonImmutable $endsAt, int $capacity, ?User $trainer, User $actor, string $requestReference): Slot
+    {
+        return $this->reopenCancelled(
+            $slot, $endsAt, $capacity, true, $trainer, $actor,
+            event: 'reopened_for_private_request',
+            context: ['request' => $requestReference],
+            message: 'Cancelled slot %s reopened as private-only for request '.$requestReference,
+        );
+    }
+
+    /**
+     * Reuses a cancelled slot for a new manual slot at the same start
+     * (CreateManualSlot: the Slots screen and the bulk schedule editor).
+     *
+     * Must run inside the caller's transaction (it takes the slot lock).
+     *
+     * @throws InvalidStatusTransition
+     */
+    public function reopenAsNewSlot(Slot $slot, CarbonImmutable $endsAt, int $capacity, bool $privateOnly, ?User $trainer, ?User $actor): Slot
+    {
+        return $this->reopenCancelled(
+            $slot, $endsAt, $capacity, $privateOnly, $trainer, $actor,
+            event: 'reopened_as_new_slot',
+            context: [],
+            message: 'Cancelled slot %s reopened as a new '.($privateOnly ? 'private-only ' : '').'slot',
+        );
+    }
+
+    /**
+     * Slot starts are unique, so a cancelled slot would otherwise block its
+     * start time for good. Allowed only for a future cancelled slot with
+     * nothing on it any more (no booking that takes a seat, no active hold).
+     * It reopens as an open manual slot with the given end, capacity,
+     * private-only flag and trainer, detached from any schedule rule; its
+     * old cancellation details are cleared (kept in the audit log). Open
+     * and closed slots are never taken over.
+     *
+     * @param  array<string, mixed>  $context
+     *
+     * @throws InvalidStatusTransition
+     */
+    private function reopenCancelled(Slot $slot, CarbonImmutable $endsAt, int $capacity, bool $privateOnly, ?User $trainer, ?User $actor, string $event, array $context, string $message): Slot
     {
         $locked = $this->lock->acquire($slot->id);
         $current = $locked->slot;
@@ -118,7 +156,7 @@ final class ChangeSlotStatus
         $current->schedule_rule_id = null;
         $current->ends_at = $endsAt->utc()->startOfMinute();
         $current->capacity = $capacity;
-        $current->private_only = true;
+        $current->private_only = $privateOnly;
         $current->trainer_id = $trainer?->id;
         $current->cancel_reason = null;
         $current->cancelled_at = null;
@@ -128,9 +166,9 @@ final class ChangeSlotStatus
         activity('slots')
             ->performedOn($current)
             ->causedBy($actor)
-            ->event('reopened_for_private_request')
-            ->withProperties(['old' => $before, 'request' => $requestReference])
-            ->log(sprintf('Cancelled slot %s reopened as private-only for request %s', $current->label(), $requestReference));
+            ->event($event)
+            ->withProperties(['old' => $before, ...$context])
+            ->log(sprintf($message, $current->label()));
 
         $slot->setRawAttributes($current->getAttributes(), true);
 

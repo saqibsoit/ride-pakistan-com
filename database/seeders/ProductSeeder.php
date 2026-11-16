@@ -47,7 +47,7 @@ class ProductSeeder extends Seeder
                 'short_description' => 'One 2-hour session: bring your horse in, groom, tack up and ride the trail with your trainer.',
                 'long_description' => 'The full experience in one morning or afternoon. You start on the ground, meeting your horse in the paddock and learning how to approach him, then groom and tack up before your ride.',
                 'who_for' => 'Complete beginners and anyone who wants to try a session before choosing a package.',
-                'group_size' => null, // shown as "Up to {riders per slot} riders"
+                'group_size' => null, // no group size shown: customers never see the slot size
                 'cover_image' => 'ride.jpg',
                 'cover_image_alt' => 'A rider on a white horse crossing a mountain river',
                 'good_to_know' => ['No experience needed.'],

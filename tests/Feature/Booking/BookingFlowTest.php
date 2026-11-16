@@ -226,3 +226,20 @@ it('shows the checkout summary to the owner only', function (): void {
     auth()->logout();
     $this->get(route('checkout.show', $order->reference))->assertRedirect(route('login'));
 });
+
+it('never tells customers how many riders a slot takes', function (): void {
+    $slot = nearSlot();
+    // As in production: no group size text of its own, so none is derived from the setting.
+    $this->single->update(['group_size' => null]);
+    $this->private->update(['group_size' => null]);
+
+    Livewire::withQueryParams(['product' => 'single-session', 'slot' => $slot->id])
+        ->test(BookingFlow::class)
+        ->assertSet('step', 'riders')
+        ->assertSee($slot->label())
+        ->assertDontSee('up to 6 riders');
+
+    $this->get('/sessions/single-session')->assertOk()->assertDontSee('Up to 6 riders');
+    $this->get('/sessions/private-session')->assertOk()->assertSee('Just your group');
+    $this->get('/llms.txt')->assertOk()->assertDontSee('Riders per slot');
+});

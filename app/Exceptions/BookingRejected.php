@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Exceptions;
 
+use Carbon\CarbonInterface;
 use RuntimeException;
 
 /**
@@ -38,6 +39,9 @@ final class BookingRejected extends RuntimeException
     public const NOT_ALLOWED = 'not_allowed';
 
     public const ORDER_NOT_FULFILLABLE = 'order_not_fulfillable';
+
+    /** Package credits: at most booking.package_sessions_per_week per rider per week. */
+    public const WEEKLY_LIMIT = 'weekly_limit';
 
     public function __construct(public readonly string $reason, string $message)
     {
@@ -104,6 +108,14 @@ final class BookingRejected extends RuntimeException
     public static function notAllowed(string $message): self
     {
         return new self(self::NOT_ALLOWED, $message);
+    }
+
+    public static function weeklyLimit(string $rider, int $limit, CarbonInterface $weekStart): self
+    {
+        return new self(self::WEEKLY_LIMIT, sprintf(
+            '%s already has %d package %s in the week of %s. Packages allow %d a week, so please choose another week.',
+            $rider, $limit, $limit === 1 ? 'session' : 'sessions', $weekStart->format('D j M'), $limit,
+        ));
     }
 
     public static function orderNotFulfillable(string $reference, string $status): self

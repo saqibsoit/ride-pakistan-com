@@ -22,7 +22,8 @@ use Illuminate\Support\Facades\DB;
  * (PLAN §2). Checked under the slot lock and the pack row locks: the
  * pack must be active, unexpired, with enough credits, and expire after
  * the session starts; the slot must have a seat per rider; a rider is
- * never booked twice in a slot. Credits never pay for private sessions.
+ * never booked twice in a slot; customers keep to the weekly package limit
+ * (PackageWeeklyLimit, admins skip it). Credits never pay for private sessions.
  * Uses the packs that expire soonest first.
  */
 final class BookWithCredit
@@ -34,6 +35,7 @@ final class BookWithCredit
         private readonly Settings $settings,
         private readonly Notifier $notifier,
         private readonly ClaimWaitlistPlace $waitlist,
+        private readonly PackageWeeklyLimit $weeklyLimit,
     ) {}
 
     /**
@@ -63,6 +65,11 @@ final class BookWithCredit
             $slot->assertRoomFor($riderIds, private: false);
 
             $packs = $this->lockedPacks($user, $slot->slot, $only);
+
+            // Customers only; checked after the pack locks, which serialise this customer's credit bookings.
+            if ($actor === null || ! $actor->isAdmin()) {
+                $this->weeklyLimit->assertAllows($riderIds, $slot->slot);
+            }
             $available = $packs->sum(fn (CreditPack $pack): int => $pack->creditsRemaining());
 
             if ($available < count($riderIds)) {

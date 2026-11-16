@@ -49,6 +49,7 @@ return [
         'booking.min_notice_hours' => 0,
         'booking.waitlist_offer_hours' => 2,
         'booking.slot_buffer_minutes' => 30,
+        'booking.package_sessions_per_week' => 2,
         'private.earliest_start_hour' => 7,
         'private.latest_end_hour' => 18,
         'private.min_notice_hours' => 48,

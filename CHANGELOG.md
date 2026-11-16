@@ -5,6 +5,7 @@ All notable changes to this project are documented here. The format follows [Kee
 ## [Unreleased]
 
 ### Changed
+- Customers no longer see the slot size either (decided 2026-11-16): no "Up to N riders" on product pages and cards unless a product has its own group size text (private sessions keep "Just your group"), no "up to N riders" in the booking flow's rider step, and no riders-per-slot line in `llms.txt`.
 - Customers no longer see how many seats are left (decided 2026-11-16). `<x-seats-left>` shows "Available" (plus "Selling fast" at or below `booking.selling_fast_threshold`) or "Fully booked" on the home strip, `/schedule`, product pages, `/book` and the reschedule, move and package-booking pages. The waitlist join page says "Some seats are free right now". Refusals such as "Only N seats are left in that slot" still name the number so a customer can choose fewer riders. Team screens are unchanged.
 
 ### Fixed

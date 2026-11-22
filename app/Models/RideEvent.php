@@ -212,6 +212,23 @@ class RideEvent extends Model
     }
 
     /**
+     * Whether any event is listed right now: the header and footer show
+     * "Events" only then. One small query per request (kept on the
+     * request, so a long-lived process never reuses an old answer);
+     * cached pages keep it until content or dates change.
+     */
+    public static function anyListed(): bool
+    {
+        $attributes = request()->attributes;
+
+        if (! $attributes->has('events.any_listed')) {
+            $attributes->set('events.any_listed', self::query()->listed()->exists());
+        }
+
+        return (bool) $attributes->get('events.any_listed');
+    }
+
+    /**
      * @param  Builder<RideEvent>  $query
      */
     public function scopeOrdered(Builder $query): void

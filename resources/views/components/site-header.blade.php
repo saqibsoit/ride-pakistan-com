@@ -13,6 +13,10 @@
         ['label' => 'Your trainer', 'url' => route('trainer'), 'match' => 'trainer*'],
         ['label' => 'FAQ', 'url' => route('faq'), 'match' => 'faq*'],
     ];
+    // "Events" only while an event has a date to come (decided 2026-11-22).
+    if (\App\Models\RideEvent::anyListed()) {
+        array_splice($links, 1, 0, [['label' => 'Events', 'url' => route('events.index'), 'match' => 'events*']]);
+    }
     $bookUrl = route('book');
 @endphp
 
@@ -34,7 +38,7 @@
             <span class="sr-only">, home</span>
         </a>
 
-        <nav aria-label="Main" class="hidden items-center gap-8 lg:flex">
+        <nav aria-label="Main" class="hidden items-center gap-6 lg:flex xl:gap-8">
             @foreach ($links as $link)
                 <a
                     href="{{ $link['url'] }}"

@@ -14,6 +14,9 @@
         ['label' => 'FAQ', 'url' => route('faq')],
         ['label' => 'Contact', 'url' => route('contact')],
     ];
+    if (\App\Models\RideEvent::anyListed()) {
+        array_splice($siteLinks, 1, 0, [['label' => 'Events', 'url' => route('events.index')]]);
+    }
     // Legal pages appear once they are published in the CMS.
     $legal = ['privacy' => 'Privacy', 'terms' => 'Terms', 'refund-policy' => 'Refund policy'];
     $published = \App\Models\Page::query()->published()->whereIn('slug', array_keys($legal))->pluck('slug')->all();

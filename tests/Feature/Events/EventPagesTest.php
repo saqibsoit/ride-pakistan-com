@@ -125,6 +125,33 @@ it('shows the event page with the sticky box, dates, programme, dress code, rule
         ->and($events[1]['offers'][0]['availability'])->toBe('https://schema.org/LimitedAvailability');
 });
 
+it('shows the next event right after the hero and Events in the menu, only while one has a date to come', function (): void {
+    $this->seed();
+
+    // No events: no section, no menu link.
+    $this->get('/')->assertOk()->assertDontSee('Upcoming events.')->assertDontSee(route('events.index'));
+
+    $event = epCamp();
+    $date = eventDate($event, days: 20);
+
+    $html = $this->get('/')->assertOk()
+        ->assertSee('Upcoming events.')
+        ->assertSee('Book your place')
+        ->assertSee('PKR 5,000 non-refundable deposit to book.')
+        ->assertSee($date->dateRangeLabel())
+        ->assertSee(route('events.index'))
+        ->assertSeeInOrder(['Never touched', 'Upcoming events.', 'Cowboy Camp', 'Session facts', 'Coming up.'], false)
+        ->getContent();
+
+    // Header and footer both link to /events.
+    expect(substr_count((string) $html, 'href="'.route('events.index').'"'))->toBeGreaterThanOrEqual(3);
+    $this->get('/faq')->assertOk()->assertSee('href="'.route('events.index').'"', false);
+
+    // The only date is cancelled: the event leaves the home page and the menu.
+    $date->forceFill(['status' => SlotStatus::Cancelled])->save();
+    $this->get('/')->assertOk()->assertDontSee('Upcoming events.')->assertDontSee('Cowboy Camp');
+});
+
 it('puts events on the home page, /experiences, the sitemap and llms.txt', function (): void {
     $this->seed();
     $event = epCamp();

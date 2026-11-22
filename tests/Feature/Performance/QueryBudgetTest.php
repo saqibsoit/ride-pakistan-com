@@ -73,5 +73,6 @@ it('renders the checkout page with discounts within its budget', function (): vo
 
     $this->actingAs($user);
 
-    assertQueryBudget(fn () => $this->get(route('checkout.show', $order->reference))->assertOk()->assertSee('Gift voucher'), 14);
+    // 15: one query for the "Events" menu link (decided 2026-11-22).
+    assertQueryBudget(fn () => $this->get(route('checkout.show', $order->reference))->assertOk()->assertSee('Gift voucher'), 15);
 });

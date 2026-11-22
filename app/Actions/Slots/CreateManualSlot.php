@@ -58,7 +58,7 @@ final class CreateManualSlot
 
         try {
             return DB::transaction(function () use ($startsAt, $endsAt, $capacity, $actor, $privateOnly, $trainer): Slot {
-                $taken = Slot::query()->where('starts_at', $startsAt)->lockForUpdate()->first();
+                $taken = Slot::query()->lessons()->where('starts_at', $startsAt)->lockForUpdate()->first();
 
                 if ($taken !== null && $taken->status === SlotStatus::Cancelled) {
                     // Starts are unique: an empty cancelled slot here is reopened instead.

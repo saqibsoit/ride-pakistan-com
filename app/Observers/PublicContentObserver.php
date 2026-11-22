@@ -65,6 +65,19 @@ final class PublicContentObserver
             }
         }
 
+        // Event content blocks (decided 2026-11-22): photos blocks hold [{image, alt}, ...].
+        if ($model->wasChanged('blocks') || $model->wasRecentlyCreated) {
+            $blocks = $model->getAttribute('blocks');
+
+            foreach (is_array($blocks) ? $blocks : [] as $block) {
+                if (is_array($block) && ($block['type'] ?? null) === 'photos') {
+                    foreach ((array) ($block['data']['images'] ?? []) as $item) {
+                        $paths[] = is_array($item) ? ($item['image'] ?? null) : null;
+                    }
+                }
+            }
+        }
+
         // Only admin uploads; shipped photos already have variants from the build.
         return array_values(array_unique(array_filter(
             $paths,

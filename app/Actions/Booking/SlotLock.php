@@ -46,7 +46,7 @@ final class SlotLock
             ->whereIn('status', BookingStatus::seatOccupyingValues())
             ->when($ignoreBookingIds !== [], fn ($q) => $q->whereNotIn('id', $ignoreBookingIds))
             ->lockForUpdate()
-            ->get(['id', 'rider_id', 'is_private']);
+            ->get(['id', 'rider_id', 'is_private', 'order_item_id']);
 
         $ownEntries = $claimFor === null ? [] : WaitlistEntry::query()
             ->where('slot_id', $slotId)
@@ -78,7 +78,29 @@ final class SlotLock
             ->map(fn (mixed $id): int => (int) $id)
             ->all();
 
+        // Event occurrences (decided 2026-11-22): seats taken per price tier,
+        // from the order lines of bookings and of held orders.
+        $tierSeats = [];
+
+        if ($slot->ride_event_id !== null) {
+            $itemIds = $bookings->pluck('order_item_id')->filter()->all();
+            $tiers = $itemIds === [] ? [] : OrderItem::query()->whereKey($itemIds)->sharedLock()->pluck('ride_event_tier_id')->all();
+            $heldTiers = $holdOrderIds === [] ? [] : OrderItem::query()
+                ->where('slot_id', $slotId)
+                ->whereIn('order_id', $holdOrderIds)
+                ->sharedLock()
+                ->pluck('ride_event_tier_id')
+                ->all();
+
+            foreach ([...$tiers, ...$heldTiers] as $tierId) {
+                if ($tierId !== null) {
+                    $tierSeats[(int) $tierId] = ($tierSeats[(int) $tierId] ?? 0) + 1;
+                }
+            }
+        }
+
         return new LockedSlot(
+            tierSeats: $tierSeats,
             slot: $slot,
             seatsBooked: $bookings->count(),
             seatsHeld: (int) $holds->sum('seats'),

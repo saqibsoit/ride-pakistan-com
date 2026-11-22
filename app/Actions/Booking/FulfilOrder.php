@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Booking;
 
+use App\Actions\Events\OpenOrderBalance;
 use App\Actions\Orders\OrderStateMachine;
 use App\Enums\CreditReason;
 use App\Enums\OrderStatus;
@@ -15,6 +16,7 @@ use App\Models\CreditPack;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\User;
+use App\Support\Events\EventTiers;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
@@ -33,6 +35,11 @@ use Illuminate\Support\Facades\DB;
  * and nothing is written: the Stripe webhook refunds automatically, a bank
  * transfer approval flags the order for review, and both email the
  * customer (OrderNotFulfilled).
+ *
+ * Event orders (decided 2026-11-22) fulfil the same way: each attendee's
+ * booking keeps its order line (tier and answers), a lapsed hold is also
+ * re-checked against the tier caps, and a deposit order gets its balance
+ * row (OpenOrderBalance).
  */
 final class FulfilOrder
 {
@@ -41,6 +48,7 @@ final class FulfilOrder
         private readonly SlotLock $slotLock,
         private readonly GenerateTicketCode $tickets,
         private readonly CreditPacks $credits,
+        private readonly OpenOrderBalance $balances,
     ) {}
 
     /**
@@ -92,6 +100,10 @@ final class FulfilOrder
                 if ($hold === null) {
                     $slot->assertOpen();
                     $slot->assertRoomFor(array_map(fn (OrderItem $i): int => (int) $i->rider_id, $items), $private);
+
+                    if ($locked->isEvent()) {
+                        $slot->assertTierRoom(...EventTiers::forItems($items));
+                    }
                 }
             }
 
@@ -106,6 +118,7 @@ final class FulfilOrder
                     $booking = Booking::query()->create([
                         'slot_id' => $slotId,
                         'order_id' => $locked->id,
+                        'order_item_id' => $item->id,
                         'rider_id' => $item->rider_id,
                         'user_id' => $locked->user_id,
                         'credit_pack_id' => $pack?->id,
@@ -121,11 +134,15 @@ final class FulfilOrder
 
             BookingHold::query()->where('order_id', $locked->id)->delete();
 
+            // A deposit event order (decided 2026-11-22): the deposit confirmed
+            // the seats; what is left becomes the balance to pay later.
+            $balance = $this->balances->open($locked, array_key_first($seatsBySlot));
+
             activity('bookings')
                 ->performedOn($locked)
                 ->causedBy($actor)
                 ->event('fulfilled')
-                ->withProperties([...$context, 'bookings' => array_sum(array_map('count', $seatsBySlot)), 'credit_pack_id' => $pack?->id])
+                ->withProperties([...$context, 'bookings' => array_sum(array_map('count', $seatsBySlot)), 'credit_pack_id' => $pack?->id, 'balance_minor' => $balance?->amount_minor])
                 ->log('Order '.$locked->reference.' fulfilled');
 
             $order->setRawAttributes($locked->getAttributes(), true);

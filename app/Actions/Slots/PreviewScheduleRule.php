@@ -61,6 +61,7 @@ final class PreviewScheduleRule
 
         $slots = Slot::query()
             ->withSeatCounts()
+            ->lessons()
             ->where('slots.starts_at', '>', $now)
             ->where('slots.starts_at', '<', $until->utc())
             ->get()

@@ -15,6 +15,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $slot_id
  * @property int|null $rider_id
  * @property int $unit_price_minor
+ * @property int|null $ride_event_tier_id event orders: the attendee's price tier
+ * @property array<string, string>|null $answers event orders: this attendee's answers, keyed by question (encrypted)
+ * @property-read RideEventTier|null $tier
  * @property-read Order $order
  * @property-read Slot|null $slot
  * @property-read Rider|null $rider
@@ -29,6 +32,8 @@ class OrderItem extends Model
         'slot_id',
         'rider_id',
         'unit_price_minor',
+        'ride_event_tier_id',
+        'answers',
     ];
 
     /**
@@ -56,12 +61,21 @@ class OrderItem extends Model
     }
 
     /**
+     * @return BelongsTo<RideEventTier, $this>
+     */
+    public function tier(): BelongsTo
+    {
+        return $this->belongsTo(RideEventTier::class, 'ride_event_tier_id');
+    }
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array
     {
         return [
             'unit_price_minor' => 'integer',
+            'answers' => 'encrypted:array',
         ];
     }
 }

@@ -13,6 +13,7 @@ use App\Models\CreditPack;
 use App\Models\Slot;
 use App\Models\User;
 use App\Notifications\BookingMoved;
+use App\Support\Events\EventTiers;
 use App\Support\Notifier;
 use App\Support\Settings;
 use Illuminate\Database\Eloquent\Collection;
@@ -116,6 +117,15 @@ final class RescheduleBooking
 
             if (! $asAdmin && ! $forSlotChange && ! $this->cutoff->isBefore($from->slot)) {
                 throw BookingRejected::pastCutoff($this->cutoff->hours());
+            }
+
+            // Lessons move to lessons; event bookings to another date of the
+            // same event, within each tier's seats (decided 2026-11-22).
+            if ($from->slot->ride_event_id === null) {
+                $to->assertLesson();
+            } else {
+                $to->assertOccurrenceOf($from->slot->ride_event_id);
+                $to->assertTierRoom(...EventTiers::forBookings($moving));
             }
 
             $to->assertBookable($asAdmin ? 0 : ($this->settings->int(SettingKey::MinNoticeHours) ?? 0));

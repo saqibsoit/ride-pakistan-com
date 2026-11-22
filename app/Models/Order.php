@@ -17,13 +17,22 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
- * An order for one product (PLAN §3). Amounts in paisa. The status is not
- * fillable: it changes only through App\Actions\Orders\OrderStateMachine.
+ * An order for one product, or for one event (decided 2026-11-22), PLAN
+ * §3. Amounts in paisa. The status is not fillable: it changes only
+ * through App\Actions\Orders\OrderStateMachine.
+ *
+ * Event orders with a deposit: amount_minor is still what is charged at
+ * checkout (the deposit, after discounts); balance_minor is the rest,
+ * which FulfilOrder turns into an OrderBalance row.
  *
  * @property int $id
  * @property string $reference
  * @property int $user_id
- * @property int $product_id
+ * @property int|null $product_id null for an event order
+ * @property int|null $ride_event_id set for an event order
+ * @property int|null $deposit_percent event orders: the deposit percentage as booked (null = full payment)
+ * @property int $balance_minor event orders: what is left to pay after the deposit
+ * @property array<string, string>|null $answers event orders: per-booking question answers (encrypted)
  * @property OrderStatus $status
  * @property PaymentMethod|null $payment_method
  * @property int $subtotal_minor price before discounts (milestone 10e Part B)
@@ -45,7 +54,9 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property bool $placed_as_guest placed signed out (guest checkout)
  * @property int $manage_link_version part of every signed manage link; raised to revoke them
  * @property-read User $user
- * @property-read Product $product
+ * @property-read Product|null $product
+ * @property-read RideEvent|null $rideEvent
+ * @property-read OrderBalance|null $balance
  * @property-read Collection<int, OrderDiscount> $discounts
  * @property-read PromoRedemption|null $promoRedemption
  */
@@ -59,6 +70,10 @@ class Order extends Model
         'reference',
         'user_id',
         'product_id',
+        'ride_event_id',
+        'deposit_percent',
+        'balance_minor',
+        'answers',
         'payment_method',
         'subtotal_minor',
         'amount_minor',
@@ -77,6 +92,7 @@ class Order extends Model
         'status' => 'pending_payment',
         'currency' => 'PKR',
         'amount_refunded_minor' => 0,
+        'balance_minor' => 0,
         'placed_as_guest' => false,
         'manage_link_version' => 1,
     ];
@@ -97,6 +113,14 @@ class Order extends Model
                 return;
             }
 
+            if ($order->ride_event_id !== null) {
+                $event = RideEvent::query()->find($order->ride_event_id);
+                $order->product_name = $event !== null ? $event->title : null;
+                $order->product_type = ProductType::Event;
+
+                return;
+            }
+
             $product = Product::query()->find($order->product_id);
 
             if ($product === null) {
@@ -110,28 +134,60 @@ class Order extends Model
         });
     }
 
-    /** Product name as bought. */
+    /** Product (or event) name as bought. */
     public function productName(): string
     {
-        return $this->product_name ?? $this->product->name;
+        return $this->product_name ?? $this->product->name ?? $this->rideEvent->title ?? '';
     }
 
-    /** Product type as bought (private vs group vs package). */
+    /** Product type as bought (private vs group vs package vs event). */
     public function productType(): ProductType
     {
-        return $this->product_type ?? $this->product->type;
+        if ($this->product_type !== null) {
+            return $this->product_type;
+        }
+
+        return $this->product !== null ? $this->product->type : ProductType::Event;
     }
 
     /** Credits a package order grants, as bought. */
     public function sessionsCount(): int
     {
-        return $this->sessions_count ?? $this->product->sessions_count;
+        return $this->sessions_count ?? $this->product->sessions_count ?? 0;
     }
 
     /** Package validity in days from confirmation, as bought. */
     public function validityDays(): ?int
     {
-        return $this->product_type !== null ? $this->validity_days : $this->product->validity_days;
+        return $this->product_type !== null ? $this->validity_days : $this->product?->validity_days;
+    }
+
+    /** An event booking (decided 2026-11-22). */
+    public function isEvent(): bool
+    {
+        return $this->ride_event_id !== null;
+    }
+
+    /** The price after discounts: what is charged at checkout plus any balance. */
+    public function priceMinor(): int
+    {
+        return $this->amount_minor + $this->balance_minor;
+    }
+
+    /**
+     * @return BelongsTo<RideEvent, $this>
+     */
+    public function rideEvent(): BelongsTo
+    {
+        return $this->belongsTo(RideEvent::class);
+    }
+
+    /**
+     * @return HasOne<OrderBalance, $this>
+     */
+    public function balance(): HasOne
+    {
+        return $this->hasOne(OrderBalance::class);
     }
 
     public function isPackage(): bool
@@ -226,7 +282,7 @@ class Order extends Model
     /** Total of the discount lines. */
     public function discountMinor(): int
     {
-        return $this->subtotal_minor - $this->amount_minor;
+        return $this->subtotal_minor - $this->amount_minor - $this->balance_minor;
     }
 
     /**
@@ -263,6 +319,9 @@ class Order extends Model
             'subtotal_minor' => 'integer',
             'amount_minor' => 'integer',
             'amount_refunded_minor' => 'integer',
+            'deposit_percent' => 'integer',
+            'balance_minor' => 'integer',
+            'answers' => 'encrypted:array',
             'expires_at' => 'immutable_datetime',
             'paid_at' => 'immutable_datetime',
             'meta' => 'array',

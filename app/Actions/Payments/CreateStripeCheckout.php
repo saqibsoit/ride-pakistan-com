@@ -253,6 +253,26 @@ final class CreateStripeCheckout
 
         $discounts = $order->discounts()->get();
 
+        // A deposit event order (decided 2026-11-22): one line for the
+        // non-refundable deposit; the balance is paid later.
+        if ($order->deposit_percent !== null) {
+            if ($order->amount_minor <= 0 || strtoupper($order->currency) !== 'PKR') {
+                throw new LogicException('Order '.$order->reference.' has nothing to charge by card.');
+            }
+
+            return [[
+                'quantity' => 1,
+                'price_data' => [
+                    'currency' => 'pkr',
+                    'unit_amount' => $order->amount_minor,
+                    'product_data' => [
+                        'name' => $name.', '.$order->deposit_percent.'% deposit',
+                        'description' => mb_substr(trim(($description === null ? '' : $description.'. ').'Non-refundable deposit. Balance '.Money::format($order->balance_minor).' due later.'), 0, 500),
+                    ],
+                ],
+            ]];
+        }
+
         if ($discounts->isNotEmpty()) {
             if ($order->amount_minor <= 0 || strtoupper($order->currency) !== 'PKR') {
                 throw new LogicException('Order '.$order->reference.' has nothing to charge by card.');
@@ -292,7 +312,7 @@ final class CreateStripeCheckout
                     'currency' => 'pkr',
                     'unit_amount' => $unit,
                     'product_data' => array_filter([
-                        'name' => $name.($order->isPackage() ? '' : ' (per rider)'),
+                        'name' => $name.($order->isPackage() ? '' : ($order->isEvent() ? ' (per person)' : ' (per rider)')),
                         'description' => $description,
                     ]),
                 ],

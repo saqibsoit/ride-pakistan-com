@@ -278,6 +278,7 @@ final class BookingActions
     {
         return Slot::query()
             ->withSeatCounts()
+            ->lessons()
             ->where('slots.status', SlotStatus::Open)
             ->where('slots.starts_at', '>', now())
             ->when($except !== null, fn ($q) => $q->where('slots.id', '!=', $except))

@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
+use App\Enums\LessonClosure;
 use App\Enums\SlotSource;
 use App\Enums\SlotStatus;
+use App\Models\RideEvent;
 use App\Models\Slot;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -48,6 +50,17 @@ class SlotFactory extends Factory
     public function manual(): static
     {
         return $this->state(fn (): array => ['source' => SlotSource::Manual, 'schedule_rule_id' => null]);
+    }
+
+    /** An occurrence of $event (real code: CreateEventOccurrence). */
+    public function forEvent(RideEvent $event, LessonClosure $closure = LessonClosure::None): static
+    {
+        return $this->state(fn (): array => [
+            'source' => SlotSource::Manual,
+            'schedule_rule_id' => null,
+            'ride_event_id' => $event->id,
+            'lesson_closure' => $closure,
+        ]);
     }
 
     /** Test set-up only: real code changes status through ChangeSlotStatus. */

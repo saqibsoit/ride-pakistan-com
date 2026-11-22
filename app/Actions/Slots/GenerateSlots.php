@@ -9,6 +9,7 @@ use App\Enums\SlotSource;
 use App\Enums\SlotStatus;
 use App\Models\ScheduleRule;
 use App\Models\Slot;
+use App\Support\Events\LessonClosures;
 use App\Support\Settings;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -29,6 +30,8 @@ use Illuminate\Support\Facades\DB;
  * - Manual slots (added by an admin through CreateManualSlot) are never
  *   changed or removed. If a rule produces a start time a manual slot
  *   already holds, the manual slot wins and no rule slot is created.
+ * - A rule slot created inside an event occurrence that closes lessons
+ *   (decided 2026-11-22) is created closed, marked as closed for it.
  * - A rule slot the bulk schedule editor moved (prompt 15A) became manual
  *   and keeps the start it replaced (replaces_starts_at): no rule slot is
  *   created there again.
@@ -37,7 +40,10 @@ final class GenerateSlots
 {
     public const MAX_WEEKS = 52;
 
-    public function __construct(private readonly Settings $settings) {}
+    public function __construct(
+        private readonly Settings $settings,
+        private readonly LessonClosures $closures,
+    ) {}
 
     public function handle(?int $weeks = null): SlotGenerationResult
     {
@@ -55,7 +61,9 @@ final class GenerateSlots
 
         return DB::transaction(function () use ($desired, $trainers, $now, $until): SlotGenerationResult {
             /** @var array<string, Slot> $existing */
+            // Lesson slots only: event occurrences are never generated or touched.
             $existing = Slot::query()
+                ->lessons()
                 ->where('starts_at', '>', $now)
                 ->where('starts_at', '<', $until->utc())
                 ->lockForUpdate()
@@ -87,6 +95,15 @@ final class GenerateSlots
                     $created = new Slot($wanted);
                     $created->source = SlotSource::Rule;
                     $created->trainer_id = $trainers[$wanted['schedule_rule_id'] ?? 0] ?? null;
+
+                    // Inside an event that closes lessons (decided 2026-11-22): created closed.
+                    $closer = $this->closures->closerFor($wanted['starts_at'], $wanted['ends_at']);
+
+                    if ($closer !== null) {
+                        $created->status = SlotStatus::Closed;
+                        $created->closed_for_slot_id = $closer->id;
+                    }
+
                     $created->save();
                     $result->created++;
 

@@ -29,7 +29,9 @@ final class SendThankYous
         $until = (int) config('notifications.thank_you.until_hours', 24);
         $sent = 0;
 
+        // Lessons only: the thank-you asks for a review of the product (events have none).
         $slots = Slot::query()
+            ->lessons()
             ->where('ends_at', '<=', $now->subHours($after))
             ->where('ends_at', '>', $now->subHours($until))
             ->get();

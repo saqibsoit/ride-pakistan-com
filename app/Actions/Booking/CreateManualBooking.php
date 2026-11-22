@@ -54,6 +54,7 @@ final class CreateManualBooking
 
         $booking = DB::transaction(function () use ($admin, $rider, $customer, $slotId, $reason): Booking {
             $slot = $this->slotLock->acquire($slotId);
+            $slot->assertLesson();
             $slot->assertBookable();
             $slot->assertRoomFor([$rider->id], private: false);
 

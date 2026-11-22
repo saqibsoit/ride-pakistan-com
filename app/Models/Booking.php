@@ -21,6 +21,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $id
  * @property int $slot_id
  * @property int|null $order_id
+ * @property int|null $order_item_id the order line it came from (FulfilOrder): an event attendee's tier and answers
  * @property int $rider_id
  * @property int $user_id
  * @property int|null $credit_pack_id
@@ -37,6 +38,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property-read Rider $rider
  * @property-read User $user
  * @property-read Order|null $order
+ * @property-read OrderItem|null $orderItem
  */
 #[ObservedBy(SeatAvailabilityObserver::class)]
 class Booking extends Model
@@ -48,6 +50,7 @@ class Booking extends Model
     protected $fillable = [
         'slot_id',
         'order_id',
+        'order_item_id',
         'rider_id',
         'user_id',
         'credit_pack_id',
@@ -94,6 +97,14 @@ class Booking extends Model
     public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class);
+    }
+
+    /**
+     * @return BelongsTo<OrderItem, $this>
+     */
+    public function orderItem(): BelongsTo
+    {
+        return $this->belongsTo(OrderItem::class);
     }
 
     /**

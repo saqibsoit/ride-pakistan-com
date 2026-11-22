@@ -24,38 +24,8 @@ use App\Models\Rider;
 use App\Models\Slot;
 use App\Models\User;
 use App\Support\Availability;
-use Carbon\CarbonImmutable;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
-
-/** An occurrence of $event $days ahead, 10:00–17:00 Pakistan time. */
-function eventDate(RideEvent $event, int $days = 20, int $capacity = 10, int $hour = 10): Slot
-{
-    $local = CarbonImmutable::now((string) config('app.display_timezone'))->addDays($days)->setTime($hour, 0);
-
-    return Slot::factory()->forEvent($event)->at($local, 7)->create(['capacity' => $capacity]);
-}
-
-/**
- * @return list<array{tier_id: int, name: string, answers?: array<string, mixed>}>
- */
-function eventPeople(RideEvent $event, int $count, ?RideEventTier $tier = null, string $prefix = 'Guest'): array
-{
-    $tier ??= $event->tiers()->firstOrFail();
-
-    return array_map(fn (int $i): array => ['tier_id' => $tier->id, 'name' => $prefix.' '.$i], range(1, $count));
-}
-
-function eventRejection(callable $callback): ?string
-{
-    try {
-        $callback();
-    } catch (BookingRejected $e) {
-        return $e->reason;
-    }
-
-    return null;
-}
 
 it('creates an event order priced from the tiers and holds one seat per person', function (): void {
     $event = RideEvent::factory()->published()->create();

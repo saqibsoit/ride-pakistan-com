@@ -6,6 +6,7 @@ namespace App\Actions\Payments;
 
 use App\Actions\Booking\FulfilOrder;
 use App\Actions\Discounts\RestoreOrderDiscounts;
+use App\Actions\Events\HandleBalanceStripeEvent;
 use App\Actions\Vouchers\HandleVoucherStripeEvent;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentProvider;
@@ -61,6 +62,7 @@ final class HandleStripeEvent
         private readonly FlagOrderForReview $flag,
         private readonly StripeGateway $stripe,
         private readonly HandleVoucherStripeEvent $vouchers,
+        private readonly HandleBalanceStripeEvent $balances,
         private readonly RestoreOrderDiscounts $restore,
         private readonly Notifier $notifier,
     ) {}
@@ -82,7 +84,14 @@ final class HandleStripeEvent
             /** @var array<string, mixed> $object */
             $object = $event->data->object->toArray();
 
-            if (str_starts_with($event->type, 'checkout.session.') && HandleVoucherStripeEvent::isVoucherSession($object)) {
+            if (str_starts_with($event->type, 'checkout.session.') && HandleBalanceStripeEvent::isBalanceSession($object)) {
+                // Event balances (decided 2026-11-22): the seats are already confirmed.
+                match ($event->type) {
+                    'checkout.session.completed',
+                    'checkout.session.async_payment_succeeded' => $this->balances->sessionPaid($event, $object),
+                    default => null,
+                };
+            } elseif (str_starts_with($event->type, 'checkout.session.') && HandleVoucherStripeEvent::isVoucherSession($object)) {
                 // Gift voucher purchases (milestone 10e) never reach order fulfilment.
                 match ($event->type) {
                     'checkout.session.completed',
@@ -199,6 +208,10 @@ final class HandleStripeEvent
         $intent = self::str($charge['payment_intent'] ?? null);
 
         $order = $intent === '' ? null : Order::query()->where('stripe_payment_intent_id', $intent)->lockForUpdate()->first();
+
+        if ($order === null && $this->balances->chargeRefunded($event, $charge)) {
+            return; // an event balance payment (decided 2026-11-22)
+        }
 
         if ($order === null && $this->vouchers->chargeRefunded($event, $charge)) {
             return; // a gift voucher payment (milestone 10e)

@@ -4,6 +4,8 @@
     $isUnpaid = $order->status->isUnpaid();
     $heldUntil = $order->holds->max('expires_at') ?? $order->expires_at;
     $slotItems = $order->items->whereNotNull('slot_id');
+    // Event orders (decided 2026-11-22): deposit, balance and the event's rules.
+    $eventBooking = \App\Support\Events\EventBooking::for($order);
 @endphp
 
 <x-layouts.app title="Checkout {{ $order->reference }}" robots="noindex, nofollow">
@@ -33,7 +35,7 @@
 
             <dl class="grid gap-4 rounded-sm border border-line-strong bg-earth-2 p-6 sm:grid-cols-2">
                 <div>
-                    <dt class="text-sm text-sand-dim">Session</dt>
+                    <dt class="text-sm text-sand-dim">{{ $eventBooking ? 'Event' : 'Session' }}</dt>
                     <dd class="font-semibold">{{ $order->productName() }}</dd>
                 </div>
                 <div>
@@ -43,10 +45,10 @@
                 @if ($slotItems->isNotEmpty())
                     <div>
                         <dt class="text-sm text-sand-dim">When (Pakistan time)</dt>
-                        <dd class="font-semibold">{{ $slotItems->first()->slot?->label() }}</dd>
+                        <dd class="font-semibold">{{ $eventBooking ? $eventBooking->dateLabel() : $slotItems->first()->slot?->label() }}</dd>
                     </div>
                     <div>
-                        <dt class="text-sm text-sand-dim">Riders</dt>
+                        <dt class="text-sm text-sand-dim">{{ $eventBooking ? 'People' : 'Riders' }}</dt>
                         <dd class="font-semibold">{{ $slotItems->map(fn ($i) => $i->rider?->name)->filter()->join(', ') }}</dd>
                     </div>
                 @endif
@@ -77,8 +79,14 @@
                     </div>
                 @endif
                 <div class="border-t border-line pt-4 sm:col-span-2">
-                    <dt class="text-sm text-sand-dim">{{ $order->discounts->isNotEmpty() ? 'To pay' : 'Total' }}</dt>
-                    <dd class="font-display text-display-md font-black"><x-money :minor="$order->amount_minor" :currency="$order->currency" /></dd>
+                    @if ($order->deposit_percent !== null && $order->balance_minor > 0)
+                        <dt class="text-sm text-sand-dim">{{ $isUnpaid ? 'Deposit to pay now' : 'Deposit' }} ({{ $order->deposit_percent }}%, non-refundable)</dt>
+                        <dd class="font-display text-display-md font-black"><x-money :minor="$order->amount_minor" :currency="$order->currency" /></dd>
+                        <dd class="mt-1 text-sm text-sand-dim">Balance <x-money :minor="$order->balance_minor" :currency="$order->currency" />{{ $eventBooking ? ', '.$eventBooking->balanceDueText() : '' }}.</dd>
+                    @else
+                        <dt class="text-sm text-sand-dim">{{ $order->discounts->isNotEmpty() ? 'To pay' : 'Total' }}</dt>
+                        <dd class="font-display text-display-md font-black"><x-money :minor="$order->amount_minor" :currency="$order->currency" /></dd>
+                    @endif
                 </div>
             </dl>
 
@@ -125,6 +133,17 @@
             @elseif ($order->status === \App\Enums\OrderStatus::PendingPayment)
                 <section aria-labelledby="pay-title" class="flex flex-col gap-5">
                     <h2 id="pay-title" class="text-display-xs">How would you like to pay?</h2>
+
+                    @if ($eventBooking)
+                        <div class="rounded-sm border border-line p-5">
+                            <h3 class="mb-2 text-sm font-semibold">Cancellations</h3>
+                            <ul class="flex list-disc flex-col gap-1 ps-5 text-sm text-sand-dim">
+                                @foreach ($eventBooking->terms() as $line)
+                                    <li>{{ $line }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
 
                     @if ($cardFailed)
                         <x-alert variant="warning" title="Your card payment didn't go through.">Your {{ $order->isPrivate() ? 'slot is' : 'seats are' }} still held. Try a card again, or pay by bank transfer with the same reference.</x-alert>

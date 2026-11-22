@@ -7,8 +7,10 @@ namespace App\Http\Controllers\Public;
 use App\Http\Controllers\Controller;
 use App\Models\Faq;
 use App\Models\Page;
+use App\Models\RideEvent;
 use App\Support\Availability;
 use App\Support\BusinessFacts;
+use App\Support\Events\EventAvailability;
 use App\Support\Reviews;
 use App\Support\Seo\SchemaFactory;
 use App\Support\Seo\Seo;
@@ -29,6 +31,9 @@ final class HomeController extends Controller
             'facts' => $facts,
             'products' => $products,
             'comingUp' => $availability->comingUp(),
+            // Events (decided 2026-11-22): the next ones with a date to come.
+            'events' => RideEvent::query()->listed()->ordered()->with(['category', 'tiers'])->limit(3)->get()
+                ->map(fn (RideEvent $event): EventAvailability => EventAvailability::for($event)),
             'faqs' => $faqs,
             'reviews' => $reviews->latest(6),
             'seo' => $seo->make(

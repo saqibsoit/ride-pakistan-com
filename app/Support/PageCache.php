@@ -29,7 +29,7 @@ final class PageCache
     public const SEAT_PAGES_LIFETIME = 3600;
 
     /** Path patterns of the pages that show seats left. */
-    public const SEAT_PAGES = ['/', 'schedule', 'sessions/*'];
+    public const SEAT_PAGES = ['/', 'schedule', 'sessions/*', 'events', 'events/*'];
 
     private bool $pending = false;
 

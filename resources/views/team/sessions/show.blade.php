@@ -18,6 +18,9 @@
         <p class="text-xs font-semibold uppercase tracking-label text-sand-dim">
             <a href="{{ route('team.sessions.index') }}" class="underline underline-offset-4 hover:text-sand">Sessions</a> · Run sheet
         </p>
+        @if ($slot->rideEvent)
+            <p class="mt-2 font-semibold">{{ $slot->rideEvent->title }}</p>
+        @endif
         <h1 id="runsheet-title" class="mt-2 text-display-lg">{{ $slot->localStartsAt()->format('D j M') }}, {{ $slot->localStartsAt()->format('H:i') }}–{{ $slot->localEndsAt()->format('H:i') }}</h1>
 
         <dl class="mt-6 grid grid-cols-3 gap-4 rounded-sm border border-line-strong bg-earth-2 p-5">
@@ -39,6 +42,9 @@
 
         <p class="mt-4 text-sm">
             <a href="{{ route('team.sessions.show', [$slot, 'print' => 1]) }}" class="underline underline-offset-4 hover:text-sand-dim">Printable version</a>
+            @if ($slot->rideEvent && $isAdmin)
+                · <a href="{{ route('team.sessions.export', $slot) }}" class="underline underline-offset-4 hover:text-sand-dim">Download CSV</a>
+            @endif
         </p>
 
         @if ($errors->any())
@@ -110,6 +116,55 @@
                                 </dd>
                             </div>
                         </dl>
+
+                        @if ($slot->rideEvent)
+                            {{-- Event dates (decided 2026-11-22): tier, answers, contact, deposit and balance. --}}
+                            @php($answers = \App\Actions\Events\ExportRunSheet::answersFor($booking))
+                            @php($balance = $booking->order?->balance)
+                            <dl class="grid gap-4 sm:grid-cols-2">
+                                @if ($booking->orderItem?->tier)
+                                    <div>
+                                        <dt class="text-sm text-sand-dim">Ticket type</dt>
+                                        <dd>{{ $booking->orderItem->tier->name }}</dd>
+                                    </div>
+                                @endif
+                                <div>
+                                    <dt class="text-sm text-sand-dim">Contact</dt>
+                                    <dd>{{ $booking->order?->reference }} · {{ $booking->user->email }}</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-sm text-sand-dim">Payment</dt>
+                                    <dd>
+                                        @if ($booking->order?->deposit_percent !== null)
+                                            Deposit paid{{ $isAdmin ? ' ('.\App\Support\Money::format($booking->order->amount_minor).')' : '' }}.
+                                        @else
+                                            Paid in full.
+                                        @endif
+                                        @if ($balance)
+                                            {{ $balance->status->getLabel() }}{{ $isAdmin ? ': '.\App\Support\Money::format($balance->amount_minor) : '' }}{{ $balance->method ? ' ('.$balance->method->getLabel().')' : '' }}.
+                                        @endif
+                                    </dd>
+                                </div>
+                                @foreach ($answers as $row)
+                                    <div>
+                                        <dt class="text-sm text-sand-dim">{{ $row['label'] }}</dt>
+                                        <dd>{{ $row['answer'] }}</dd>
+                                    </div>
+                                @endforeach
+                            </dl>
+                            @if ($isAdmin && $balance?->isDue())
+                                <form method="POST" action="{{ route('team.sessions.balance', [$slot, $booking]) }}" class="flex flex-col gap-3 rounded-sm border border-line p-4 sm:flex-row sm:items-end">
+                                    @csrf
+                                    <x-form.field type="select" name="method" id="balance-method-{{ $booking->id }}" label="Balance paid by" :error="''" required>
+                                        @foreach (\App\Enums\BalanceMethod::manual() as $method)
+                                            <option value="{{ $method->value }}">{{ $method->getLabel() }}</option>
+                                        @endforeach
+                                    </x-form.field>
+                                    <x-form.field name="reference" id="balance-ref-{{ $booking->id }}" label="Reference (optional)" maxlength="100" :error="''" />
+                                    <x-button type="submit" variant="ghost">Mark balance paid</x-button>
+                                </form>
+                            @endif
+                        @endif
 
                         <form method="POST" action="{{ route('team.sessions.horse', [$slot, $booking]) }}" class="flex flex-col gap-3">
                             @csrf

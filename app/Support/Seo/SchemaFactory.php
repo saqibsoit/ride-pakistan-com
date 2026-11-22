@@ -5,16 +5,20 @@ declare(strict_types=1);
 namespace App\Support\Seo;
 
 use App\Enums\SettingKey;
+use App\Enums\SlotStatus;
 use App\Models\Faq;
 use App\Models\Post;
 use App\Models\Product;
 use App\Models\Review;
+use App\Models\RideEvent;
 use App\Models\ScheduleRule;
+use App\Support\Events\EventAvailability;
 use App\Support\Money;
 use App\Support\Settings;
 use Illuminate\Support\Collection;
 use Spatie\SchemaOrg\Article;
 use Spatie\SchemaOrg\BreadcrumbList;
+use Spatie\SchemaOrg\Event;
 use Spatie\SchemaOrg\FAQPage;
 use Spatie\SchemaOrg\ItemAvailability;
 use Spatie\SchemaOrg\OpeningHoursSpecification;
@@ -233,6 +237,92 @@ final class SchemaFactory
             ->identifier($url.'#faq')
             ->url($url)
             ->mainEntity($questions);
+    }
+
+    /**
+     * One Event node per date to come (decided 2026-11-22): start and end
+     * with the Pakistan offset, offline attendance, the venue as a Place
+     * (area only, no street address), the organisation as organiser, and an
+     * offer per price tier with its availability.
+     *
+     * @return list<Event>
+     */
+    public function events(RideEvent $event, EventAvailability $availability): array
+    {
+        $url = route('events.show', $event);
+        $tz = (string) config('app.display_timezone');
+        $nodes = [];
+
+        foreach ($availability->dates as $date) {
+            $free = $date->status === SlotStatus::Open && $event->isBookingOpen($date) ? $date->seatsFree() : 0;
+            $stock = match (true) {
+                $free === 0 => ItemAvailability::SoldOut,
+                $free <= $availability->threshold => ItemAvailability::LimitedAvailability,
+                default => ItemAvailability::InStock,
+            };
+
+            $offers = [];
+
+            foreach ($event->tiers as $tier) {
+                $offer = Schema::offer()
+                    ->name($tier->name)
+                    ->url($url)
+                    ->price(Money::decimal($tier->price_minor))
+                    ->priceCurrency('PKR')
+                    ->setProperty('availability', $stock)
+                    ->seller(Schema::organization()->identifier(self::organizationId()));
+
+                if ($event->booking_opens_at !== null) {
+                    $offer->validFrom($event->booking_opens_at->setTimezone($tz)->toIso8601String());
+                }
+
+                $offers[] = $offer;
+            }
+
+            $place = Schema::place()
+                ->name($event->location_name ?: $this->settings->string(SettingKey::VenueName))
+                ->address(Schema::postalAddress()->addressLocality('Islamabad')->addressCountry('PK'));
+
+            $map = $this->settings->string(SettingKey::MapPinUrl);
+
+            if ($map !== '') {
+                $place->hasMap($map);
+            }
+
+            $node = Schema::event()
+                ->identifier($url.'#event-'.$date->id)
+                ->name($event->title)
+                ->description((string) ($event->summary ?? ''))
+                ->url($url)
+                ->startDate($date->starts_at->setTimezone($tz))
+                ->endDate($date->ends_at->setTimezone($tz))
+                ->setProperty('eventStatus', $date->status === SlotStatus::Cancelled ? 'https://schema.org/EventCancelled' : 'https://schema.org/EventScheduled')
+                ->setProperty('eventAttendanceMode', 'https://schema.org/OfflineEventAttendanceMode')
+                ->location($place)
+                ->organizer(Schema::organization()->identifier(self::organizationId()))
+                ->image(asset('images/'.($event->cover_image ?? 'camp.jpg')))
+                ->offers($offers);
+
+            $nodes[] = $node;
+        }
+
+        return $nodes;
+    }
+
+    /**
+     * FAQPage from an event's FAQ blocks.
+     *
+     * @param  list<array{question: string, answer: string}>  $items
+     */
+    public function faqItems(array $items, string $url): FAQPage
+    {
+        $questions = [];
+
+        foreach ($items as $item) {
+            $questions[] = Schema::question()->name($item['question'])->acceptedAnswer(Schema::answer()->text($item['answer']));
+        }
+
+        return Schema::fAQPage()->identifier($url.'#faq')->url($url)->mainEntity($questions);
     }
 
     /**

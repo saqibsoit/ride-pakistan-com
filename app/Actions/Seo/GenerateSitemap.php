@@ -7,6 +7,7 @@ namespace App\Actions\Seo;
 use App\Models\Page;
 use App\Models\Post;
 use App\Models\Product;
+use App\Models\RideEvent;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\File;
 use Spatie\Sitemap\Sitemap;
@@ -73,6 +74,15 @@ final class GenerateSitemap
 
         Product::query()->active()->ordered()->get()->each(
             fn (Product $product) => $sitemap->add($this->url(route('sessions.show', $product), $product->updated_at, 0.9)),
+        );
+
+        // Events (decided 2026-11-22): the list, and every published event with a date to come.
+        if (RideEvent::query()->listed()->exists()) {
+            $sitemap->add($this->url(route('events.index'), null, 0.8));
+        }
+
+        RideEvent::query()->listed()->ordered()->get()->each(
+            fn (RideEvent $event) => $sitemap->add($this->url(route('events.show', $event), $event->updated_at, 0.9)),
         );
 
         Post::query()->published()->latest('published_at')->get()->each(

@@ -8,6 +8,7 @@ use App\Actions\Booking\SlotLock;
 use App\Enums\LessonClosure;
 use App\Enums\SlotSource;
 use App\Enums\SlotStatus;
+use App\Events\PublicContentChanged;
 use App\Models\RideEvent;
 use App\Models\Slot;
 use App\Models\User;
@@ -57,6 +58,8 @@ final class SaveEventOccurrence
         });
 
         $this->closures->handle($slot, $actor);
+        // Dates show on cached pages (/experiences, the sitemap): refresh them.
+        PublicContentChanged::dispatch();
 
         return $slot;
     }
@@ -103,6 +106,8 @@ final class SaveEventOccurrence
         });
 
         $this->closures->handle($slot, $actor);
+        // Dates show on cached pages (/experiences, the sitemap): refresh them.
+        PublicContentChanged::dispatch();
 
         return $slot;
     }

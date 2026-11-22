@@ -21,6 +21,7 @@
     'location' => null,
     'videoHref' => null,
     'level' => 3,
+    'status' => null,
 ])
 
 @php($tag = 'h'.max(2, min(6, (int) $level)))
@@ -35,6 +36,10 @@
         />
         @if ($featured)
             <x-badge variant="featured" class="absolute top-4 left-4">Featured</x-badge>
+        @endif
+        {{-- Events (decided 2026-11-22): "Fully booked" or "Few spots left", never a count. --}}
+        @if ($status)
+            <x-badge :variant="$status === 'Fully booked' ? 'neutral' : 'selling-fast'" class="absolute top-4 right-4">{{ $status }}</x-badge>
         @endif
         @if ($priceMinor !== null)
             <x-badge variant="price" class="absolute bottom-4 left-4">

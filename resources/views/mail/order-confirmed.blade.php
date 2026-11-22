@@ -18,6 +18,10 @@ Thank you. We've received your payment for order **{{ $order->reference }}**.
 | {{ $line->label }} | − {{ \App\Support\Money::format($line->amount_minor, $order->currency) }} |
 @endforeach
 | **{{ $order->amount_minor === 0 ? 'Left to pay' : 'Paid' }}** | **{{ \App\Support\Money::format($order->amount_minor, $order->currency) }}** |
+@elseif ($event && $order->balance_minor > 0)
+| {{ $order->productName() }} | {{ \App\Support\Money::format($order->priceMinor(), $order->currency) }} |
+| **Deposit paid ({{ $order->deposit_percent }}%, non-refundable)** | **{{ \App\Support\Money::format($order->amount_minor, $order->currency) }}** |
+| Balance still to pay | {{ \App\Support\Money::format($order->balance_minor, $order->currency) }} |
 @else
 | {{ $order->productName() }} | {{ \App\Support\Money::format($order->amount_minor, $order->currency) }} |
 @endif
@@ -46,7 +50,16 @@ The ticket images are also attached, and every ticket is on your booking page (l
 **Your package:** {{ $order->creditPack->creditsRemaining() }} {{ $order->creditPack->creditsRemaining() === 1 ? 'credit' : 'credits' }} left, valid until {{ $order->creditPack->expires_at->setTimezone($timezone)->format('j M Y') }}. Book sessions from your booking page (link below) or your account.
 @endif
 
-@if ($helmet !== '' && $bookings->isNotEmpty())
+@if ($event)
+## Your event
+
+@include('mail.partials.event-booking', ['event' => $event])
+@if ($event->canPayBalanceOnline())
+You can pay the balance online any time before {{ $event->balanceDueAt()?->setTimezone($timezone)->format('D j M, H:i') }} from your booking page (link below).
+@endif
+
+@endif
+@if ($helmet !== '' && $bookings->isNotEmpty() && ! $event)
 ## Before you come
 
 **{{ $helmet }}**

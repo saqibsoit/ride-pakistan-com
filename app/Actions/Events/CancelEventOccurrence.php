@@ -6,6 +6,7 @@ namespace App\Actions\Events;
 
 use App\Actions\Slots\ChangeSlotStatus;
 use App\Enums\SlotStatus;
+use App\Events\PublicContentChanged;
 use App\Exceptions\InvalidStatusTransition;
 use App\Models\Slot;
 use App\Models\User;
@@ -35,6 +36,8 @@ final class CancelEventOccurrence
 
         $slot = $this->status->handle($occurrence, $to, $actor, $reason);
         $this->closures->handle($slot, $actor);
+        // Dates show on cached pages (/experiences, the sitemap): refresh them.
+        PublicContentChanged::dispatch();
 
         return $slot;
     }

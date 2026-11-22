@@ -1,7 +1,13 @@
 <x-mail::message>
 # See you {{ $slot->starts_at->setTimezone($timezone)->format('l') }}
 
+@if ($event)
+**{{ $event->event->title }}** is on **{{ $slot->dateRangeLabel() }}** (Pakistan time).
+
+@include('mail.partials.event-booking', ['event' => $event])
+@else
 Your session is on **{{ $slot->label() }}** (Pakistan time).
+@endif
 
 @if ($arrivalAt)
 Please arrive by **{{ $arrivalAt->format('g:i a') }}** so there's time to meet the horses before you ride.
@@ -36,7 +42,9 @@ Get directions
 </x-mail::button>
 @endif
 
+@unless ($event)
 Can't make it? Credit bookings can be moved or cancelled up to {{ $cutoffHours }} hours before the session.
+@endunless
 
 @include('mail.partials.manage-link', ['for' => $bookings])
 

@@ -6,7 +6,10 @@ namespace App\Http\Controllers\Team;
 
 use App\Actions\Booking\CheckInBooking;
 use App\Actions\Booking\WriteSessionNote;
+use App\Actions\Events\ExportRunSheet;
+use App\Actions\Events\MarkBalancePaid;
 use App\Actions\Horses\AssignHorse;
+use App\Enums\BalanceMethod;
 use App\Enums\BookingStatus;
 use App\Enums\SlotStatus;
 use App\Exceptions\BookingRejected;
@@ -20,10 +23,13 @@ use App\Models\Horse;
 use App\Models\Slot;
 use App\Models\User;
 use App\Support\SessionTimes;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Mobile run sheet (milestone 10b): one page per session with every rider,
@@ -65,14 +71,16 @@ final class RunSheetController extends Controller
 
         $bookings = $slot->bookings()
             ->where('status', '!=', BookingStatus::Cancelled)
-            ->with(['rider', 'user', 'horse', 'order', 'creditPack.order'])
+            ->with(['rider', 'user', 'horse', 'order.balance', 'orderItem.tier', 'creditPack.order'])
             ->orderBy('id')
             ->get();
 
         $horses = Horse::query()->working()->orderBy('sort')->orderBy('name')->get();
 
         return view($request->boolean('print') ? 'team.sessions.print' : 'team.sessions.show', [
-            'slot' => $slot->loadMissing(['trainer', 'weather']),
+            'slot' => $slot->loadMissing(['trainer', 'weather', 'rideEvent']),
+            // Event dates (decided 2026-11-22): amounts and the balance tools are for admins.
+            'isAdmin' => $request->user()?->isAdmin() ?? false,
             'bookings' => $bookings,
             'horses' => $horses,
             'states' => $bookings->mapWithKeys(fn (Booking $booking): array => [$booking->id => [
@@ -136,6 +144,41 @@ final class RunSheetController extends Controller
         $write->handle($booking, is_string($note) ? $note : null, $user);
 
         return $this->back($slot, $booking, 'success', 'Note saved for '.$booking->rider->name);
+    }
+
+    /** An admin records an event balance paid at the venue (decided 2026-11-22). */
+    public function balance(Request $request, Slot $slot, Booking $booking, MarkBalancePaid $mark): RedirectResponse
+    {
+        Gate::authorize('viewRunSheet', $slot);
+        /** @var User $user */
+        $user = $request->user();
+        $data = $request->validate([
+            'method' => ['required', Rule::in(array_map(fn (BalanceMethod $m): string => $m->value, BalanceMethod::manual()))],
+            'reference' => ['nullable', 'string', 'max:100'],
+        ]);
+        $balance = $booking->order?->balance;
+
+        if ($booking->slot_id !== $slot->id || $balance === null) {
+            return $this->back($slot, $booking, 'error', 'There is no balance on this booking.');
+        }
+
+        try {
+            $mark->handle($balance, $user, BalanceMethod::from((string) $data['method']), is_string($data['reference'] ?? null) ? $data['reference'] : null);
+        } catch (AuthorizationException) {
+            return $this->back($slot, $booking, 'error', 'Only admins can record payments.');
+        }
+
+        return $this->back($slot, $booking, 'success', 'Balance marked paid for '.$booking->order->reference);
+    }
+
+    /** The event run sheet as CSV (admins, like every export; logged). */
+    public function export(Request $request, Slot $slot, ExportRunSheet $export): StreamedResponse
+    {
+        Gate::authorize('export-data');
+        /** @var User $user */
+        $user = $request->user();
+
+        return $export->handle($slot, $user);
     }
 
     /** Back to the rider's card on the run sheet with a message for it. */

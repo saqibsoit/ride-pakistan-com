@@ -20,11 +20,14 @@ enum ExportDataset: string implements HasLabel
     case Leads = 'leads';
     /** Cash received for gift vouchers (milestone 10e), for bank reconciliation. */
     case VoucherSales = 'voucher_sales';
+    /** Event attendees (decided 2026-11-22): every person on an event date, with deposit and balance. */
+    case EventAttendees = 'event_attendees';
 
     public function getLabel(): string
     {
         return match ($this) {
             self::VoucherSales => 'Gift voucher sales',
+            self::EventAttendees => 'Event attendees',
             default => ucfirst($this->value),
         };
     }
@@ -38,6 +41,7 @@ enum ExportDataset: string implements HasLabel
             self::Bookings => 'session date',
             self::Leads => 'lead received',
             self::VoucherSales => 'voucher paid',
+            self::EventAttendees => 'event date',
         };
     }
 }

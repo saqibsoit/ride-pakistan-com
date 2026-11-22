@@ -7,6 +7,7 @@ namespace App\Support\Seo;
 use App\Enums\SettingKey;
 use App\Models\Post;
 use App\Models\Product;
+use App\Models\RideEvent;
 use App\Support\BusinessFacts;
 use App\Support\Money;
 use App\Support\Settings;
@@ -49,6 +50,20 @@ final class LlmsTxt
         $out[] = '## Sessions and prices (PKR)';
         $out[] = $this->facts->products()->map(fn (Product $product): string => '- ['.$product->name.']('.route('sessions.show', $product).'): '
             .$this->price($product).'. '.$product->short_description)->implode("\n");
+
+        // Events (decided 2026-11-22): dates, price and deposit, from the event rows.
+        $events = RideEvent::query()->listed()->ordered()->with('tiers')->get();
+
+        if ($events->isNotEmpty()) {
+            $out[] = '## Events (PKR)';
+            $out[] = $events->map(function (RideEvent $event): string {
+                $dates = $event->upcomingOccurrences()->map(fn ($d) => $d->dateRangeLabel())->implode('; ');
+
+                return '- ['.$event->title.']('.route('events.show', $event).'): from '.Money::format($event->fromPriceMinor()).' per person'
+                    .($event->takesDeposit() ? ' ('.$event->deposit_percent.'% non-refundable deposit to book)' : '')
+                    .'. '.($dates !== '' ? 'Dates (Asia/Karachi): '.$dates.'. ' : '').$event->summary;
+            })->implode("\n");
+        }
 
         $policies = $this->settings->policies(SettingKey::BookingPolicies);
 

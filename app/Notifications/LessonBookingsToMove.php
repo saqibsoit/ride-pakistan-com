@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Notifications;
 
+use App\Filament\Resources\RideEvents\RideEventResource;
 use App\Models\Booking;
 use App\Models\Slot;
 use Illuminate\Database\Eloquent\Collection;
@@ -49,7 +50,7 @@ final class LessonBookingsToMove extends CustomerNotification
             ->markdown('mail.lesson-bookings-to-move', [
                 'occurrence' => $this->occurrence,
                 'bookings' => $this->bookings,
-                'eventUrl' => $this->occurrence->rideEvent === null ? null : url(config('filament.path', 'admin').'/ride-events/'.$this->occurrence->rideEvent->id.'/edit'),
+                'eventUrl' => $this->occurrence->rideEvent === null ? null : RideEventResource::getUrl('edit', ['record' => $this->occurrence->rideEvent]),
             ]);
     }
 }

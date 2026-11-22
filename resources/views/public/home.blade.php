@@ -64,6 +64,30 @@
         @endif
     </section>
 
+    {{-- Upcoming events (decided 2026-11-22): camps, workshops and rides with dates to come. --}}
+    @if ($events->isNotEmpty())
+        <section class="wrap pt-section" aria-labelledby="events-title">
+            <div class="flex flex-wrap items-end justify-between gap-6">
+                <x-section-heading id="events-title" title="Upcoming events." size="lg" />
+                <a href="{{ route('events.index') }}" class="inline-flex items-center gap-2 font-semibold underline underline-offset-4">All events <x-glyph name="arrow-right" class="size-4" /></a>
+            </div>
+            <ul class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                @foreach ($events as $item)
+                    @php($first = $item->dates->first())
+                    <li class="flex">
+                        <x-experience-card class="w-full" :title="$item->event->title" :href="route('events.show', $item->event)"
+                            :book-href="\App\Http\Controllers\Public\EventController::bookUrl($item->event)"
+                            :image="$item->event->cover_image ?? 'camp.jpg'" :image-alt="(string) $item->event->cover_image_alt"
+                            :category="$item->event->category?->name" :description="$item->event->summary"
+                            :price-minor="$item->event->fromPriceMinor()" price-unit="per person" :featured="$item->event->is_featured"
+                            :duration="$first ? $first->localStartsAt()->format('D j M').($item->dates->count() > 1 ? ' + '.($item->dates->count() - 1).' more' : '') : null"
+                            :status="$item->badge()" />
+                    </li>
+                @endforeach
+            </ul>
+        </section>
+    @endif
+
     <section id="session" class="wrap py-section" aria-labelledby="session-title">
         <div class="mb-16 grid items-end gap-7 md:grid-cols-2 md:gap-16">
             <h2 id="session-title" class="text-display-xl">{{ ucfirst($facts->sessionLength()) }},<br>start to finish.</h2>

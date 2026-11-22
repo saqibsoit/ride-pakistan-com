@@ -50,6 +50,8 @@ return [
         'booking.waitlist_offer_hours' => 2,
         'booking.slot_buffer_minutes' => 30,
         'booking.package_sessions_per_week' => 2,
+        // Events (decided 2026-11-22). Everything else about an event is set per event.
+        'events.balance_reminder_hours' => 48,
         'private.earliest_start_hour' => 7,
         'private.latest_end_hour' => 18,
         'private.min_notice_hours' => 48,

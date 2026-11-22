@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Support;
 
 use App\Enums\AccountCreditReason;
+use App\Enums\BalanceStatus;
 use App\Enums\VoucherLedgerReason;
 use App\Models\AccountCreditEntry;
 use App\Models\Order;
+use App\Models\OrderBalance;
 use App\Models\VoucherLedgerEntry;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
@@ -23,6 +25,9 @@ use Illuminate\Support\Facades\DB;
  * Gift vouchers were paid for in money when bought, so they count when
  * they are spent. Promo codes, referral discounts and account credit are
  * discounts: they are not revenue.
+ *
+ * Event orders (decided 2026-11-22): money received includes balance
+ * payments (online or recorded at the venue), net of balance refunds.
  */
 final class OrderRevenue
 {
@@ -33,7 +38,40 @@ final class OrderRevenue
 
     public static function cash(Order $order): int
     {
-        return max(0, $order->amount_minor - $order->amount_refunded_minor);
+        $cash = max(0, $order->amount_minor - $order->amount_refunded_minor);
+
+        // Only event orders have a balance; no query for lesson orders.
+        if (! $order->isEvent()) {
+            return $cash;
+        }
+
+        $balance = $order->relationLoaded('balance') ? $order->balance : $order->balance()->first();
+
+        return $cash + ($balance?->receivedMinor() ?? 0);
+    }
+
+    /**
+     * Event balance money each order kept (received net of refunds), by order id.
+     *
+     * @param  list<int>  $orderIds
+     * @return array<int, int>
+     */
+    public static function balanceByOrder(array $orderIds): array
+    {
+        $kept = [];
+
+        foreach (array_chunk($orderIds, 1000) as $chunk) {
+            $rows = OrderBalance::query()
+                ->whereIn('order_id', $chunk)
+                ->whereIn('status', [BalanceStatus::Paid, BalanceStatus::Refunded])
+                ->get(['order_id', 'amount_minor', 'refunded_minor', 'status']);
+
+            foreach ($rows as $row) {
+                $kept[$row->order_id] = $row->receivedMinor();
+            }
+        }
+
+        return array_filter($kept);
     }
 
     /**
@@ -44,9 +82,9 @@ final class OrderRevenue
     public static function total(Builder $orders): int
     {
         $cash = (int) (clone $orders)->sum(DB::raw('greatest(amount_minor - amount_refunded_minor, 0)'));
-        $ids = (clone $orders)->pluck('id')->map(fn (mixed $id): int => (int) $id)->values()->all();
+        $ids = array_values((clone $orders)->pluck('id')->map(fn (mixed $id): int => (int) $id)->values()->all());
 
-        return $cash + array_sum(self::voucherByOrder(array_values($ids)));
+        return $cash + array_sum(self::balanceByOrder($ids)) + array_sum(self::voucherByOrder($ids));
     }
 
     /**

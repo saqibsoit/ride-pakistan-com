@@ -61,19 +61,20 @@ describe('the texts', function (): void {
 
         expect($refund['title'])->toBe('Cancellation and Refund Policy')
             ->and($refund['answer'])->toStartWith('This policy applies to all bookings')
-            ->and($refund['body'])->toHaveCount(9) // introduction + 8 sections
-            ->and($refund['body'][0]['data']['content'])->toStartWith('Last updated: 10 November 2026')
+            ->and($refund['body'])->toHaveCount(10) // introduction + 9 sections (events added 2026-11-22)
+            ->and($refund['body'][0]['data']['content'])->toStartWith('Last updated: 22 November 2026')
             ->and($refund['body'][1]['data']['heading'])->toBe('1. Single and private sessions')
-            ->and($refund['body'][8]['data']['content'])->toBe("WhatsApp: +92 334 4554500  \nEmail: hello@ride-pakistan.com  \nDestination Pakistan, Plot No. 68, Siddique Trade Centre, Gulberg, Lahore")
+            ->and($refund['body'][8]['data']['heading'])->toBe('8. Events (camps, workshops and trips)')
+            ->and($refund['body'][9]['data']['content'])->toBe("WhatsApp: +92 334 4554500  \nEmail: hello@ride-pakistan.com  \nDestination Pakistan, Plot No. 68, Siddique Trade Centre, Gulberg, Lahore")
             ->and(mb_strlen($refund['meta_description']))->toBeLessThanOrEqual(160)
             ->and(LegalPages::content('privacy')['body'])->toHaveCount(11)
             ->and(LegalPages::content('terms')['body'])->toHaveCount(13);
     });
 
     it('stores the refund policy below its title as the setting', function (): void {
-        expect(LegalPages::refundPolicySetting())->toStartWith('Last updated: 10 November 2026')
+        expect(LegalPages::refundPolicySetting())->toStartWith('Last updated: 22 November 2026')
             ->and(LegalPages::refundPolicySetting())->not->toContain('# Cancellation and Refund Policy')
-            ->and(LegalPages::refundPolicySetting())->toContain('## 8. Contact');
+            ->and(LegalPages::refundPolicySetting())->toContain('## 8. Events (camps, workshops and trips)')->toContain('## 9. Contact');
     });
 });
 

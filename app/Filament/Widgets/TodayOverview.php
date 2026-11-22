@@ -8,10 +8,12 @@ use App\Actions\Dashboard\TodaySummary;
 use App\Filament\Resources\CreditPacks\CreditPackResource;
 use App\Filament\Resources\Leads\LeadResource;
 use App\Filament\Resources\Orders\OrderResource;
+use App\Filament\Resources\RideEvents\RideEventResource;
 use App\Filament\Resources\Slots\SlotResource;
 use App\Models\CreditPack;
 use App\Models\Lead;
 use App\Models\Order;
+use App\Models\RideEvent;
 use App\Models\Slot;
 use App\Models\User;
 use App\Support\Money;
@@ -83,6 +85,17 @@ class TodayOverview extends StatsOverviewWidget
                     'from' => $month->toDateString(),
                     'until' => $month->endOfMonth()->toDateString(),
                 ]]]));
+        }
+
+        // Events (decided 2026-11-22): money only for those who see orders.
+        if ($user instanceof User && $user->can('viewAny', Order::class) && RideEvent::query()->exists()) {
+            ['count' => $due, 'amount' => $amount] = $summary->balancesOutstanding();
+
+            $stats[] = Stat::make('Event revenue this month', Money::format($summary->eventRevenue()))
+                ->description($due === 0 ? 'No balances to collect' : $due.' '.($due === 1 ? 'balance' : 'balances').' to collect: '.Money::format($amount))
+                ->icon(Heroicon::OutlinedSparkles)
+                ->color($due > 0 ? 'warning' : 'gray')
+                ->url(RideEventResource::getUrl('index'));
         }
 
         if ($user instanceof User && $user->can('viewAny', CreditPack::class)) {

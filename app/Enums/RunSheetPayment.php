@@ -17,10 +17,16 @@ enum RunSheetPayment: string
     case Credit = 'credit';
     case NeedsReview = 'needs_review';
     case NoCharge = 'no_charge';
+    /** Event orders (decided 2026-11-22): the deposit is in, the balance still to pay. */
+    case BalanceDue = 'balance_due';
 
     public static function for(Booking $booking): self
     {
         $order = $booking->order ?? $booking->creditPack?->order;
+
+        if ($order !== null && ! isset($order->meta['needs_review']) && $order->status === OrderStatus::Paid && ($order->balance?->isDue() ?? false)) {
+            return self::BalanceDue;
+        }
 
         if ($order !== null && (isset($order->meta['needs_review']) || $order->status !== OrderStatus::Paid)) {
             return self::NeedsReview;
@@ -40,6 +46,7 @@ enum RunSheetPayment: string
             self::Credit => 'Credit',
             self::NeedsReview => 'Needs review',
             self::NoCharge => 'No charge',
+            self::BalanceDue => 'Deposit paid, balance due',
         };
     }
 
@@ -48,7 +55,7 @@ enum RunSheetPayment: string
     {
         return match ($this) {
             self::Paid, self::Credit => 'success',
-            self::NeedsReview => 'warning',
+            self::NeedsReview, self::BalanceDue => 'warning',
             self::NoCharge => 'neutral',
         };
     }

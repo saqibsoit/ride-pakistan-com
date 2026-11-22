@@ -32,8 +32,10 @@ final class Availability
      */
     public function between(CarbonImmutable $from, CarbonImmutable $to, ?string $type = null): Collection
     {
+        // Lesson slots only: event occurrences have their own pages (decided 2026-11-22).
         $slots = Slot::query()
             ->withSeatCounts()
+            ->lessons()
             ->whereIn('slots.status', [SlotStatus::Open, SlotStatus::Closed])
             ->where('slots.starts_at', '>', $this->bookableAfter())
             ->where('slots.starts_at', '>=', $from->utc())
@@ -98,7 +100,7 @@ final class Availability
     /** One slot with seat counts, if it can still be booked. */
     public function find(int $id): ?Slot
     {
-        $slot = Slot::query()->withSeatCounts()->find($id);
+        $slot = Slot::query()->withSeatCounts()->lessons()->find($id);
 
         return $slot !== null
             && $slot->status === SlotStatus::Open

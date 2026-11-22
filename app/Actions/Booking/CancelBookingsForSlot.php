@@ -15,6 +15,7 @@ use App\Models\CreditPack;
 use App\Models\Order;
 use App\Models\Slot;
 use App\Models\User;
+use App\Notifications\EventDateCancelled;
 use App\Notifications\SlotCancelledNotice;
 use App\Support\Notifier;
 use App\Support\PageCache;
@@ -33,6 +34,12 @@ use Illuminate\Support\Facades\DB;
  *   card payment for them is refunded by the webhook); a transfer already
  *   uploaded is flagged for review;
  * - each affected customer gets one email.
+ *
+ * An event date (decided 2026-11-22) differs for paid bookings: they are
+ * not cancelled yet. Each order is flagged and its customer gets one email
+ * with a link to choose a full refund (deposit included) or another date
+ * of the same event (EventDateCancelled); until they answer, the admin can
+ * do either from the order.
  */
 final class CancelBookingsForSlot
 {
@@ -54,8 +61,10 @@ final class CancelBookingsForSlot
 
         /** @var array<int, array{bookings: list<int>, credits: int, paid: bool}> $byUser */
         $byUser = [];
+        /** @var array<int, Order> $eventOrders */
+        $eventOrders = [];
 
-        DB::transaction(function () use ($slot, $actor, $reason, &$byUser): void {
+        DB::transaction(function () use ($slot, $actor, $reason, &$byUser, &$eventOrders): void {
             $this->slotLock->acquire($slot->id);
 
             $bookings = Booking::query()
@@ -68,6 +77,21 @@ final class CancelBookingsForSlot
             $flagged = [];
 
             foreach ($bookings as $booking) {
+                if ($slot->isEvent() && $booking->order_id !== null) {
+                    if (! isset($eventOrders[$booking->order_id])) {
+                        $order = Order::query()->whereKey($booking->order_id)->lockForUpdate()->first();
+
+                        if ($order !== null) {
+                            $order->meta = [...($order->meta ?? []), 'event_date_cancelled' => $slot->id];
+                            $order->save();
+                            $this->flag->handle($order, 'event_date_cancelled', 'The event date '.$slot->label().' was cancelled. The customer can choose a full refund or another date; until then, refund or move it here.', ['slot_id' => $slot->id]);
+                            $eventOrders[$booking->order_id] = $order;
+                        }
+                    }
+
+                    continue;
+                }
+
                 $entry = $byUser[$booking->user_id] ?? ['bookings' => [], 'credits' => 0, 'paid' => false];
                 $entry['bookings'][] = $booking->id;
 
@@ -117,6 +141,11 @@ final class CancelBookingsForSlot
         });
 
         $this->pageCache->invalidate();
+
+        foreach ($eventOrders as $order) {
+            $order->loadMissing('user');
+            $this->notifier->send($order->user, new EventDateCancelled($order, $slot), Notifier::key(EventDateCancelled::type(), $order, $order->user));
+        }
 
         foreach ($byUser as $userId => $entry) {
             $user = User::query()->find($userId);

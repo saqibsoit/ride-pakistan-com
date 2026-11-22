@@ -1,6 +1,6 @@
 # Cancellation and Refund Policy
 
-Last updated: 10 November 2026
+Last updated: 22 November 2026
 
 This policy applies to all bookings made on ride-pakistan.com, run by Destination Pakistan ("we", "us"). All prices are in Pakistani rupees (PKR).
 
@@ -48,7 +48,17 @@ Refunds cover the amount you actually paid. Any share paid with account credit o
 - **Card payments:** refunded to the same card. Your bank usually shows it within 5 to 10 working days.
 - **Bank transfers:** refunded by bank transfer to the account you paid from, within 7 working days of our approval.
 
-## 8. Contact
+## 8. Events (camps, workshops and trips)
+
+Events such as day camps have their own dates and rules, shown on each event page, next to the payment button and in your confirmation email.
+
+- **Deposits are non-refundable.** If an event takes a deposit, the deposit confirms your place and is kept if you cancel, whenever you cancel.
+- **Cancel before the event's cutoff** (7 days before the date unless the event page says otherwise): we refund what you paid above the event's non-refundable share. For an event with a deposit, that is any balance you have already paid. For an event paid in full with no non-refundable share, it is a full refund.
+- **Cancel after the cutoff, or don't turn up:** no refund.
+- **The balance:** if you paid a deposit, the rest is due on the day or by the deadline shown for the event. A balance you haven't paid is no longer owed if you cancel.
+- **If we cancel an event date:** you choose a full refund of everything you paid, deposit included, or a place on another date of the same event.
+
+## 9. Contact
 
 WhatsApp: +92 334 4554500
 Email: hello@ride-pakistan.com

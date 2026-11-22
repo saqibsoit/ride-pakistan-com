@@ -68,9 +68,11 @@ final class PreviewBulkSchedule
             ? [SlotStatus::Open, SlotStatus::Closed]
             : [SlotStatus::Open];
 
+        // Lesson slots only: event dates are edited on their event (decided 2026-11-22).
         return Slot::query()
             ->withSeatCounts()
             ->with('trainer')
+            ->lessons()
             ->where('slots.starts_at', '>', CarbonImmutable::now())
             ->where('slots.starts_at', '>=', $criteria->from->utc())
             ->where('slots.starts_at', '<', $criteria->until->addDay()->utc())
@@ -110,7 +112,7 @@ final class PreviewBulkSchedule
                 continue;
             }
 
-            $sameStart = Slot::query()->withSeatCounts()->where('slots.starts_at', $start)->first();
+            $sameStart = Slot::query()->withSeatCounts()->lessons()->where('slots.starts_at', $start)->first();
             $reuses = false;
 
             if ($sameStart !== null && $sameStart->status !== SlotStatus::Cancelled) {
@@ -229,7 +231,7 @@ final class PreviewBulkSchedule
                     $notes[] = 'Time not changed: it has a hold or an unpaid order';
                 } elseif (! $start->isAfter(CarbonImmutable::now())) {
                     return $skip('The new time is in the past');
-                } elseif (! $start->equalTo($slot->starts_at) && Slot::query()->where('starts_at', $start)->whereKeyNot($slot->id)->exists()) {
+                } elseif (! $start->equalTo($slot->starts_at) && Slot::query()->lessons()->where('starts_at', $start)->whereKeyNot($slot->id)->exists()) {
                     return $skip('Another slot already starts at the new time');
                 } else {
                     $clash = $this->overlap->firstClash($start, $end, [$slot->id], $lock);

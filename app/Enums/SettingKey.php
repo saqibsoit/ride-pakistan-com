@@ -42,6 +42,9 @@ enum SettingKey: string
     case SlotBufferMinutes = 'booking.slot_buffer_minutes';
     case PackageSessionsPerWeek = 'booking.package_sessions_per_week';
 
+    /** Events (decided 2026-11-22): balance reminder this many hours before it is due. */
+    case EventBalanceReminderHours = 'events.balance_reminder_hours';
+
     case RidingRules = 'policies.riding_rules';
     case BookingPolicies = 'policies.booking';
     case RefundPolicy = 'policies.refund';
@@ -99,7 +102,7 @@ enum SettingKey: string
             self::InstagramUrl, self::InstagramDmUrl, self::GoogleReviewUrl, self::ExpeditionsUrl, self::MapPinUrl, self::MapEmbedUrl => SettingType::Url,
             self::RidersPerSlot, self::TransferHoldHours, self::TransferMinNoticeHours, self::CancellationCutoffHours,
             self::SellingFastThreshold, self::MinRiderAge, self::CheckinOpensMinutes, self::ArrivalMinutes, self::SlotHorizonWeeks,
-            self::CardHoldMinutes, self::MinNoticeHours, self::WaitlistOfferHours, self::SlotBufferMinutes, self::PackageSessionsPerWeek,
+            self::CardHoldMinutes, self::MinNoticeHours, self::WaitlistOfferHours, self::SlotBufferMinutes, self::PackageSessionsPerWeek, self::EventBalanceReminderHours,
             self::PrivateEarliestStartHour, self::PrivateLatestEndHour, self::PrivateMinNoticeHours,
             self::PrivateDurationMinutes, self::PrivateAnswerHours, self::PrivatePayHours,
             self::DeletionGraceDays, self::OrderRetentionYears, self::TransferProofRetentionDays, self::LeadFollowUpDays,
@@ -144,6 +147,7 @@ enum SettingKey: string
             self::TransferMinNoticeHours => 'Offer bank transfer only if the session starts at least this many hours later',
             self::CancellationCutoffHours => 'Cancellation and reschedule cutoff (hours before slot)',
             self::SellingFastThreshold => 'Show "Selling fast" at or below (seats)',
+            self::EventBalanceReminderHours => 'Event balance reminder (hours before it is due)',
             self::MinRiderAge => 'Minimum rider age',
             self::CheckinOpensMinutes => 'Check-in opens this many minutes before a session',
             self::ArrivalMinutes => 'Ask riders to arrive this many minutes early (reminder email; hidden while empty)',
@@ -224,6 +228,7 @@ enum SettingKey: string
             self::TransferMinNoticeHours => 'Bank transfer is only offered when the first session is at least this many hours away, so there is time to verify it.',
             self::CancellationCutoffHours => 'Customers can cancel or reschedule credit bookings until this many hours before the session. Shown in the booking policies as ":cutoff".',
             self::SellingFastThreshold => 'Slots with this many seats left or fewer show a "Selling fast" badge.',
+            self::EventBalanceReminderHours => 'Customers with an event balance still to pay get one email this many hours before it is due (on the day, or the event\'s online deadline). 0 turns the reminder off. Unpaid balances are never cancelled; the run sheet shows them.',
             self::MinRiderAge => 'Minimum age for riders, shown in "Good to know" and the policies as ":min_age". Leave empty until decided; it is then hidden.',
             self::CheckinOpensMinutes => 'Staff can mark riders as attended from this many minutes before the start until the session ends.',
             self::ArrivalMinutes => 'Reminder emails ask riders to arrive this many minutes early. Leave empty to leave it out.',

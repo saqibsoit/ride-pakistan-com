@@ -8,6 +8,7 @@ use App\Enums\DiscountKind;
 use App\Enums\ExportDataset;
 use App\Enums\ExportFormat;
 use App\Enums\PaymentMethod;
+use App\Enums\PaymentPurpose;
 use App\Enums\PaymentStatus;
 use App\Models\Booking;
 use App\Models\Lead;
@@ -96,10 +97,11 @@ final class RunExport
     public static function headers(ExportDataset $dataset): array
     {
         return match ($dataset) {
-            ExportDataset::Orders => ['Reference', 'Created (Pakistan time)', 'Status', 'Payment method', 'Customer', 'Customer email', 'Product', 'Type', 'Amount (PKR)', 'Refunded (PKR)', 'Net (PKR)', 'Paid at (Pakistan time)', 'Subtotal (PKR)', 'Promo or referral (PKR)', 'Gift voucher (PKR)', 'Account credit (PKR)', 'Revenue (PKR)', 'Customer WhatsApp'],
-            ExportDataset::Payments, ExportDataset::Refunds => ['Order reference', 'Date (Pakistan time)', 'Provider', 'Provider ID', 'Status', 'Amount (PKR)', 'Currency', 'Customer email', 'Bank transfer date (Pakistan)'],
+            ExportDataset::Orders => ['Reference', 'Created (Pakistan time)', 'Status', 'Payment method', 'Customer', 'Customer email', 'Product', 'Type', 'Amount (PKR)', 'Refunded (PKR)', 'Net (PKR)', 'Paid at (Pakistan time)', 'Subtotal (PKR)', 'Promo or referral (PKR)', 'Gift voucher (PKR)', 'Account credit (PKR)', 'Revenue (PKR)', 'Customer WhatsApp', 'Event balance (PKR)', 'Event balance status'],
+            ExportDataset::Payments, ExportDataset::Refunds => ['Order reference', 'Date (Pakistan time)', 'Provider', 'Provider ID', 'Status', 'Amount (PKR)', 'Currency', 'Customer email', 'Bank transfer date (Pakistan)', 'For'],
             ExportDataset::VoucherSales => ['Purchase reference', 'Paid at (Pakistan time)', 'Status', 'Payment method', 'Payment reference', 'Buyer email', 'Voucher for', 'Received (PKR)', 'Refunded (PKR)', 'Net cash (PKR)', 'Refunded on', 'Refund references'],
             ExportDataset::Bookings => ['Ticket', 'Session (Pakistan time)', 'Product', 'Rider', 'Customer email', 'Status', 'Private', 'Paid with', 'Order reference', 'Price (PKR)', 'Horse', 'Price after discounts (PKR)', 'Customer WhatsApp'],
+            ExportDataset::EventAttendees => ['Event', 'Date (Pakistan time)', 'Order reference', 'Ticket', 'Person', 'Tier', 'Status', 'Customer email', 'Customer WhatsApp', 'Price (PKR)', 'Paid now (PKR)', 'Balance (PKR)', 'Balance status', 'Balance paid by'],
             ExportDataset::Leads => ['Received (Pakistan time)', 'Name', 'Email', 'Phone', 'Instagram', 'Source', 'Status', 'Interest', 'UTM source', 'UTM medium', 'UTM campaign', 'Assigned to', 'Booked order reference'],
         };
     }
@@ -116,7 +118,7 @@ final class RunExport
 
         match ($dataset) {
             ExportDataset::Orders => Order::query()
-                ->with(['user', 'discounts'])
+                ->with(['user', 'discounts', 'balance'])
                 ->where('created_at', '>=', $from)->where('created_at', '<', $until)
                 ->orderBy('created_at')->orderBy('id')
                 ->chunk(500, fn ($orders) => $orders->each(fn (Order $order) => $add([
@@ -139,6 +141,9 @@ final class RunExport
                     Money::decimal(self::discount($order, DiscountKind::AccountCredit)),
                     $order->paid_at === null ? '' : Money::decimal(OrderRevenue::of($order)),
                     $order->contactWhatsApp() ?? '',
+                    // Event deposit orders (decided 2026-11-22): the rest, paid later.
+                    $order->balance === null ? '' : Money::decimal($order->balance->amount_minor),
+                    $order->balance?->status->getLabel() ?? '',
                 ]))),
 
             ExportDataset::Payments, ExportDataset::Refunds => Payment::query()
@@ -157,6 +162,7 @@ final class RunExport
                     $payment->order->user->email,
                     // Bank refunds (milestone 10e): the date the team's transfer was made.
                     $payment->transferred_on?->format('Y-m-d') ?? '',
+                    $payment->purpose === PaymentPurpose::Balance ? 'Event balance' : 'Order',
                 ]))),
 
             // Cash received for gift vouchers (milestone 10e), by payment date, for
@@ -210,6 +216,29 @@ final class RunExport
                     $booking->horse->name ?? '',
                     self::bookingNetPrice($booking),
                     $booking->contactWhatsApp() ?? '',
+                ]))),
+
+            ExportDataset::EventAttendees => Booking::query()
+                ->with(['slot.rideEvent', 'rider', 'user', 'order.balance', 'orderItem.tier'])
+                ->whereHas('slot', fn (Builder $q) => $q->whereNotNull('ride_event_id')->where('starts_at', '>=', $from)->where('starts_at', '<', $until))
+                ->join('slots', 'slots.id', '=', 'bookings.slot_id')
+                ->orderBy('slots.starts_at')->orderBy('bookings.order_id')->orderBy('bookings.id')
+                ->select('bookings.*')
+                ->chunk(500, fn ($bookings) => $bookings->each(fn (Booking $booking) => $add([
+                    $booking->slot->rideEvent->title ?? '',
+                    $date($booking->slot->starts_at),
+                    $booking->order->reference ?? '',
+                    $booking->ticket_code,
+                    $booking->rider->name,
+                    $booking->orderItem->tier->name ?? '',
+                    $booking->status->label(),
+                    $booking->user->email,
+                    $booking->contactWhatsApp() ?? '',
+                    $booking->orderItem === null ? '' : Money::decimal($booking->orderItem->unit_price_minor),
+                    $booking->order === null ? '' : Money::decimal($booking->order->amount_minor),
+                    $booking->order?->balance === null ? '' : Money::decimal($booking->order->balance->amount_minor),
+                    $booking->order?->balance?->status->getLabel() ?? '',
+                    $booking->order?->balance?->method?->getLabel() ?? '',
                 ]))),
 
             ExportDataset::Leads => Lead::query()

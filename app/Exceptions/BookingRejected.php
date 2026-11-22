@@ -43,9 +43,27 @@ final class BookingRejected extends RuntimeException
     /** Package credits: at most booking.package_sessions_per_week per rider per week. */
     public const WEEKLY_LIMIT = 'weekly_limit';
 
+    /** An event tier has no seats left in this occurrence (decided 2026-11-22). */
+    public const TIER_FULL = 'tier_full';
+
+    /** Event booking rules: outside the booking window, group size, required answers. */
+    public const EVENT_RULE = 'event_rule';
+
     public function __construct(public readonly string $reason, string $message)
     {
         parent::__construct($message);
+    }
+
+    public static function tierFull(string $tier, int $free): self
+    {
+        return new self(self::TIER_FULL, $free === 0
+            ? 'There are no '.$tier.' places left on that date.'
+            : 'Only '.$free.' '.$tier.' '.($free === 1 ? 'place is' : 'places are').' left on that date.');
+    }
+
+    public static function eventRule(string $message): self
+    {
+        return new self(self::EVENT_RULE, $message);
     }
 
     public static function slotFull(int $free): self

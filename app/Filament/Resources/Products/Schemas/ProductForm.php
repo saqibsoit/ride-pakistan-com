@@ -38,7 +38,7 @@ class ProductForm
                                 TextInput::make('name')->required()->maxLength(120),
                                 TextInput::make('slug')->required()->maxLength(120)->alphaDash()->unique(ignoreRecord: true)
                                     ->helperText('The page address: /sessions/{slug}. Changing it breaks old links.'),
-                                Select::make('type')->options(ProductType::class)->required()->live()
+                                Select::make('type')->options(collect(ProductType::forProducts())->mapWithKeys(fn (ProductType $t): array => [$t->value => $t->label()])->all())->required()->live()
                                     // Fixed once sold: it decides how existing orders fulfil.
                                     ->disabled(fn (?Product $record): bool => $record?->hasOrders() ?? false)
                                     ->helperText(fn (?Product $record): ?string => $record?->hasOrders() ? 'Fixed: this product has orders. Archive it and create a new one to sell something different.' : null),

@@ -34,6 +34,7 @@ Schedule::command('transfers:prune-proofs')->dailyAt('04:15')->withoutOverlappin
 // are Pakistan time.
 Schedule::command('notifications:send reminders')->everyFifteenMinutes()->withoutOverlapping();
 Schedule::command('notifications:send thanks')->hourly()->withoutOverlapping();
+Schedule::command('notifications:send balances')->everyFifteenMinutes()->withoutOverlapping();
 Schedule::command('notifications:send credits')->dailyAt('10:00')->timezone('Asia/Karachi')->withoutOverlapping();
 
 // Leads due for follow-up, to admins and staff (milestone 10c).

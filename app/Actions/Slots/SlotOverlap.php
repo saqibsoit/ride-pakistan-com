@@ -7,6 +7,7 @@ namespace App\Actions\Slots;
 use App\Enums\SettingKey;
 use App\Enums\SlotStatus;
 use App\Models\Slot;
+use App\Support\Events\LessonClosures;
 use App\Support\Settings;
 use Carbon\CarbonImmutable;
 
@@ -18,7 +19,8 @@ use Carbon\CarbonImmutable;
  * not with 08:00–09:30. Closed slots count, because they can be reopened.
  *
  * Used by the bulk schedule editor and by private session request
- * approvals. Read-only; callers check again under their locks.
+ * approvals. An event occurrence that closes lessons (LessonClosures)
+ * clashes with any lesson time it closes. Read-only; callers check again under their locks.
  */
 final class SlotOverlap
 {
@@ -38,7 +40,10 @@ final class SlotOverlap
     {
         $buffer = $this->bufferMinutes();
 
-        return Slot::query()
+        // Lesson slots clash by time. Event occurrences (decided 2026-11-22)
+        // clash only when they close lessons, by their own mode (below).
+        $clash = Slot::query()
+            ->lessons()
             ->where('status', '!=', SlotStatus::Cancelled)
             ->where('starts_at', '<', $endsAt->utc()->addMinutes($buffer))
             ->where('ends_at', '>', $startsAt->utc()->subMinutes($buffer))
@@ -46,6 +51,8 @@ final class SlotOverlap
             ->when($lock, fn ($q) => $q->lockForUpdate())
             ->orderBy('starts_at')
             ->first();
+
+        return $clash ?? (new LessonClosures($this))->closerFor($startsAt, $endsAt);
     }
 
     /**

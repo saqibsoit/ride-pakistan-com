@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace App\Actions\Dashboard;
 
 use App\Actions\Leads\LeadReport;
+use App\Enums\BalanceStatus;
 use App\Enums\LeadStatus;
+use App\Enums\OrderStatus;
 use App\Enums\SlotStatus;
 use App\Models\CreditPack;
 use App\Models\Lead;
 use App\Models\Order;
+use App\Models\OrderBalance;
 use App\Models\Slot;
 use App\Support\OrderRevenue;
 use Carbon\CarbonImmutable;
@@ -123,6 +126,32 @@ final class TodaySummary
             ->whereIn('status', LeadReport::PAID_STATUSES)
             ->where('paid_at', '>=', $from->utc())
             ->where('paid_at', '<', $from->addMonthNoOverflow()->utc()));
+    }
+
+    /** Event revenue (decided 2026-11-22): event orders paid in the Pakistan month, deposits and balances, net of refunds. */
+    public function eventRevenue(int $monthsBack = 0): int
+    {
+        $from = $this->monthStart($monthsBack);
+
+        return OrderRevenue::total(Order::query()
+            ->whereNotNull('ride_event_id')
+            ->whereIn('status', LeadReport::PAID_STATUSES)
+            ->where('paid_at', '>=', $from->utc())
+            ->where('paid_at', '<', $from->addMonthNoOverflow()->utc()));
+    }
+
+    /**
+     * Event balances still to collect on confirmed bookings.
+     *
+     * @return array{count: int, amount: int}
+     */
+    public function balancesOutstanding(): array
+    {
+        $query = OrderBalance::query()
+            ->where('status', BalanceStatus::Due)
+            ->whereHas('order', fn ($q) => $q->where('status', OrderStatus::Paid));
+
+        return ['count' => (clone $query)->count(), 'amount' => (int) (clone $query)->sum('amount_minor')];
     }
 
     /** Change from last month in whole percent; null when last month had none. */

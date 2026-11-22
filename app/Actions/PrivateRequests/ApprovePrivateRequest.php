@@ -160,6 +160,7 @@ final class ApprovePrivateRequest
     {
         $sameStart = Slot::query()
             ->withSeatCounts()
+            ->lessons()
             ->where('slots.starts_at', $request->starts_at)
             ->when($lock, fn ($q) => $q->lockForUpdate())
             ->first();

@@ -8,6 +8,7 @@ use App\Actions\Booking\CancellationCutoff;
 use App\Enums\SettingKey;
 use App\Models\Booking;
 use App\Models\Slot;
+use App\Support\Events\EventBooking;
 use App\Support\Settings;
 use App\Support\TicketQr;
 use Illuminate\Database\Eloquent\Collection;
@@ -63,6 +64,8 @@ final class SessionReminder extends CustomerNotification
                 'helmet' => $settings->string(SettingKey::HelmetNotice),
                 'cutoffHours' => app(CancellationCutoff::class)->hours(),
                 'qr' => $bookings->mapWithKeys(fn (Booking $b): array => [$b->id => TicketQr::png($b, 6)])->all(),
+                // An event date (decided 2026-11-22): its own details, balance and rules.
+                'event' => $this->slot->isEvent() && ($order = $bookings->first()?->order) !== null ? EventBooking::for($order) : null,
             ]);
     }
 }

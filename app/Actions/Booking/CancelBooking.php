@@ -45,11 +45,20 @@ final class CancelBooking
      *
      * @throws BookingRejected
      */
-    public function handle(Booking $booking, User $actor, ?string $reason = null, bool $asAdmin = false, ?bool $returnCredit = null, bool $forSlotChange = false): bool
+    public function handle(Booking $booking, User $actor, ?string $reason = null, bool $asAdmin = false, ?bool $returnCredit = null, bool $forSlotChange = false, bool $forEvent = false): bool
     {
         $reason = trim((string) $reason);
 
-        if ($forSlotChange && ! $asAdmin) {
+        // An event booking (decided 2026-11-22), cancelled through
+        // CancelEventBooking or an occurrence refund, which apply the money
+        // rules and send one email for the whole order.
+        if ($forEvent) {
+            if ($booking->order_id === null || ! ($booking->order?->isEvent() ?? false) || ($booking->user_id !== $actor->id && ! $actor->isAdmin())) {
+                throw BookingRejected::notAllowed('Please contact us to change this booking.');
+            }
+
+            $returnCredit = false;
+        } elseif ($forSlotChange && ! $asAdmin) {
             if ($booking->user_id !== $actor->id || (! $booking->usesCredit() && $booking->order_id !== null)) {
                 throw BookingRejected::notAllowed('Please contact us to change this booking.');
             }
@@ -71,7 +80,7 @@ final class CancelBooking
             $returnCredit = null;
         }
 
-        $returned = DB::transaction(function () use ($booking, $actor, $reason, $asAdmin, $returnCredit, $forSlotChange): bool {
+        $returned = DB::transaction(function () use ($booking, $actor, $reason, $asAdmin, $returnCredit, $forSlotChange, $forEvent): bool {
             $this->slotLock->acquire($booking->slot_id);
             $booking->refresh();
 
@@ -79,7 +88,7 @@ final class CancelBooking
                 throw BookingRejected::notAllowed('This booking is not active.');
             }
 
-            if (! $asAdmin && ! $booking->slot->starts_at->isAfter(CarbonImmutable::now())) {
+            if (! $asAdmin && ! $forEvent && ! $booking->slot->starts_at->isAfter(CarbonImmutable::now())) {
                 throw BookingRejected::notAllowed('This session has already started.');
             }
 
@@ -103,8 +112,11 @@ final class CancelBooking
             return $returned;
         });
 
-        // With a cancelling .ics (milestone 10d); queued after commit.
-        $this->notifier->send($booking->user, new BookingCancelled($booking, $returned), Notifier::key(BookingCancelled::type(), $booking, $booking->user));
+        // With a cancelling .ics (milestone 10d); queued after commit. Event
+        // cancellations send one email for the whole order instead.
+        if (! $forEvent) {
+            $this->notifier->send($booking->user, new BookingCancelled($booking, $returned), Notifier::key(BookingCancelled::type(), $booking, $booking->user));
+        }
 
         // The freed seat goes to the waitlist straight away (milestone 10d).
         $this->waitlist->handle($booking->slot_id, $actor);

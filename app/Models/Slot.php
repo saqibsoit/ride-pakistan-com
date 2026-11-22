@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\BookingStatus;
+use App\Enums\LessonClosure;
 use App\Enums\SlotSource;
 use App\Enums\SlotStatus;
 use App\Observers\SeatAvailabilityObserver;
@@ -40,6 +41,10 @@ use Illuminate\Database\Query\Builder as QueryBuilder;
  * @property bool|null $has_private from withSeatCounts(): a private booking or hold blocks the slot
  * @property int|null $trainer_id who runs the session (milestone 10b); trainers see only their own
  * @property CarbonImmutable|null $replaces_starts_at a rule start this slot replaced when the bulk editor moved it (prompt 15A)
+ * @property int|null $ride_event_id set on an event occurrence (decided 2026-11-22); null for lesson slots
+ * @property LessonClosure $lesson_closure an event occurrence: which lesson slots it closes
+ * @property int|null $closed_for_slot_id a lesson slot: the event occurrence that closed it (ApplyLessonClosure)
+ * @property-read RideEvent|null $rideEvent
  * @property-read ScheduleRule|null $scheduleRule
  * @property-read User|null $trainer
  * @property-read SlotWeather|null $weather
@@ -68,6 +73,7 @@ class Slot extends Model
         'private_only',
         'trainer_id',
         'replaces_starts_at',
+        'lesson_closure',
     ];
 
     /** @var array<string, mixed> */
@@ -75,11 +81,58 @@ class Slot extends Model
         'status' => 'open',
         'source' => 'rule',
         'private_only' => false,
+        'lesson_closure' => 'none',
     ];
 
     public function isManual(): bool
     {
         return $this->source === SlotSource::Manual;
+    }
+
+    /** An event occurrence rather than a lesson slot (decided 2026-11-22). */
+    public function isEvent(): bool
+    {
+        return $this->ride_event_id !== null;
+    }
+
+    /**
+     * @return BelongsTo<RideEvent, $this>
+     */
+    public function rideEvent(): BelongsTo
+    {
+        return $this->belongsTo(RideEvent::class);
+    }
+
+    /**
+     * Lesson slots only: event occurrences live in the same table but never
+     * appear in lesson lists, the generator, credit bookings or moves.
+     *
+     * @param  Builder<Slot>  $query
+     */
+    public function scopeLessons(Builder $query): void
+    {
+        $query->whereNull('slots.ride_event_id');
+    }
+
+    /**
+     * @param  Builder<Slot>  $query
+     */
+    public function scopeEvents(Builder $query): void
+    {
+        $query->whereNotNull('slots.ride_event_id');
+    }
+
+    /** "Sat 19 Dec 2026, 10:00–17:00", or "Sat 19 Dec, 10:00 – Mon 21 Dec 2026, 17:00" across days. */
+    public function dateRangeLabel(): string
+    {
+        $start = $this->localStartsAt();
+        $end = $this->localEndsAt();
+
+        if ($start->isSameDay($end)) {
+            return $this->label();
+        }
+
+        return $start->format('D j M, H:i').' – '.$end->format('D j M Y, H:i');
     }
 
     /**
@@ -202,7 +255,9 @@ class Slot extends Model
      */
     public function scopeBookable(Builder $query, int $minNoticeHours = 0): void
     {
-        $query->where('slots.status', SlotStatus::Open)
+        // Lesson slots: events book through their own page (decided 2026-11-22).
+        $query->lessons()
+            ->where('slots.status', SlotStatus::Open)
             ->where('slots.starts_at', '>', now()->addHours(max(0, $minNoticeHours)));
     }
 
@@ -306,6 +361,7 @@ class Slot extends Model
             'source' => SlotSource::class,
             'cancelled_at' => 'immutable_datetime',
             'replaces_starts_at' => 'immutable_datetime',
+            'lesson_closure' => LessonClosure::class,
             // Subquery columns from withSeatCounts().
             'seats_booked' => 'integer',
             'seats_held' => 'integer',

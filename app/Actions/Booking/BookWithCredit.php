@@ -61,6 +61,7 @@ final class BookWithCredit
             $slot = $this->slotLock->acquire($slotId, claimFor: $user->id);
 
             // Admins may book inside the notice period; customers may not.
+            $slot->assertLesson();
             $slot->assertBookable($actor !== null && $actor->isAdmin() ? 0 : ($this->settings->int(SettingKey::MinNoticeHours) ?? 0));
             $slot->assertRoomFor($riderIds, private: false);
 

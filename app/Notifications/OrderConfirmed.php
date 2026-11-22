@@ -11,6 +11,7 @@ use App\Models\Booking;
 use App\Models\Order;
 use App\Notifications\Channels\WhatsAppMessage;
 use App\Notifications\Concerns\AttachesCalendar;
+use App\Support\Events\EventBooking;
 use App\Support\Money;
 use App\Support\Settings;
 use App\Support\TicketQr;
@@ -67,6 +68,8 @@ final class OrderConfirmed extends CustomerNotification
                 'timezone' => (string) config('app.display_timezone'),
                 'qr' => $bookings->mapWithKeys(fn (Booking $b): array => [$b->id => TicketQr::png($b, 6)])->all(),
                 'calendar' => $this->googleLinks($bookings),
+                // Event orders (decided 2026-11-22): date, deposit, balance, dress code, rules.
+                'event' => EventBooking::for($order),
             ]);
 
         foreach ($bookings as $booking) {

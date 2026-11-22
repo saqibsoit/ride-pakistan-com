@@ -24,6 +24,7 @@
             @foreach (ProductCategory::cases() as $category)
                 <x-filter-chip :href="route('experiences', ['category' => $category->value])" :active="$active === $category->value">{{ $category->label() }}</x-filter-chip>
             @endforeach
+            <x-filter-chip :href="route('experiences', ['category' => ExperienceController::EVENTS])" :active="$active === ExperienceController::EVENTS">Events</x-filter-chip>
             <x-filter-chip :href="route('experiences', ['category' => ExperienceController::EXPEDITIONS])" :active="$active === ExperienceController::EXPEDITIONS">Expeditions</x-filter-chip>
         </x-filter-chips>
 
@@ -50,6 +51,19 @@
                 </li>
             @endforeach
 
+            @foreach ($events as $item)
+                @php($first = $item->dates->first())
+                <li class="flex">
+                    <x-experience-card class="w-full" :title="$item->event->title" :href="route('events.show', $item->event)"
+                        :book-href="\App\Http\Controllers\Public\EventController::bookUrl($item->event)"
+                        :image="$item->event->cover_image ?? 'camp.jpg'" :image-alt="(string) $item->event->cover_image_alt"
+                        :category="$item->event->category?->name ?? 'Event'" :description="$item->event->summary"
+                        :price-minor="$item->event->fromPriceMinor()" price-unit="per person" :featured="$item->event->is_featured"
+                        :duration="$first ? $first->localStartsAt()->format('D j M').($item->dates->count() > 1 ? ' + '.($item->dates->count() - 1).' more' : '') : null"
+                        :location="$item->event->location_name ?: $facts->location()" :video-href="$item->event->video_url" :status="$item->badge()" />
+                </li>
+            @endforeach
+
             @if ($showExpeditions)
                 <li class="flex">
                     <article class="flex w-full flex-col overflow-hidden rounded-sm border border-line bg-earth-2">
@@ -68,7 +82,7 @@
             @endif
         </ul>
 
-        @if ($products->isEmpty() && ! $showExpeditions)
+        @if ($products->isEmpty() && $events->isEmpty() && ! $showExpeditions)
             <p class="text-sand-dim">Nothing in this category right now. <a href="{{ route('experiences') }}" class="underline underline-offset-4">See all experiences</a>.</p>
         @endif
     </section>

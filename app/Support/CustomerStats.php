@@ -6,6 +6,7 @@ namespace App\Support;
 
 use App\Actions\Leads\LeadReport;
 use App\Enums\AccountCreditReason;
+use App\Enums\BalanceStatus;
 use App\Enums\BookingStatus;
 use App\Enums\LeadSource;
 use App\Enums\VoucherLedgerReason;
@@ -42,7 +43,7 @@ final class CustomerStats
         return $query
             ->withCount(['bookings' => $notCancelled])
             ->withMax(['bookings as last_booked_at' => $notCancelled], 'created_at')
-            ->selectRaw('('.self::totalPaidSql().') as total_paid_minor', self::paidStatusBindings(3))
+            ->selectRaw('('.self::totalPaidSql().') as total_paid_minor', self::paidStatusBindings(4))
             ->selectRaw('('.self::leadSourceSql().') as lead_source');
     }
 
@@ -66,16 +67,19 @@ final class CustomerStats
         return $booked ? $query->whereHas('bookings', $notCancelled) : $query->whereDoesntHave('bookings', $notCancelled);
     }
 
-    /** Three sums over the customer's paid orders; each takes the paid statuses as bindings. */
+    /** Four sums over the customer's paid orders; each takes the paid statuses as bindings. */
     private static function totalPaidSql(): string
     {
         $paid = 'o.user_id = users.id and o.paid_at is not null and o.status in ('.self::placeholders().')';
         $spent = "'".VoucherLedgerReason::Redeemed->value."', '".VoucherLedgerReason::Restored->value."'";
         $returned = "'".AccountCreditReason::VoucherReturned->value."'";
+        $balance = "'".BalanceStatus::Paid->value."', '".BalanceStatus::Refunded->value."'";
 
         return 'coalesce((select sum(greatest(o.amount_minor - o.amount_refunded_minor, 0)) from orders o where '.$paid.'), 0)'
             .' + coalesce((select -sum(v.delta_minor) from voucher_ledger v join orders o on o.id = v.order_id where '.$paid.' and v.reason in ('.$spent.')), 0)'
-            .' - coalesce((select sum(a.delta_minor) from account_credit_ledger a join orders o on o.id = a.order_id where '.$paid.' and a.reason = '.$returned.'), 0)';
+            .' - coalesce((select sum(a.delta_minor) from account_credit_ledger a join orders o on o.id = a.order_id where '.$paid.' and a.reason = '.$returned.'), 0)'
+            // Event balances received, net of refunds (decided 2026-11-22).
+            .' + coalesce((select sum(greatest(b.amount_minor - b.refunded_minor, 0)) from order_balances b join orders o on o.id = b.order_id where '.$paid.' and b.status in ('.$balance.')), 0)';
     }
 
     private static function leadSourceSql(): string

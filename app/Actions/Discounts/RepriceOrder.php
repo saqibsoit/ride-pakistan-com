@@ -16,6 +16,7 @@ use App\Models\PromoRedemption;
 use App\Models\Referral;
 use App\Models\User;
 use App\Models\Voucher;
+use App\Support\Events\EventMoney;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -149,7 +150,11 @@ final class RepriceOrder
             }
 
             $before = $locked->amount_minor;
-            $locked->amount_minor = max(0, $remaining);
+            // A deposit event order (decided 2026-11-22): the deposit is a share
+            // of the price after discounts; the rest is its balance.
+            $split = EventMoney::split($remaining, $locked->deposit_percent);
+            $locked->amount_minor = $split['now'];
+            $locked->balance_minor = $split['balance'];
             // Every voucher this order ever used, oldest first (ReleaseOrderDiscounts::voucherIds).
             // Re-read meta: giving back may have recorded voucher money moved to credit.
             $meta = Order::query()->whereKey($locked->id)->first(['id', 'meta'])->meta ?? [];

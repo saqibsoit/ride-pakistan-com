@@ -25,12 +25,16 @@ use App\Http\Controllers\CheckInController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\CspReportController;
 use App\Http\Controllers\GiftVoucherController;
+use App\Http\Controllers\ManageEventController;
 use App\Http\Controllers\ManageOrderController;
 use App\Http\Controllers\PrintableVoucherController;
 use App\Http\Controllers\PrivateRequestTrackingController;
 use App\Http\Controllers\Public\BookController;
 use App\Http\Controllers\Public\ContactController;
 use App\Http\Controllers\Public\ContentPageController;
+use App\Http\Controllers\Public\EventBookController;
+use App\Http\Controllers\Public\EventController;
+use App\Http\Controllers\Public\EventGuestController;
 use App\Http\Controllers\Public\ExperienceController;
 use App\Http\Controllers\Public\FaqController;
 use App\Http\Controllers\Public\GuestBookingController;
@@ -72,6 +76,9 @@ Route::middleware(['cache.headers:private;no_cache', CacheResponse::using(PageCa
     Route::get('/', HomeController::class)->name('home');
     Route::get('/sessions/{product:slug}', SessionController::class)->name('sessions.show');
     Route::get('/schedule', ScheduleController::class)->name('schedule');
+    // Events (decided 2026-11-22): their availability badges follow the seats version too.
+    Route::get('/events', [EventController::class, 'index'])->name('events.index');
+    Route::get('/events/{event:slug}', [EventController::class, 'show'])->name('events.show');
 });
 
 Route::middleware(['cache.headers:private;no_cache', CacheResponse::class])->group(function (): void {
@@ -94,6 +101,14 @@ Route::middleware(['cache.headers:private;no_cache', CacheResponse::class])->gro
 
 // Booking flow (Livewire, per-visitor state): never response-cached.
 Route::get('/book', BookController::class)->middleware('cache.headers:private;no_store')->name('book');
+
+// Event booking (decided 2026-11-22): Livewire, per-visitor state, never cached;
+// a guest's details step is a plain page (Turnstile) like /book/details.
+Route::middleware('cache.headers:private;no_store')->prefix('events/{event:slug}')->name('events.')->group(function (): void {
+    Route::get('/book', EventBookController::class)->name('book');
+    Route::get('/details', [EventGuestController::class, 'show'])->name('details');
+    Route::post('/details', [EventGuestController::class, 'store'])->middleware('throttle:guest-checkout')->name('details.store');
+});
 
 // Guest checkout (decided 2026-11-12): the signed-out visitor's details step.
 Route::middleware('cache.headers:private;no_store')->prefix('book')->name('book.')->group(function (): void {
@@ -142,6 +157,12 @@ Route::middleware([EnsureOrderAccess::class.':manage', 'cache.headers:private;no
         Route::post('/bookings/{ticket}/cancel', [ManageOrderController::class, 'cancel'])->middleware('throttle:account-actions')->name('cancel.store');
         Route::get('/bookings/{ticket}/reschedule', [ManageOrderController::class, 'editReschedule'])->name('reschedule');
         Route::post('/bookings/{ticket}/reschedule', [ManageOrderController::class, 'reschedule'])->middleware('throttle:account-actions')->name('reschedule.store');
+        // Event bookings (decided 2026-11-22): balance, cancelling, a date we cancelled.
+        Route::post('/balance', [ManageEventController::class, 'payBalance'])->middleware('throttle:checkout')->name('event.balance');
+        Route::get('/cancel', [ManageEventController::class, 'confirmCancel'])->name('event.cancel');
+        Route::post('/cancel', [ManageEventController::class, 'cancel'])->middleware('throttle:account-actions')->name('event.cancel.store');
+        Route::post('/event-date/refund', [ManageEventController::class, 'refundCancelledDate'])->middleware('throttle:account-actions')->name('event.refund');
+        Route::post('/event-date/move', [ManageEventController::class, 'moveCancelledDate'])->middleware('throttle:account-actions')->name('event.move');
     });
 
 // A private session request without signing in (guest checkout): the
@@ -197,11 +218,14 @@ Route::middleware([EnsureCheckInAccess::class, 'cache.headers:private;no_store']
 Route::middleware([EnsureTeamAreaAccess::class, 'cache.headers:private;no_store'])->prefix('team')->name('team.')->group(function (): void {
     Route::get('sessions', [RunSheetController::class, 'index'])->name('sessions.index');
     Route::get('sessions/{slot}', [RunSheetController::class, 'show'])->name('sessions.show');
+    // Event dates (decided 2026-11-22): the attendee list as CSV (admins).
+    Route::get('sessions/{slot}/export.csv', [RunSheetController::class, 'export'])->middleware('throttle:account-actions')->name('sessions.export');
     Route::scopeBindings()->middleware('throttle:checkin')->prefix('sessions/{slot}/bookings/{booking}')->name('sessions.')->group(function (): void {
         Route::post('check-in', [RunSheetController::class, 'checkIn'])->name('check-in');
         Route::post('horse', [RunSheetController::class, 'horse'])->name('horse');
         Route::post('note', [RunSheetController::class, 'note'])->name('note');
         Route::post('progress', RiderProgressController::class)->name('progress');
+        Route::post('balance', [RunSheetController::class, 'balance'])->name('balance');
     });
     Route::get('riders/{rider}', [RiderHistoryController::class, 'show'])->name('riders.show');
 });

@@ -41,6 +41,11 @@
             </div>
         @endif
 
+        {{-- Event bookings (decided 2026-11-22). --}}
+        @if (! $unpaid && ($eventBooking = \App\Support\Events\EventBooking::for($order)))
+            @include('manage.partials.event', ['event' => $eventBooking])
+        @endif
+
         @if ($upcoming->isNotEmpty())
             <h2 class="mt-12 text-display-xs font-extrabold">Your tickets</h2>
             <p class="mt-1 text-sm text-sand-dim">Show the code at the gate. Staff scan it to check you in.</p>

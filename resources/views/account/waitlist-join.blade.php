@@ -7,7 +7,7 @@
     @else
         @if ($free > 0)
             <x-alert variant="info" title="Some seats are free right now.">
-                If that’s enough for your group, <a href="{{ route('book', ['slot' => $slot->id, 'riders' => min($free, $riders)]) }}" class="underline underline-offset-4">book now</a> instead.
+                If that’s enough for your group, <a href="{{ $slot->rideEvent ? route('events.book', ['event' => $slot->rideEvent->slug, 'date' => $slot->id]) : route('book', ['slot' => $slot->id, 'riders' => min($free, $riders)]) }}" class="underline underline-offset-4">book now</a> instead.
             </x-alert>
         @endif
 

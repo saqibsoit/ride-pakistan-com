@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\PaymentProvider;
+use App\Enums\PaymentPurpose;
 use App\Enums\PaymentStatus;
 use Carbon\CarbonImmutable;
 use Database\Factories\PaymentFactory;
@@ -15,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * @property int $id
  * @property int $order_id
+ * @property PaymentPurpose $purpose the order (or its deposit), or an event balance
  * @property PaymentProvider $provider
  * @property string|null $provider_id
  * @property int $amount_minor
@@ -32,6 +34,7 @@ class Payment extends Model
     /** @var list<string> */
     protected $fillable = [
         'order_id',
+        'purpose',
         'provider',
         'provider_id',
         'amount_minor',
@@ -40,6 +43,9 @@ class Payment extends Model
         'transferred_on',
         'raw',
     ];
+
+    /** @var array<string, mixed> */
+    protected $attributes = ['purpose' => 'order'];
 
     /**
      * Raw provider payloads can hold customer details.
@@ -64,6 +70,7 @@ class Payment extends Model
     protected function casts(): array
     {
         return [
+            'purpose' => PaymentPurpose::class,
             'provider' => PaymentProvider::class,
             'status' => PaymentStatus::class,
             'amount_minor' => 'integer',

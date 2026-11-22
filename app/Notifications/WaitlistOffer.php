@@ -51,6 +51,13 @@ final class WaitlistOffer extends CustomerNotification
 
     public static function bookUrl(WaitlistEntry $entry): string
     {
+        // An event date (decided 2026-11-22) books on its event's form.
+        $event = $entry->slot->rideEvent;
+
+        if ($event !== null) {
+            return route('events.book', ['event' => $event->slug, 'date' => $entry->slot_id]);
+        }
+
         return route('book', ['slot' => $entry->slot_id, 'riders' => $entry->seats]);
     }
 

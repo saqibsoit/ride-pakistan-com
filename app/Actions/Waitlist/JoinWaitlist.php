@@ -7,6 +7,7 @@ namespace App\Actions\Waitlist;
 use App\Actions\Booking\SlotLock;
 use App\Enums\SettingKey;
 use App\Exceptions\BookingRejected;
+use App\Models\RideEvent;
 use App\Models\User;
 use App\Models\WaitlistEntry;
 use App\Support\Settings;
@@ -40,6 +41,11 @@ final class JoinWaitlist
             $slot = $locked->slot;
 
             $locked->assertBookable($this->settings->int(SettingKey::MinNoticeHours) ?? 0);
+
+            // Event dates (decided 2026-11-22): only when the event has its waitlist on.
+            if ($slot->isEvent() && ! (bool) RideEvent::query()->whereKey($slot->ride_event_id)->value('waitlist_enabled')) {
+                throw BookingRejected::notAllowed('This event has no waitlist.');
+            }
 
             if ($slot->private_only) {
                 throw BookingRejected::privateOnly();

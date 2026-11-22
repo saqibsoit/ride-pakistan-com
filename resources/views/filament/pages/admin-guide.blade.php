@@ -18,6 +18,21 @@
         <p>The type (single, private or package) is fixed once a product has orders. To sell something different, archive it and create a new product.</p>
     </x-filament::section>
 
+    <x-filament::section heading="Events: camps, workshops, trips" :collapsible="true">
+        <ol>
+            <li>Open <strong>Content → Events → New event</strong>. Give it a title and page address (/events/{slug}: keep it once you’ve shared it on Instagram), a category, a short and a long description.</li>
+            <li><strong>Payment and booking rules:</strong> full payment or a deposit percentage (non-refundable). The non-refundable share is what a customer loses when they cancel before the cutoff (usually the deposit; 0 = full refund before the cutoff). After the cutoff nothing is refunded; if we cancel a date, everything is. Set the group size, when bookings open and close, a required checkbox (dress code) and the waitlist.</li>
+            <li><strong>Content:</strong> add the sections you need (programme, included / not included, what to bring, dress code, requirements, FAQ, location note, photos) and drag them into order. Empty sections don’t show.</li>
+            <li><strong>Questions:</strong> asked per person or once per booking (dietary needs, T-shirt size, experience). Answers are on the run sheet and in the CSV.</li>
+            <li>Save, then add <strong>Prices</strong> (one “Per person”, or tiers like adult and child with their own places per date) and <strong>Dates</strong> (start, end, places, and whether regular lessons close: overlapping ones, or every lesson that day).</li>
+            <li><strong>Publish.</strong> The event appears on /events, the home page, /experiences and the sitemap, and its dates close the lesson slots they are set to close.</li>
+        </ol>
+        <p><strong>Lessons on event days are never cancelled automatically.</strong> Bookings already on a closed lesson slot are listed at the bottom of the event and emailed to admins: move them or agree something with the customer.</p>
+        <p><strong>Balances:</strong> deposit bookings show “Deposit paid, balance due” on the run sheet. Customers can pay online from their booking link; when they pay at the ranch, an admin presses <strong>Mark balance paid</strong> on the run sheet or the order (cash, card or transfer).</p>
+        <p><strong>Cancelling a date:</strong> Dates → Cancel (reason). Every customer is emailed and chooses a full refund (deposit included) or another date on their booking page; until then the order shows “Needs review” and you can do either from the order. Card money is refunded automatically; bank or cash money is flagged for you to pay back.</p>
+        <p><strong>Next year’s camp:</strong> Duplicate copies everything except the dates into a draft. An event with bookings is archived, never deleted.</p>
+    </x-filament::section>
+
     <x-filament::section heading="Change seasonal timings" :collapsible="true">
         <ol>
             <li>Open {!! $link($rulesUrl, 'Schedule rules') !!}. Each rule is one weekly session: a day, start and end time (Pakistan time) and number of riders.</li>

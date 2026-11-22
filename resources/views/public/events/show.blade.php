@@ -107,6 +107,8 @@
                                 </div>
                                 @if ($open && $date->seatsFree() > 0)
                                     <x-button :href="EventController::bookUrl($event, $date->id)" size="sm">Book this date<span class="sr-only">: {{ $date->dateRangeLabel() }}</span></x-button>
+                                @elseif ($open && $event->waitlist_enabled)
+                                    <x-button :href="route('account.waitlist.create', $date)" variant="ghost" size="sm">Join the waitlist<span class="sr-only">: {{ $date->dateRangeLabel() }}</span></x-button>
                                 @endif
                             </li>
                         @endforeach

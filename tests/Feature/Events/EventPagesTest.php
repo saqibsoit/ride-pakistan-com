@@ -6,6 +6,7 @@ use App\Actions\Booking\FulfilOrder;
 use App\Actions\Events\CreateEventOrder;
 use App\Actions\Events\SeedCowboyCamp;
 use App\Actions\Seo\GenerateSitemap;
+use App\Actions\Waitlist\JoinWaitlist;
 use App\Enums\BalanceStatus;
 use App\Enums\EventQuestionScope;
 use App\Enums\EventQuestionType;
@@ -13,6 +14,7 @@ use App\Enums\LessonClosure;
 use App\Enums\OrderStatus;
 use App\Enums\RideEventStatus;
 use App\Enums\SlotStatus;
+use App\Exceptions\BookingRejected;
 use App\Livewire\Events\EventBooking;
 use App\Models\Booking;
 use App\Models\Order;
@@ -21,6 +23,7 @@ use App\Models\RideEventCategory;
 use App\Models\Slot;
 use App\Models\User;
 use App\Notifications\OrderConfirmed;
+use App\Notifications\WaitlistOffer;
 use App\Support\GuestAccess;
 use App\Support\ManageLink;
 use Carbon\CarbonImmutable;
@@ -293,4 +296,20 @@ it('keeps an unpaid event order out of the paid lists until it is paid', functio
 
     expect($order->status)->toBe(OrderStatus::PendingPayment)
         ->and($order->balance()->exists())->toBeFalse();
+});
+
+it('offers a waitlist on a full date only when the event has one, and the offer books on the event form', function (): void {
+    $event = epCamp(['waitlist_enabled' => false]);
+    $date = eventDate($event, capacity: 1);
+    app(CreateEventOrder::class)->handle(User::factory()->create(), $event, $date->id, [['tier_id' => $event->tiers()->value('id'), 'name' => 'First', 'answers' => ['exp' => 'Some']]], [], true);
+    $customer = User::factory()->create();
+
+    expect(eventRejection(fn () => app(JoinWaitlist::class)->handle($customer, $date->id, 1)))->toBe(BookingRejected::NOT_ALLOWED);
+
+    $event->update(['waitlist_enabled' => true]);
+    $this->get('/events/cowboy-camp')->assertOk()->assertSee('Join the waitlist');
+
+    $entry = app(JoinWaitlist::class)->handle($customer, $date->id, 1);
+
+    expect(WaitlistOffer::bookUrl($entry->refresh()))->toBe(route('events.book', ['event' => 'cowboy-camp', 'date' => $date->id]));
 });
